@@ -10,10 +10,8 @@ Simple middleware-style router
 
 ## Installation
 
-**This module is not yet available on `npm`**
-
 ```sh
-$ npm install pillarjs/router
+$ npm install router
 ```
 
 ## API
