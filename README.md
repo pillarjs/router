@@ -27,6 +27,26 @@ object or something like `connect` by removing Express-specific API calls.
 Documentation is forthcoming, but the Express 4.x documentation can be found
 at http://expressjs.com/4x/api.html#router
 
+## Example
+
+```js
+var Router = require('router')
+var final  = require('finalhandler')
+var http   = require('http')
+
+var router = Router()
+router.get('/:who?', function(req, res, next) {
+  res.end('hello ' + req.params.who + '\n')
+})
+
+http.createServer(function(req, res) {
+  router(req, res, final(req, res))
+}).listen(3000)
+
+// $ curl http://localhost:3000/world
+// hello world
+```
+
 ## Testing
 
 ```sh
