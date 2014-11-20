@@ -211,78 +211,103 @@ Router.prototype.handle = function handle(req, res, callback) {
       ? null
       : err
 
-    var layer = stack[idx++]
-
+    // remove added slash
     if (slashAdded) {
       req.url = req.url.substr(1)
       slashAdded = false
     }
 
+    // restore altered req.url
     if (removed.length !== 0) {
       req.baseUrl = parentUrl
       req.url = protohost + removed + req.url.substr(protohost.length)
       removed = ''
     }
 
-    if (!layer) {
+    // no more matching layers
+    if (idx >= stack.length) {
       defer(done, layerError)
       return
     }
+    // get pathname of request
+    var path = getPathname(req)
 
-    self.match_layer(layer, req, res, function (err, path) {
-      if (err || path === undefined) {
-        next(layerError || err)
-        return
+    if (path == null) {
+      return done(layerError)
+    }
+
+    // find next matching layer
+    var layer
+    var match
+    var route
+
+    while (match !== true && idx < stack.length) {
+      layer = stack[idx++]
+      match = matchLayer(layer, path)
+      route = layer.route
+
+      if (typeof match !== 'boolean') {
+        // hold on to layerError
+        layerError = layerError || match
       }
 
-      // route object and not middleware
-      var route = layer.route
+      if (match !== true) {
+        continue
+      }
 
-      // if final route, then we support options
+      if (!route) {
+        // process non-route handlers normally
+        continue
+      }
+
+      if (layerError) {
+        // routes do not match with a pending error
+        match = false
+        continue
+      }
+
+      var method = req.method;
+      var has_method = route._handles_method(method)
+
+      // build up automatic options response
+      if (!has_method && method === 'OPTIONS') {
+        options.push.apply(options, route._options())
+      }
+
+      // don't even bother matching route
+      if (!has_method && method !== 'HEAD') {
+        match = false
+        continue
+      }
+    }
+
+    // no match
+    if (match !== true) {
+      return done(layerError)
+    }
+
+    // store route for dispatch on change
+    if (route) {
+      req.route = route
+    }
+
+    // Capture one-time layer values
+    req.params = self.mergeParams
+      ? mergeParams(layer.params, parentParams)
+      : layer.params
+    var layerPath = layer.path
+
+    // this should be done for the layer
+    self.process_params(layer, paramcalled, req, res, function (err) {
+      if (err) {
+        return next(layerError || err)
+      }
+
       if (route) {
-        // we don't run any routes with error first
-        if (layerError) {
-          next(layerError)
-          return
-        }
-
-        var method = req.method
-        var has_method = route._handles_method(method)
-
-        // build up automatic options response
-        if (!has_method && method === 'OPTIONS') {
-          options.push.apply(options, route._options())
-        }
-
-        // don't even bother
-        if (!has_method && method !== 'HEAD') {
-          next()
-          return
-        }
-
-        // we can now dispatch to the route
-        req.route = route
+        return layer.handle_request(req, res, next)
       }
 
-      // Capture one-time layer values
-      req.params = self.mergeParams
-        ? mergeParams(layer.params, parentParams)
-        : layer.params
-      var layerPath = layer.path
-
-      // this should be done for the layer
-      self.process_params(layer, paramcalled, req, res, function (err) {
-        if (err) {
-          next(layerError || err)
-          return
-        }
-
-        if (route) {
-          return layer.handle_request(req, res, next)
-        }
-
-        trim_prefix(layer, layerError, layerPath, path)
-      })
+      trim_prefix(layer, layerError, layerPath, path)
     })
   }
 
@@ -321,29 +346,6 @@ Router.prototype.handle = function handle(req, res, callback) {
       layer.handle_request(req, res, next)
     }
   }
-}
-
-/**
- * Match request to a layer.
- *
- * @private
- */
-
-Router.prototype.match_layer = function match_layer(layer, req, res, done) {
-  var error = null
-  var path
-
-  try {
-    path = parseUrl(req).pathname
-
-    if (!layer.match(path)) {
-      path = undefined
-    }
-  } catch (err) {
-    error = err
-  }
-
-  done(error, path)
 }
 
 /**
@@ -545,6 +547,37 @@ methods.concat('all').forEach(function(method){
     return this
   }
 })
+
+/**
+ * Get pathname of request.
+ *
+ * @param {IncomingMessage} req
+ * @private
+ */
+
+function getPathname(req) {
+  try {
+    return parseUrl(req).pathname;
+  } catch (err) {
+    return undefined;
+  }
+}
+
+/**
+ * Match path to a layer.
+ *
+ * @param {Layer} layer
+ * @param {string} path
+ * @private
+ */
+
+function matchLayer(layer, path) {
+  try {
+    return layer.match(path);
+  } catch (err) {
+    return err;
+  }
+}
 
 /**
  * Merge params with parent params

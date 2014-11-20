@@ -50,6 +50,21 @@ describe('Router', function () {
       })
     })
 
+    it('should not stack overflow with many registered routes', function (done) {
+      var router = new Router()
+      var server = createServer(router)
+
+      for (var i = 0; i < 6000; i++) {
+        router.get('/thing' + i, helloWorld)
+      }
+
+      router.get('/', helloWorld)
+
+      request(server)
+      .get('/')
+      .expect(200, 'hello, world', done)
+    })
+
     describe('with "caseSensitive" option', function () {
       it('should not match paths case-sensitively by default', function (done) {
         var cb = after(3, done)
