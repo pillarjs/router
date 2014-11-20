@@ -27,6 +27,33 @@ object or something like `connect` by removing Express-specific API calls.
 Documentation is forthcoming, but the Express 4.x documentation can be found
 at http://expressjs.com/4x/api.html#router
 
+## Example
+
+Simple example of using the router independently of any framework.
+
+```js
+var finalhandler = require('finalhandler')
+var http = require('http')
+var Router = require('router')
+
+var router = new Router()
+
+router.get('/', function (req, res) {
+  res.setHeader('Content-Type', 'text/plain; charset=utf-8')
+  res.end('hello, world!')
+})
+
+var server = http.createServer(app)
+
+server.listen(3000, function onListening() {
+  console.log('http server listening on port ' + this.address().port)
+})
+
+function app(req, res) {
+  router(req, res, finalhandler(req, res))
+}
+```
+
 ## Testing
 
 ```sh
