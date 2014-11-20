@@ -1,5 +1,5 @@
-unreleased
-==========
+1.0.0-beta.2 / 2014-11-19
+=========================
 
   * Match routes iteratively to prevent stack overflows
 
