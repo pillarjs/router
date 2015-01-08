@@ -1,6 +1,7 @@
 unreleased
 ==========
 
+  * Fix duplicate methods appearing in OPTIONS responses
   * deps: debug@~2.1.1
   * deps: methods@~1.1.1
 

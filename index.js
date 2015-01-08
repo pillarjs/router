@@ -163,14 +163,11 @@ Router.prototype.handle = function handle(req, res, callback) {
   var fqdn = req.url[0] !== '/' && 1 + req.url.substr(0, pathlength).indexOf('://')
   var protohost = fqdn ? req.url.substr(0, req.url.indexOf('/', 2 + fqdn)) : ''
   var idx = 0
+  var methods
   var removed = ''
   var self = this
   var slashAdded = false
   var paramcalled = {}
-
-  // store options for OPTIONS request
-  // only used if OPTIONS request
-  var options = []
 
   // middleware and routes
   var stack = this.stack
@@ -185,19 +182,8 @@ Router.prototype.handle = function handle(req, res, callback) {
 
   // for options requests, respond with a default if nothing else responds
   if (req.method === 'OPTIONS') {
-    done = wrap(done, function onDone(old, err) {
-      if (err || options.length === 0) {
-        return old(err)
-      }
-
-      var methods = options.sort().join(', ')
-
-      res.setHeader('Allow', methods)
-      res.setHeader('Content-Length', Buffer.byteLength(methods))
-      res.setHeader('Content-Type', 'text/plain')
-      res.setHeader('X-Content-Type-Options', 'nosniff')
-      res.end(methods)
-    })
+    methods = []
+    done = wrap(done, generateOptionsResponder(res, methods))
   }
 
   // setup basic req values
@@ -270,8 +256,8 @@ Router.prototype.handle = function handle(req, res, callback) {
       var has_method = route._handles_method(method)
 
       // build up automatic options response
-      if (!has_method && method === 'OPTIONS') {
-        options.push.apply(options, route._options())
+      if (!has_method && method === 'OPTIONS' && methods) {
+        methods.push.apply(methods, route._methods())
       }
 
       // don't even bother matching route
@@ -547,6 +533,39 @@ methods.concat('all').forEach(function(method){
     return this
   }
 })
+
+/**
+ * Generate a callback that will make an OPTIONS response.
+ *
+ * @param {OutgoingMessage} res
+ * @param {array} methods
+ * @private
+ */
+
+function generateOptionsResponder(res, methods) {
+  return function onDone(fn, err) {
+    if (err || methods.length === 0) {
+      return fn(err)
+    }
+
+    var options = Object.create(null)
+
+    // build unique method map
+    for (var i = 0; i < methods.length; i++) {
+      options[methods[i]] = true
+    }
+
+    // construct the allow list
+    var allow = Object.keys(options).sort().join(', ')
+
+    // send response
+    res.setHeader('Allow', allow)
+    res.setHeader('Content-Length', Buffer.byteLength(allow))
+    res.setHeader('Content-Type', 'text/plain')
+    res.setHeader('X-Content-Type-Options', 'nosniff')
+    res.end(allow)
+  }
+}
 
 /**
  * Get pathname of request.

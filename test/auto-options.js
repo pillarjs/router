@@ -21,6 +21,21 @@ describe('OPTIONS', function () {
     .expect(200, 'GET, POST, PUT', done)
   })
 
+  it('should not contain methods multiple times', function (done) {
+    var router = Router()
+    var server = createServer(router)
+
+    router.delete('/', saw)
+    router.get('/users', saw)
+    router.put('/users', saw)
+    router.get('/users', saw)
+
+    request(server)
+    .options('/users')
+    .expect('GET, PUT')
+    .expect('Allow', 'GET, PUT', done)
+  })
+
   it('should not include "all" routes', function (done) {
     var router = Router()
     var server = createServer(router)
