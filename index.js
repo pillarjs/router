@@ -158,12 +158,9 @@ Router.prototype.handle = function handle(req, res, callback) {
 
   debug('dispatching %s %s', req.method, req.url)
 
-  var search = 1 + req.url.indexOf('?')
-  var pathlength = search ? search - 1 : req.url.length
-  var fqdn = req.url[0] !== '/' && 1 + req.url.substr(0, pathlength).indexOf('://')
-  var protohost = fqdn ? req.url.substr(0, req.url.indexOf('/', 2 + fqdn)) : ''
   var idx = 0
   var methods
+  var protohost = getProtohost(req.url) || ''
   var removed = ''
   var self = this
   var slashAdded = false
@@ -313,7 +310,7 @@ Router.prototype.handle = function handle(req, res, callback) {
       req.url = protohost + req.url.substr(protohost.length + removed.length)
 
       // Ensure leading slash
-      if (!fqdn && req.url[0] !== '/') {
+      if (!protohost && req.url[0] !== '/') {
         req.url = '/' + req.url
         slashAdded = true
       }
@@ -580,6 +577,29 @@ function getPathname(req) {
   } catch (err) {
     return undefined;
   }
+}
+
+/**
+ * Get get protocol + host for a URL.
+ *
+ * @param {string} url
+ * @private
+ */
+
+function getProtohost(url) {
+  if (url.length === 0 || url[0] === '/') {
+    return undefined
+  }
+
+  var searchIndex = url.indexOf('?')
+  var pathLength = searchIndex !== -1
+    ? searchIndex
+    : url.length
+  var fqdnIndex = url.substr(0, pathLength).indexOf('://')
+
+  return fqdnIndex !== -1
+    ? url.substr(0, url.indexOf('/', 3 + fqdnIndex))
+    : undefined
 }
 
 /**
