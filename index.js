@@ -130,10 +130,6 @@ Router.prototype.param = function param(name, fn) {
     throw new TypeError('argument fn must be a function')
   }
 
-  if (name[0] === ':') {
-    name = name.substr(1)
-  }
-
   var params = this.params[name]
 
   if (!params) {

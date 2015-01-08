@@ -53,25 +53,6 @@ describe('Router', function () {
       .expect(200, 'get user NaN', cb)
     })
 
-    it('should ignore leading colon on name', function (done) {
-      var router = new Router()
-      var server = createServer(router)
-
-      router.param(':id', function parseId(req, res, next, val) {
-        req.params.id = Number(val)
-        next()
-      })
-
-      router.get('/user/:id', function (req, res) {
-        res.setHeader('Content-Type', 'text/plain')
-        res.end('get user ' + req.params.id)
-      })
-
-      request(server)
-      .get('/user/bob')
-      .expect(200, 'get user NaN', done)
-    })
-
     it('should allow chaining', function (done) {
       var router = new Router()
       var server = createServer(router)
@@ -271,12 +252,6 @@ describe('Router', function () {
     })
   })
 })
-
-function createServer(router) {
-  return http.createServer(function onRequest(req, res) {
-    router(req, res, finalhandler(req, res))
-  })
-}
 
 function sethit(num) {
   var name = 'x-fn-' + String(num)

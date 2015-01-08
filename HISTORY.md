@@ -2,6 +2,7 @@ unreleased
 ==========
 
   * Fix duplicate methods appearing in OPTIONS responses
+  * Remove support for leading colon in `router.param(name, fn)`
   * deps: debug@~2.1.1
   * deps: methods@~1.1.1
 
