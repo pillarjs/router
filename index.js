@@ -208,6 +208,7 @@ Router.prototype.handle = function handle(req, res, callback) {
       defer(done, layerError)
       return
     }
+
     // get pathname of request
     var path = getPathname(req)
 
@@ -293,7 +294,7 @@ Router.prototype.handle = function handle(req, res, callback) {
   function trim_prefix(layer, layerError, layerPath, path) {
     var c = path[layerPath.length]
 
-    if (c && '/' !== c && '.' !== c) {
+    if (c && c !== '/') {
       next(layerError)
       return
     }
