@@ -250,6 +250,48 @@ describe('Router', function () {
       .get('/user/bob')
       .expect(500, /Error: boom/, done)
     })
+
+    describe('next("route")', function () {
+      it('should cause route with param to be skipped', function (done) {
+        var cb = after(3, done)
+        var router = new Router()
+        var server = createServer(router)
+
+        router.param('id', function parseId(req, res, next, val) {
+          var id = Number(val)
+
+          if (isNaN(id)) {
+            return next('route')
+          }
+
+          req.params.id = id
+          next()
+        })
+
+        router.get('/user/:id', function (req, res) {
+          res.setHeader('Content-Type', 'text/plain')
+          res.end('get user ' + req.params.id)
+        })
+
+        router.get('/user/new', function (req, res) {
+          res.statusCode = 400
+          res.setHeader('Content-Type', 'text/plain')
+          res.end('cannot get a new user')
+        })
+
+        request(server)
+        .get('/user/2')
+        .expect(200, 'get user 2', cb)
+
+        request(server)
+        .get('/user/bob')
+        .expect(404, cb)
+
+        request(server)
+        .get('/user/new')
+        .expect(400, 'cannot get a new user', cb)
+      })
+    })
   })
 })
 
