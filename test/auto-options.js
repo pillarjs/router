@@ -17,8 +17,8 @@ describe('OPTIONS', function () {
 
     request(server)
     .options('/users')
-    .expect('Allow', 'GET, POST, PUT')
-    .expect(200, 'GET, POST, PUT', done)
+    .expect('Allow', 'GET, HEAD, POST, PUT')
+    .expect(200, 'GET, HEAD, POST, PUT', done)
   })
 
   it('should not contain methods multiple times', function (done) {
@@ -32,8 +32,8 @@ describe('OPTIONS', function () {
 
     request(server)
     .options('/users')
-    .expect('GET, PUT')
-    .expect('Allow', 'GET, PUT', done)
+    .expect('GET, HEAD, PUT')
+    .expect('Allow', 'GET, HEAD, PUT', done)
   })
 
   it('should not include "all" routes', function (done) {
@@ -48,8 +48,8 @@ describe('OPTIONS', function () {
     request(server)
     .options('/users')
     .expect('x-fn-1', 'hit')
-    .expect('Allow', 'GET, PUT')
-    .expect(200, 'GET, PUT', done)
+    .expect('Allow', 'GET, HEAD, PUT')
+    .expect(200, 'GET, HEAD, PUT', done)
   })
 
   it('should not respond if no matching path', function (done) {
