@@ -371,6 +371,20 @@ describe('Router', function () {
       .expect(200, 'hello, world', done)
     })
 
+    it('should accept nested arrays of middleware', function (done) {
+      var router = new Router()
+      var server = createServer(router)
+
+      router.use([[sethit(1), sethit(2)], sethit(3)], helloWorld)
+
+      request(server)
+      .get('/')
+      .expect('x-fn-1', 'hit')
+      .expect('x-fn-2', 'hit')
+      .expect('x-fn-3', 'hit')
+      .expect(200, 'hello, world', done)
+    })
+
     describe('req.baseUrl', function () {
       it('should be empty', function (done) {
         var router = new Router()

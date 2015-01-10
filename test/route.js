@@ -144,6 +144,35 @@ describe('Router', function () {
         .expect('x-fn-2', 'hit')
         .expect(200, 'hello, world', done)
       })
+
+      it('should accept single array of handlers', function (done) {
+        var router = new Router()
+        var route = router.route('/foo')
+        var server = createServer(router)
+
+        route.all([sethit(1), sethit(2), helloWorld])
+
+        request(server)
+        .get('/foo')
+        .expect('x-fn-1', 'hit')
+        .expect('x-fn-2', 'hit')
+        .expect(200, 'hello, world', done)
+      })
+
+      it('should accept nested arrays of handlers', function (done) {
+        var router = new Router()
+        var route = router.route('/foo')
+        var server = createServer(router)
+
+        route.all([[sethit(1), sethit(2)], sethit(3)], helloWorld)
+
+        request(server)
+        .get('/foo')
+        .expect('x-fn-1', 'hit')
+        .expect('x-fn-2', 'hit')
+        .expect('x-fn-3', 'hit')
+        .expect(200, 'hello, world', done)
+      })
     })
 
     methods.slice().sort().forEach(function (method) {
@@ -189,15 +218,44 @@ describe('Router', function () {
 
         it('should accept multiple arguments', function (done) {
           var router = new Router()
-          var route = router.route('/')
+          var route = router.route('/foo')
           var server = createServer(router)
 
           route[method](sethit(1), sethit(2), helloWorld)
 
           request(server)
-          [method]('/')
+          [method]('/foo')
           .expect('x-fn-1', 'hit')
           .expect('x-fn-2', 'hit')
+          .expect(200, body, done)
+        })
+
+        it('should accept single array of handlers', function (done) {
+          var router = new Router()
+          var route = router.route('/foo')
+          var server = createServer(router)
+
+          route[method]([sethit(1), sethit(2), helloWorld])
+
+          request(server)
+          [method]('/foo')
+          .expect('x-fn-1', 'hit')
+          .expect('x-fn-2', 'hit')
+          .expect(200, body, done)
+        })
+
+        it('should accept nested arrays of handlers', function (done) {
+          var router = new Router()
+          var route = router.route('/foo')
+          var server = createServer(router)
+
+          route[method]([[sethit(1), sethit(2)], sethit(3)], helloWorld)
+
+          request(server)
+          [method]('/foo')
+          .expect('x-fn-1', 'hit')
+          .expect('x-fn-2', 'hit')
+          .expect('x-fn-3', 'hit')
           .expect(200, body, done)
         })
       })
