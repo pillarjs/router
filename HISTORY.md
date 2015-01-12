@@ -1,5 +1,5 @@
-unreleased
-==========
+1.0.0-beta.3 / 2015-01-11
+=========================
 
   * Fix duplicate methods appearing in OPTIONS responses
   * Fix OPTIONS responses to include the HEAD method properly
