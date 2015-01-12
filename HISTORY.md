@@ -4,6 +4,7 @@
   * Fix duplicate methods appearing in OPTIONS responses
   * Fix OPTIONS responses to include the HEAD method properly
   * Remove support for leading colon in `router.param(name, fn)`
+  * Use `array-flatten` for flattening arrays
   * deps: debug@~2.1.1
   * deps: methods@~1.1.1
 

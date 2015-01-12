@@ -11,12 +11,12 @@
  */
 
 var debug = require('debug')('router')
+var flatten = require('array-flatten')
 var Layer = require('./lib/layer')
 var methods = require('methods')
 var mixin = require('utils-merge')
 var parseUrl = require('parseurl')
 var Route = require('./lib/route')
-var utils = require('./lib/utils')
 
 /**
  * Module variables.
@@ -459,7 +459,7 @@ Router.prototype.use = function use(handler) {
     }
   }
 
-  var callbacks = utils.flatten(slice.call(arguments, offset))
+  var callbacks = flatten(slice.call(arguments, offset))
 
   if (callbacks.length === 0) {
     throw new TypeError('argument handler is required')
