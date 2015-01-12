@@ -1,3 +1,8 @@
+unreleased
+==========
+
+  * Fix crash from error within `OPTIONS` response handler
+
 1.0.0-beta.3 / 2015-01-11
 =========================
 

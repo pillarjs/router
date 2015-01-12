@@ -542,22 +542,7 @@ function generateOptionsResponder(res, methods) {
       return fn(err)
     }
 
-    var options = Object.create(null)
-
-    // build unique method map
-    for (var i = 0; i < methods.length; i++) {
-      options[methods[i]] = true
-    }
-
-    // construct the allow list
-    var allow = Object.keys(options).sort().join(', ')
-
-    // send response
-    res.setHeader('Allow', allow)
-    res.setHeader('Content-Length', Buffer.byteLength(allow))
-    res.setHeader('Content-Type', 'text/plain')
-    res.setHeader('X-Content-Type-Options', 'nosniff')
-    res.end(allow)
+    trySendOptionsResponse(res, methods, fn)
   }
 }
 
@@ -678,6 +663,45 @@ function restore(fn, obj) {
     }
 
     return fn.apply(this, arguments)
+  }
+}
+
+/**
+ * Send an OPTIONS response.
+ *
+ * @private
+ */
+
+function sendOptionsResponse(res, methods) {
+  var options = Object.create(null)
+
+  // build unique method map
+  for (var i = 0; i < methods.length; i++) {
+    options[methods[i]] = true
+  }
+
+  // construct the allow list
+  var allow = Object.keys(options).sort().join(', ')
+
+  // send response
+  res.setHeader('Allow', allow)
+  res.setHeader('Content-Length', Buffer.byteLength(allow))
+  res.setHeader('Content-Type', 'text/plain')
+  res.setHeader('X-Content-Type-Options', 'nosniff')
+  res.end(allow)
+}
+
+/**
+ * Try to send an OPTIONS response.
+ *
+ * @private
+ */
+
+function trySendOptionsResponse(res, methods, next) {
+  try {
+    sendOptionsResponse(res, methods)
+  } catch (err) {
+    next(err)
   }
 }
 

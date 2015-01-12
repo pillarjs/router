@@ -74,6 +74,24 @@ describe('OPTIONS', function () {
     .options('/users')
     .expect(200, 'saw OPTIONS /users', done)
   })
+
+  describe('when error occurs in respone handler', function () {
+    it('should pass error to callback', function (done) {
+      var router = Router()
+      var server = createServer(function hander(req, res, next) {
+        res.writeHead(200)
+        router(req, res, function (err) {
+          res.end(String(Boolean(err)))
+        })
+      })
+
+      router.get('/users', saw)
+
+      request(server)
+      .options('/users')
+      .expect(200, 'true', done)
+    })
+  })
 })
 
 function saw(req, res) {
