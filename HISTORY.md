@@ -1,5 +1,5 @@
-unreleased
-==========
+1.0.0 / 2015-01-13
+==================
 
   * Fix crash from error within `OPTIONS` response handler
   * deps: array-flatten@1.0.2
