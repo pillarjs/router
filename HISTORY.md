@@ -2,6 +2,8 @@ unreleased
 ==========
 
   * Fix crash from error within `OPTIONS` response handler
+  * deps: array-flatten@1.0.2
+    - Remove redundant code path
 
 1.0.0-beta.3 / 2015-01-11
 =========================
