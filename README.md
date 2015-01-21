@@ -18,10 +18,11 @@ $ npm install router
 
 ```js
 var finalhandler = require('finalhandler')
-var http         = require('http')
-var Router       = require('router')
+var http = require('http')
+var Router = require('router')
 
 var router = Router()
+
 router.get('/', function (req, res) {
   res.setHeader('Content-Type', 'text/plain; charset=utf-8')
   res.end('Hello World!')
@@ -179,11 +180,11 @@ router.route('/')
 
 ```js
 // import our modules
-var http         = require('http')
-var Router       = require('router')
+var http = require('http')
+var Router = require('router')
 var finalhandler = require('finalhandler')
-var compression  = require('compression')
-var bodyParser   = require('body-parser')
+var compression = require('compression')
+var bodyParser = require('body-parser')
 
 // store our message to display
 var message = "Hello World!"
@@ -244,8 +245,8 @@ curl http://127.0.0.1:8080/api/set-message -X PATCH -H "Content-Type: applicatio
 ### Example using mergeParams
 
 ```js
-var http         = require('http')
-var Router       = require('router')
+var http = require('http')
+var Router = require('router')
 var finalhandler = require('finalhandler')
 
 // this example is about the mergeParams option
@@ -294,6 +295,79 @@ curl http://127.0.0.1:8080
 curl http://127.0.0.1:8080/such_path
 > such_path
 ```
+
+## Implementing Your Own Router
+
+Implementing a custom path matching library on top of this module is as easy as using `Router.Engine`. For example, to implement an "exact" path matching module, we can do this:
+
+```js
+var Engine = require('router').Engine
+var slice = Array.prototype.slice
+
+/**
+ * Accepts the path and some options we defined in our engine.
+ */
+function toFunction (route, options) {
+  if (!options.end) {
+    return function (path) {
+      var matches = path.substr(0, route.length) === route
+
+      return matches ? { path: path } : false
+    }
+  }
+
+  return function (path) {
+    return path === route ? { path: path } : false
+  }
+}
+
+/**
+ * The constructor must return the engine instance.
+ */
+function ExactRouter (options) {
+  return Engine.call(this, options)
+}
+
+/**
+ * Inherits from the engine prototype.
+ */
+ExactRouter.prototype = Object.create(Engine.prototype)
+
+/**
+ * Set up `Router#use` with our custom path matching implementation.
+ */
+ExactRouter.prototype.use = function () {
+  // Use a simple utility for supporting a single path argument like `router`.
+  var opts = Engine.sanitizeUse.apply(null, arguments)
+  var match = toFunction(opts.path, { end: false })
+
+  return Engine.prototype.use.call(this, opts.path, match, opts.callbacks)
+}
+
+/**
+ * Set up `Router#route` with our custom path patching implementation.
+ */
+ExactRouter.prototype.route = function (path) {
+  var match = toFunction(path, { end: true })
+
+  return Engine.prototype.route.call(this, path, match)
+}
+
+/**
+ * Set up all the router method shorthands.
+ */
+Engine.methods.forEach(function (method) {
+  ExactRouter.prototype[method] = function (path) {
+    var route = this.route(path)
+    route[method].apply(route, slice.call(arguments, 1))
+    return this
+  }
+})
+```
+
+Both the path matching function and the path itself must be passed into the `route` and `use` engine methods. This is for debugging, so `path` should be a human-readable path name. `Engine#use` also accepts an array of handlers to immediately include. The match function must return an object of `{ path: string, params: object }` or `false` if it didn't match.
+
+Note: The path matching utility should not throw errors. Decoding of parameters is handled by the engine.
 
 ## License
 
