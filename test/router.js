@@ -710,6 +710,19 @@ describe('Router', function () {
       })
     })
   })
+
+  describe('unicode', function () {
+    it('should normalize paths', function (done) {
+      var router = new Router()
+      var server = createServer(router)
+
+      router.get('/caf\u00E9', helloWorld)
+
+      request(server)
+        .get(encodeURI('/cafe\u0301'))
+        .expect(200, 'hello, world', done)
+    })
+  })
 })
 
 function helloWorld(req, res) {

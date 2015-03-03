@@ -16,6 +16,7 @@ var Layer = require('./lib/layer')
 var methods = require('methods')
 var mixin = require('utils-merge')
 var parseUrl = require('parseurl')
+var normalize = require('unorm').nfc
 var Route = require('./lib/route')
 
 /**
@@ -168,7 +169,7 @@ Router.prototype.handle = function handle(req, res, callback) {
   // manage inter-router variables
   var parentParams = req.params
   var parentUrl = req.baseUrl || ''
-  var done = restore(callback, req, 'baseUrl', 'next', 'params')
+  var done = restore(callback, req, 'url', 'baseUrl', 'next', 'params')
 
   // setup next layer
   req.next = next
@@ -180,6 +181,7 @@ Router.prototype.handle = function handle(req, res, callback) {
   }
 
   // setup basic req values
+  req.url = decode(req.url)
   req.baseUrl = parentUrl
   req.originalUrl = req.originalUrl || req.url
 
@@ -721,5 +723,19 @@ function wrap(old, fn) {
     }
 
     fn.apply(this, args)
+  }
+}
+
+/**
+ * Decode and normalize a uri
+ *
+ * @private
+ */
+
+function decode (str) {
+  try {
+    return normalize(decodeURI(str))
+  } catch (e) {
+    return str
   }
 }
