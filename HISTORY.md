@@ -1,6 +1,7 @@
 unreleased
 ==========
 
+  * Use `setprototypeof` instead of `__proto__`
   * deps: debug@~2.1.3
     - Fix high intensity foreground color for bold
     - deps: ms@0.7.0
