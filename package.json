@@ -11,6 +11,7 @@
     "methods": "~1.1.1",
     "parseurl": "~1.3.0",
     "path-to-regexp": "0.1.3",
+    "setprototypeof": "~1.0.0",
     "utils-merge": "1.0.0"
   },
   "devDependencies": {
