@@ -299,13 +299,13 @@ curl http://127.0.0.1:8080/such_path
 
 [MIT](LICENSE)
 
-[npm-image]: https://img.shields.io/npm/v/router.svg?style=flat
+[npm-image]: https://img.shields.io/npm/v/router.svg
 [npm-url]: https://npmjs.org/package/router
-[node-version-image]: https://img.shields.io/node/v/router.svg?style=flat
+[node-version-image]: https://img.shields.io/node/v/router.svg
 [node-version-url]: http://nodejs.org/download/
-[travis-image]: https://img.shields.io/travis/pillarjs/router.svg?style=flat
+[travis-image]: https://img.shields.io/travis/pillarjs/router/master.svg
 [travis-url]: https://travis-ci.org/pillarjs/router
-[coveralls-image]: https://img.shields.io/coveralls/pillarjs/router.svg?style=flat
+[coveralls-image]: https://img.shields.io/coveralls/pillarjs/router/master.svg
 [coveralls-url]: https://coveralls.io/r/pillarjs/router?branch=master
-[downloads-image]: https://img.shields.io/npm/dm/router.svg?style=flat
+[downloads-image]: https://img.shields.io/npm/dm/router.svg
 [downloads-url]: https://npmjs.org/package/router
