@@ -1,5 +1,5 @@
-unreleased
-==========
+1.1.0 / 2015-04-22
+==================
 
   * Use `setprototypeof` instead of `__proto__`
   * deps: debug@~2.1.3
