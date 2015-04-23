@@ -17,7 +17,7 @@
     "after": "0.8.1",
     "finalhandler": "0.3.3",
     "istanbul": "0.3.5",
-    "mocha": "~2.1.0",
+    "mocha": "~2.2.4",
     "supertest": "~0.15.0"
   },
   "files": [
