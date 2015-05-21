@@ -4,6 +4,9 @@ var Router = require('..')
 var utils = require('./support/utils')
 
 var assert = utils.assert
+var createHitHandle = utils.createHitHandle
+var shouldHitHandle = utils.shouldHitHandle
+var shouldNotHitHandle = utils.shouldNotHitHandle
 var createServer = utils.createServer
 var request = utils.request
 
@@ -290,6 +293,31 @@ describe('Router', function () {
         request(server)
         .get('/user/new')
         .expect(400, 'cannot get a new user', cb)
+      })
+
+      it('should invoke fn if path value differs', function (done) {
+        var router = new Router()
+        var server = createServer(router)
+
+        router.param('user', function parseUser(req, res, next, user) {
+          req.count = (req.count || 0) + 1
+          req.user = user
+          req.vals = (req.vals || []).concat(user)
+          next(user === 'user' ? 'route' : null)
+        })
+
+        router.get('/:user/bob', createHitHandle(1))
+        router.get('/user/:user', createHitHandle(2))
+
+        router.use(function (req, res) {
+          res.end('get user ' + req.user + ' ' + req.count + ' times: ' + req.vals.join(', '))
+        })
+
+        request(server)
+        .get('/user/bob')
+        .expect(shouldNotHitHandle(1))
+        .expect(shouldHitHandle(2))
+        .expect('get user bob 2 times: user, bob', done)
       })
     })
   })

@@ -5,9 +5,20 @@ var http = require('http')
 var request = require('supertest')
 
 exports.assert = assert
+exports.createHitHandle = createHitHandle
 exports.createServer = createServer
 exports.rawrequest = rawrequest
 exports.request = request
+exports.shouldHitHandle = shouldHitHandle
+exports.shouldNotHitHandle = shouldNotHitHandle
+
+function createHitHandle(num) {
+  var name = 'x-fn-' + String(num)
+  return function hit(req, res, next) {
+    res.setHeader(name, 'hit')
+    next()
+  }
+}
 
 function createServer(router) {
   return http.createServer(function onRequest(req, res) {
@@ -74,17 +85,19 @@ function rawrequest(server) {
   }
 }
 
-function setsaw(num) {
-  var name = 'x-saw-' + String(num)
-  return function hit(req, res, next) {
-    res.setHeader(name, req.method + ' ' + req.url)
-    next()
+function shouldHitHandle(num) {
+  var header = 'x-fn-' + String(num)
+  return function (res) {
+    assert.equal(res.headers[header], 'hit')
   }
 }
 
-function saw(req, res) {
-  var msg = 'saw ' + req.method + ' ' + req.url
-  res.statusCode = 200
-  res.setHeader('Content-Type', 'text/plain')
-  res.end(msg)
+function shouldNotHitHandle(num) {
+  return shouldNotHaveHeader('x-fn-' + String(num))
+}
+
+function shouldNotHaveHeader(header) {
+  return function (res) {
+    assert.ok(!(header.toLowerCase() in res.headers), 'should not have header ' + header)
+  }
 }

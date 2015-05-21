@@ -1,6 +1,7 @@
 unreleased
 ==========
 
+  * Fix issue where `next('route')` in `app.param` would incorrectly skip values
   * deps: array-flatten@1.1.0
   * deps: debug@~2.2.0
     - deps: ms@0.7.1

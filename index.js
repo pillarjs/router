@@ -382,7 +382,8 @@ Router.prototype.process_params = function process_params(layer, called, req, re
     }
 
     // param previously called with same value or error occurred
-    if (paramCalled && (paramCalled.error || paramCalled.match === paramVal)) {
+    if (paramCalled && (paramCalled.match === paramVal
+      || (paramCalled.error && paramCalled.error !== 'route'))) {
       // restore value
       req.params[name] = paramCalled.value
 
