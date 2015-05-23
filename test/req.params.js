@@ -35,6 +35,25 @@ describe('req.params', function () {
     .expect('x-params-1', '{}')
     .expect(200, '', done)
   })
+
+  it('should restore previous value outside the router', function (done) {
+    var router = Router()
+    var server = createServer(function (req, res, next) {
+      req.params = {'foo': 'bar'}
+
+      router(req, res, function (err) {
+        if (err) return next(err)
+        sawParams(req, res)
+      })
+    })
+
+    router.get('/', hitParams(1))
+
+    request(server)
+    .get('/')
+    .expect('x-params-1', '{}')
+    .expect(200, '{"foo":"bar"}', done)
+  })
 })
 
 function hitParams(num) {
