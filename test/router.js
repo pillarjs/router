@@ -5,8 +5,11 @@ var Router = require('..')
 var utils = require('./support/utils')
 
 var assert = utils.assert
+var createHitHandle = utils.createHitHandle
 var createServer = utils.createServer
 var request = utils.request
+var shouldHitHandle = utils.shouldHitHandle
+var shouldNotHitHandle = utils.shouldNotHitHandle
 
 describe('Router', function () {
   it('should return a function', function () {
@@ -214,12 +217,12 @@ describe('Router', function () {
         var router = new Router()
         var server = createServer(router)
 
-        router[method]('/', sethit(1), sethit(2), helloWorld)
+        router[method]('/', createHitHandle(1), createHitHandle(2), helloWorld)
 
         request(server)
         [method]('/')
-        .expect('x-fn-1', 'hit')
-        .expect('x-fn-2', 'hit')
+        .expect(shouldHitHandle(1))
+        .expect(shouldHitHandle(2))
         .expect(200, body, done)
       })
 
@@ -349,12 +352,12 @@ describe('Router', function () {
       var router = new Router()
       var server = createServer(router)
 
-      router.use(sethit(1), sethit(2), helloWorld)
+      router.use(createHitHandle(1), createHitHandle(2), helloWorld)
 
       request(server)
       .get('/')
-      .expect('x-fn-1', 'hit')
-      .expect('x-fn-2', 'hit')
+      .expect(shouldHitHandle(1))
+      .expect(shouldHitHandle(2))
       .expect(200, 'hello, world', done)
     })
 
@@ -362,12 +365,12 @@ describe('Router', function () {
       var router = new Router()
       var server = createServer(router)
 
-      router.use([sethit(1), sethit(2), helloWorld])
+      router.use([createHitHandle(1), createHitHandle(2), helloWorld])
 
       request(server)
       .get('/')
-      .expect('x-fn-1', 'hit')
-      .expect('x-fn-2', 'hit')
+      .expect(shouldHitHandle(1))
+      .expect(shouldHitHandle(2))
       .expect(200, 'hello, world', done)
     })
 
@@ -375,13 +378,13 @@ describe('Router', function () {
       var router = new Router()
       var server = createServer(router)
 
-      router.use([[sethit(1), sethit(2)], sethit(3)], helloWorld)
+      router.use([[createHitHandle(1), createHitHandle(2)], createHitHandle(3)], helloWorld)
 
       request(server)
       .get('/')
-      .expect('x-fn-1', 'hit')
-      .expect('x-fn-2', 'hit')
-      .expect('x-fn-3', 'hit')
+      .expect(shouldHitHandle(1))
+      .expect(shouldHitHandle(2))
+      .expect(shouldHitHandle(3))
       .expect(200, 'hello, world', done)
     })
 
@@ -493,12 +496,12 @@ describe('Router', function () {
       var router = new Router()
       var server = createServer(router)
 
-      router.use('/foo', sethit(1), sethit(2), helloWorld)
+      router.use('/foo', createHitHandle(1), createHitHandle(2), helloWorld)
 
       request(server)
       .get('/foo')
-      .expect('x-fn-1', 'hit')
-      .expect('x-fn-2', 'hit')
+      .expect(shouldHitHandle(1))
+      .expect(shouldHitHandle(2))
       .expect(200, 'hello, world', done)
     })
 
@@ -710,20 +713,60 @@ describe('Router', function () {
       })
     })
   })
+
+  describe('request rewriting', function () {
+    it('should support altering req.method', function (done) {
+      var router = new Router()
+      var server = createServer(router)
+
+      router.put('/foo', createHitHandle(1))
+      router.post('/foo', createHitHandle(2), function (req, res, next) {
+        req.method = 'PUT'
+        next()
+      })
+
+      router.post('/foo', createHitHandle(3))
+      router.put('/foo', createHitHandle(4))
+      router.use(saw)
+
+      request(server)
+      .post('/foo')
+      .expect(shouldNotHitHandle(1))
+      .expect(shouldHitHandle(2))
+      .expect(shouldNotHitHandle(3))
+      .expect(shouldHitHandle(4))
+      .expect(200, 'saw PUT /foo', done)
+    })
+
+    it('should support altering req.url', function (done) {
+      var router = new Router()
+      var server = createServer(router)
+
+      router.get('/bar', createHitHandle(1))
+      router.get('/foo', createHitHandle(2), function (req, res, next) {
+        req.url = '/bar'
+        next()
+      })
+
+      router.get('/foo', createHitHandle(3))
+      router.get('/bar', createHitHandle(4))
+      router.use(saw)
+
+      request(server)
+      .get('/foo')
+      .expect(shouldNotHitHandle(1))
+      .expect(shouldHitHandle(2))
+      .expect(shouldNotHitHandle(3))
+      .expect(shouldHitHandle(4))
+      .expect(200, 'saw GET /bar', done)
+    })
+  })
 })
 
 function helloWorld(req, res) {
   res.statusCode = 200
   res.setHeader('Content-Type', 'text/plain')
   res.end('hello, world')
-}
-
-function sethit(num) {
-  var name = 'x-fn-' + String(num)
-  return function hit(req, res, next) {
-    res.setHeader(name, 'hit')
-    next()
-  }
 }
 
 function setsaw(num) {
