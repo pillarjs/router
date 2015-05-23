@@ -53,6 +53,70 @@ describe('Router', function () {
       })
     })
 
+    it('should support array of paths', function (done) {
+      var cb = after(3, done)
+      var router = new Router()
+      var server = createServer(router)
+
+      router.all(['/foo', '/bar'], saw)
+
+      request(server)
+      .get('/')
+      .expect(404, cb)
+
+      request(server)
+      .get('/foo')
+      .expect(200, 'saw GET /foo', cb)
+
+      request(server)
+      .get('/bar')
+      .expect(200, 'saw GET /bar', cb)
+    })
+
+    it('should support regexp path', function (done) {
+      var cb = after(3, done)
+      var router = new Router()
+      var server = createServer(router)
+
+      router.all(/^\/[a-z]oo$/, saw)
+
+      request(server)
+      .get('/')
+      .expect(404, cb)
+
+      request(server)
+      .get('/foo')
+      .expect(200, 'saw GET /foo', cb)
+
+      request(server)
+      .get('/zoo')
+      .expect(200, 'saw GET /zoo', cb)
+    })
+
+    it('should support parameterized path', function (done) {
+      var cb = after(4, done)
+      var router = new Router()
+      var server = createServer(router)
+
+      router.all('/:thing', saw)
+
+      request(server)
+      .get('/')
+      .expect(404, cb)
+
+      request(server)
+      .get('/foo')
+      .expect(200, 'saw GET /foo', cb)
+
+      request(server)
+      .get('/bar')
+      .expect(200, 'saw GET /bar', cb)
+
+      request(server)
+      .get('/foo/bar')
+      .expect(404, cb)
+    })
+
     it('should not stack overflow with many registered routes', function (done) {
       var router = new Router()
       var server = createServer(router)
@@ -211,6 +275,80 @@ describe('Router', function () {
       it('should reject invalid fn', function () {
         var router = new Router()
         assert.throws(router[method].bind(router, '/', 2), /argument handler must be a function/)
+      })
+
+      it('should support array of paths', function (done) {
+        var cb = after(3, done)
+        var router = new Router()
+        var server = createServer(router)
+
+        router[method](['/foo', '/bar'], createHitHandle(1), helloWorld)
+
+        request(server)
+        [method]('/')
+        .expect(shouldNotHitHandle(1))
+        .expect(404, cb)
+
+        request(server)
+        [method]('/foo')
+        .expect(shouldHitHandle(1))
+        .expect(200, body, cb)
+
+        request(server)
+        [method]('/bar')
+        .expect(shouldHitHandle(1))
+        .expect(200, body, cb)
+      })
+
+      it('should support regexp path', function (done) {
+        var cb = after(3, done)
+        var router = new Router()
+        var server = createServer(router)
+
+        router[method](/^\/[a-z]oo$/, createHitHandle(1), helloWorld)
+
+        request(server)
+        [method]('/')
+        .expect(shouldNotHitHandle(1))
+        .expect(404, cb)
+
+        request(server)
+        [method]('/foo')
+        .expect(shouldHitHandle(1))
+        .expect(200, body, cb)
+
+        request(server)
+        [method]('/zoo')
+        .expect(shouldHitHandle(1))
+        .expect(200, body, cb)
+      })
+
+      it('should support parameterized path', function (done) {
+        var cb = after(4, done)
+        var router = new Router()
+        var server = createServer(router)
+
+        router[method]('/:thing', createHitHandle(1), helloWorld)
+
+        request(server)
+        [method]('/')
+        .expect(shouldNotHitHandle(1))
+        .expect(404, cb)
+
+        request(server)
+        [method]('/foo')
+        .expect(shouldHitHandle(1))
+        .expect(200, body, cb)
+
+        request(server)
+        [method]('/bar')
+        .expect(shouldHitHandle(1))
+        .expect(200, body, cb)
+
+        request(server)
+        [method]('/foo/bar')
+        .expect(shouldNotHitHandle(1))
+        .expect(404, cb)
       })
 
       it('should accept multiple arguments', function (done) {
@@ -490,6 +628,30 @@ describe('Router', function () {
       request(server)
       .get('/get/zoo')
       .expect(404, cb)
+    })
+
+    it('should support parameterized path', function (done) {
+      var cb = after(4, done)
+      var router = new Router()
+      var server = createServer(router)
+
+      router.use('/:thing', saw)
+
+      request(server)
+      .get('/')
+      .expect(404, cb)
+
+      request(server)
+      .get('/foo')
+      .expect(200, 'saw GET /', cb)
+
+      request(server)
+      .get('/bar')
+      .expect(200, 'saw GET /', cb)
+
+      request(server)
+      .get('/foo/bar')
+      .expect(200, 'saw GET /bar', cb)
     })
 
     it('should accept multiple arguments', function (done) {
