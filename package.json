@@ -1,7 +1,7 @@
 {
   "name": "router",
   "description": "Simple middleware-style router",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "author": "Douglas Christopher Wilson <doug@somethingdoug.com>",
   "license": "MIT",
   "repository": "pillarjs/router",

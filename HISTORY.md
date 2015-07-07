@@ -1,5 +1,5 @@
-unreleased
-==========
+1.1.2 / 2015-07-06
+==================
 
   * Fix hiding platform issues with `decodeURIComponent`
     - Only `URIError`s are a 400
