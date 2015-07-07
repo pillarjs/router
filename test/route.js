@@ -330,6 +330,25 @@ describe('Router', function () {
     })
 
     describe('path', function () {
+      describe('using ":name"', function () {
+        it('should work following a partial capture group', function (done) {
+          var cb = after(2, done)
+          var router = new Router()
+          var route = router.route('/user(s)?/:user/:op')
+          var server = createServer(router)
+
+          route.all(sendParams)
+
+          request(server)
+          .get('/user/tj/edit')
+          .expect(200, {'user': 'tj', 'op': 'edit'}, cb)
+
+          request(server)
+          .get('/users/tj/edit')
+          .expect(200, {'0': 's', 'user': 'tj', 'op': 'edit'}, cb)
+        })
+      })
+
       describe('using "*"', function () {
         it('should capture everything', function (done) {
           var router = new Router()
@@ -394,6 +413,56 @@ describe('Router', function () {
           request(server)
           .get('/foo/')
           .expect(200, cb)
+        })
+
+        it('should work in a named parameter', function (done) {
+          var cb = after(2, done)
+          var router = new Router()
+          var route = router.route('/:foo(*)')
+          var server = createServer(router)
+
+          route.all(sendParams)
+
+          request(server)
+          .get('/bar')
+          .expect(200, {'0': 'bar', 'foo': 'bar'}, cb)
+
+          request(server)
+          .get('/fizz/buzz')
+          .expect(200, {'0': 'fizz/buzz', 'foo': 'fizz/buzz'}, cb)
+        })
+
+        it('should work before a named parameter', function (done) {
+          var router = new Router()
+          var route = router.route('/*/user/:id')
+          var server = createServer(router)
+
+          route.all(sendParams)
+
+          request(server)
+          .get('/poke/user/42')
+          .expect(200, {'0': 'poke', 'id': '42'}, done)
+        })
+
+        it('should work within arrays', function (done) {
+          var cb = after(3, done)
+          var router = new Router()
+          var route = router.route(['/user/:id', '/foo/*', '/:action'])
+          var server = createServer(router)
+
+          route.all(sendParams)
+
+          request(server)
+          .get('/user/42')
+          .expect(200, {'id': '42'}, cb)
+
+          request(server)
+          .get('/foo/bar')
+          .expect(200, {'0': 'bar'}, cb)
+
+          request(server)
+          .get('/poke')
+          .expect(200, {'action': 'poke'}, cb)
         })
       })
     })

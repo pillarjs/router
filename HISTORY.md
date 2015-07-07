@@ -1,6 +1,9 @@
 unreleased
 ==========
 
+  * Fix using `*` before params in routes
+  * Fix using capture groups before params in routes
+  * deps: path-to-regexp@0.1.6
   * perf: enable strict mode
 
 1.1.1 / 2015-05-25
