@@ -7,6 +7,7 @@ unreleased
   * Fix using capture groups before params in routes
   * deps: path-to-regexp@0.1.6
   * perf: enable strict mode
+  * perf: remove argument reassignments in routing
   * perf: skip attempting to decode zero length string
 
 1.1.1 / 2015-05-25
