@@ -331,6 +331,42 @@ describe('Router', function () {
 
     describe('path', function () {
       describe('using ":name"', function () {
+        it('should name a capture group', function (done) {
+          var router = new Router()
+          var route = router.route('/:foo')
+          var server = createServer(router)
+
+          route.all(sendParams)
+
+          request(server)
+          .get('/bar')
+          .expect(200, {'foo': 'bar'}, done)
+        })
+
+        it('should match single path segment', function (done) {
+          var router = new Router()
+          var route = router.route('/:foo')
+          var server = createServer(router)
+
+          route.all(sendParams)
+
+          request(server)
+          .get('/bar/bar')
+          .expect(404, done)
+        })
+
+        it('should work multiple times', function (done) {
+          var router = new Router()
+          var route = router.route('/:foo/:bar')
+          var server = createServer(router)
+
+          route.all(sendParams)
+
+          request(server)
+          .get('/fizz/buzz')
+          .expect(200, {'foo': 'fizz', 'bar': 'buzz'}, done)
+        })
+
         it('should work following a partial capture group', function (done) {
           var cb = after(2, done)
           var router = new Router()
@@ -346,6 +382,23 @@ describe('Router', function () {
           request(server)
           .get('/users/tj/edit')
           .expect(200, {'0': 's', 'user': 'tj', 'op': 'edit'}, cb)
+        })
+
+        it('should work within arrays', function (done) {
+          var cb = after(2, done)
+          var router = new Router()
+          var route = router.route(['/user/:user/poke', '/user/:user/pokes'])
+          var server = createServer(router)
+
+          route.all(sendParams)
+
+          request(server)
+          .get('/user/tj/poke')
+          .expect(200, {'user': 'tj'}, cb)
+
+          request(server)
+          .get('/user/tj/pokes')
+          .expect(200, {'user': 'tj'}, cb)
         })
       })
 
