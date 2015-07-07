@@ -1,6 +1,8 @@
 unreleased
 ==========
 
+  * Fix hiding platform issues with `decodeURIComponent`
+    - Only `URIError`s are a 400
   * Fix using `*` before params in routes
   * Fix using capture groups before params in routes
   * deps: path-to-regexp@0.1.6
