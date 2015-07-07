@@ -5,6 +5,7 @@ var Router = require('..')
 var utils = require('./support/utils')
 
 var assert = utils.assert
+var createHitHandle = utils.createHitHandle
 var createServer = utils.createServer
 var request = utils.request
 
@@ -44,9 +45,9 @@ describe('Router', function () {
       var route = router.route('/foo')
       var server = createServer(router)
 
-      route.post(sethit(1))
-      route.all(sethit(2))
-      route.get(sethit(3))
+      route.post(createHitHandle(1))
+      route.all(createHitHandle(2))
+      route.get(createHitHandle(3))
       route.all(saw)
 
       request(server)
@@ -136,7 +137,7 @@ describe('Router', function () {
         var route = router.route('/foo')
         var server = createServer(router)
 
-        route.all(sethit(1), sethit(2), helloWorld)
+        route.all(createHitHandle(1), createHitHandle(2), helloWorld)
 
         request(server)
         .get('/foo')
@@ -150,7 +151,7 @@ describe('Router', function () {
         var route = router.route('/foo')
         var server = createServer(router)
 
-        route.all([sethit(1), sethit(2), helloWorld])
+        route.all([createHitHandle(1), createHitHandle(2), helloWorld])
 
         request(server)
         .get('/foo')
@@ -164,7 +165,7 @@ describe('Router', function () {
         var route = router.route('/foo')
         var server = createServer(router)
 
-        route.all([[sethit(1), sethit(2)], sethit(3)], helloWorld)
+        route.all([[createHitHandle(1), createHitHandle(2)], createHitHandle(3)], helloWorld)
 
         request(server)
         .get('/foo')
@@ -221,7 +222,7 @@ describe('Router', function () {
           var route = router.route('/foo')
           var server = createServer(router)
 
-          route[method](sethit(1), sethit(2), helloWorld)
+          route[method](createHitHandle(1), createHitHandle(2), helloWorld)
 
           request(server)
           [method]('/foo')
@@ -235,7 +236,7 @@ describe('Router', function () {
           var route = router.route('/foo')
           var server = createServer(router)
 
-          route[method]([sethit(1), sethit(2), helloWorld])
+          route[method]([createHitHandle(1), createHitHandle(2), helloWorld])
 
           request(server)
           [method]('/foo')
@@ -249,7 +250,7 @@ describe('Router', function () {
           var route = router.route('/foo')
           var server = createServer(router)
 
-          route[method]([[sethit(1), sethit(2)], sethit(3)], helloWorld)
+          route[method]([[createHitHandle(1), createHitHandle(2)], createHitHandle(3)], helloWorld)
 
           request(server)
           [method]('/foo')
@@ -327,6 +328,75 @@ describe('Router', function () {
         .expect(500, 'caught: oh, no!', done)
       })
     })
+
+    describe('path', function () {
+      describe('using "*"', function () {
+        it('should capture everything', function (done) {
+          var router = new Router()
+          var route = router.route('*')
+          var server = createServer(router)
+
+          route.all(sendParams)
+
+          request(server)
+          .get('/foo/bar/baz')
+          .expect(200, {'0': '/foo/bar/baz'}, done)
+        })
+
+        it('should capture everything with pre- and post-fixes', function (done) {
+          var router = new Router()
+          var route = router.route('/foo/*/bar')
+          var server = createServer(router)
+
+          route.all(sendParams)
+
+          request(server)
+          .get('/foo/1/2/3/bar')
+          .expect(200, {'0': '1/2/3'}, done)
+        })
+
+        it('should capture greedly', function (done) {
+          var router = new Router()
+          var route = router.route('/foo/*/bar')
+          var server = createServer(router)
+
+          route.all(sendParams)
+
+          request(server)
+          .get('/foo/bar/bar/bar')
+          .expect(200, {'0': 'bar/bar'}, done)
+        })
+
+        it('should be an optional capture', function (done) {
+          var router = new Router()
+          var route = router.route('/foo*')
+          var server = createServer(router)
+
+          route.all(sendParams)
+
+          request(server)
+          .get('/foo')
+          .expect(200, {'0': ''}, done)
+        })
+
+        it('should require preceeding /', function (done) {
+          var cb = after(2, done)
+          var router = new Router()
+          var route = router.route('/foo/*')
+          var server = createServer(router)
+
+          route.all(sendParams)
+
+          request(server)
+          .get('/foo')
+          .expect(404, cb)
+
+          request(server)
+          .get('/foo/')
+          .expect(200, cb)
+        })
+      })
+    })
   })
 })
 
@@ -334,14 +404,6 @@ function helloWorld(req, res) {
   res.statusCode = 200
   res.setHeader('Content-Type', 'text/plain')
   res.end('hello, world')
-}
-
-function sethit(num) {
-  var name = 'x-fn-' + String(num)
-  return function hit(req, res, next) {
-    res.setHeader(name, 'hit')
-    next()
-  }
 }
 
 function setsaw(num) {
@@ -357,4 +419,10 @@ function saw(req, res) {
   res.statusCode = 200
   res.setHeader('Content-Type', 'text/plain')
   res.end(msg)
+}
+
+function sendParams(req, res) {
+  res.statusCode = 200
+  res.setHeader('Content-Type', 'application/json')
+  res.end(JSON.stringify(req.params))
 }
