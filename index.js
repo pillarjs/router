@@ -469,7 +469,9 @@ Router.prototype.use = function use(handler) {
     throw new TypeError('argument handler is required')
   }
 
-  callbacks.forEach(function (fn) {
+  for (var i = 0; i < callbacks.length; i++) {
+    var fn = callbacks[i]
+
     if (typeof fn !== 'function') {
       throw new TypeError('argument handler must be a function')
     }
@@ -486,7 +488,7 @@ Router.prototype.use = function use(handler) {
     layer.route = undefined
 
     this.stack.push(layer)
-  }, this)
+  }
 
   return this
 }

@@ -9,6 +9,7 @@ unreleased
   * perf: enable strict mode
   * perf: remove argument reassignments in routing
   * perf: skip attempting to decode zero length string
+  * perf: use plain for loops
 
 1.1.1 / 2015-05-25
 ==================
