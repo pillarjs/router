@@ -1,3 +1,9 @@
+unreleased
+==========
+
+  * deps: array-flatten@1.1.1
+    - perf: enable strict mode
+
 1.1.2 / 2015-07-06
 ==================
 
