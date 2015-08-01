@@ -384,6 +384,18 @@ describe('Router', function () {
           .expect(200, {'0': 's', 'user': 'tj', 'op': 'edit'}, cb)
         })
 
+        it('should work inside literal paranthesis', function (done) {
+          var router = new Router()
+          var route = router.route('/:user\\(:op\\)')
+          var server = createServer(router)
+
+          route.all(sendParams)
+
+          request(server)
+          .get('/tj(edit)')
+          .expect(200, {'user': 'tj', 'op': 'edit'}, done)
+        })
+
         it('should work within arrays', function (done) {
           var cb = after(2, done)
           var router = new Router()
