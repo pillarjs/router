@@ -644,7 +644,7 @@ function mergeParams(params, parent) {
     }
   }
 
-  return mixin(parent, params)
+  return mixin(obj, params)
 }
 
 /**

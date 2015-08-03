@@ -89,6 +89,25 @@ describe('req.params', function () {
       .expect(200, '{"foo":"bar"}', done)
     })
 
+    it('should merge numeric properies by offsetting', function (done) {
+      var router = Router({ mergeParams: true })
+      var server = createServer(function (req, res, next) {
+        req.params = {'0': 'foo', '1': 'bar'}
+
+        router(req, res, function (err) {
+          if (err) return next(err)
+          sawParams(req, res)
+        })
+      })
+
+      router.get('/*', hitParams(1))
+
+      request(server)
+      .get('/buzz')
+      .expect('x-params-1', '{"0":"foo","1":"bar","2":"buzz"}')
+      .expect(200, '{"0":"foo","1":"bar"}', done)
+    })
+
     it('should ignore non-object outsite object', function (done) {
       var router = Router({ mergeParams: true })
       var server = createServer(function (req, res, next) {

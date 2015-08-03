@@ -1,6 +1,7 @@
 unreleased
 ==========
 
+  * Fix inner numeric indices incorrectly altering parent `req.params`
   * deps: array-flatten@1.1.1
     - perf: enable strict mode
   * deps: path-to-regexp@0.1.7
