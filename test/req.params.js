@@ -36,6 +36,20 @@ describe('req.params', function () {
     .expect(200, '', done)
   })
 
+  it('should overwrite value outside the router', function (done) {
+    var router = Router()
+    var server = createServer(function (req, res, next) {
+      req.params = {'foo': 'bar'}
+      router(req, res, done)
+    })
+
+    router.get('/', sawParams)
+
+    request(server)
+    .get('/')
+    .expect(200, '{}', done)
+  })
+
   it('should restore previous value outside the router', function (done) {
     var router = Router()
     var server = createServer(function (req, res, next) {
@@ -53,6 +67,65 @@ describe('req.params', function () {
     .get('/')
     .expect('x-params-1', '{}')
     .expect(200, '{"foo":"bar"}', done)
+  })
+
+  describe('when "mergeParams: true"', function () {
+    it('should merge outsite object with params', function (done) {
+      var router = Router({ mergeParams: true })
+      var server = createServer(function (req, res, next) {
+        req.params = {'foo': 'bar'}
+
+        router(req, res, function (err) {
+          if (err) return next(err)
+          sawParams(req, res)
+        })
+      })
+
+      router.get('/:fizz', hitParams(1))
+
+      request(server)
+      .get('/buzz')
+      .expect('x-params-1', '{"foo":"bar","fizz":"buzz"}')
+      .expect(200, '{"foo":"bar"}', done)
+    })
+
+    it('should ignore non-object outsite object', function (done) {
+      var router = Router({ mergeParams: true })
+      var server = createServer(function (req, res, next) {
+        req.params = 42
+
+        router(req, res, function (err) {
+          if (err) return next(err)
+          sawParams(req, res)
+        })
+      })
+
+      router.get('/:fizz', hitParams(1))
+
+      request(server)
+      .get('/buzz')
+      .expect('x-params-1', '{"fizz":"buzz"}')
+      .expect(200, '42', done)
+    })
+
+    it('should overwrite outside keys that are the same', function (done) {
+      var router = Router({ mergeParams: true })
+      var server = createServer(function (req, res, next) {
+        req.params = {'foo': 'bar'}
+
+        router(req, res, function (err) {
+          if (err) return next(err)
+          sawParams(req, res)
+        })
+      })
+
+      router.get('/:foo', hitParams(1))
+
+      request(server)
+      .get('/buzz')
+      .expect('x-params-1', '{"foo":"buzz"}')
+      .expect(200, '{"foo":"bar"}', done)
+    })
   })
 })
 
