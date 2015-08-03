@@ -628,10 +628,14 @@ function mergeParams(params, parent) {
   var i = 0
   var o = 0
 
-  // determine numeric gaps
-  while (i === o || o in parent) {
-    if (i in params) i++
-    if (o in parent) o++
+  // determine numeric gap in params
+  while (i in params) {
+    i++
+  }
+
+  // determine numeric gap in parent
+  while (o in parent) {
+    o++
   }
 
   // offset numeric indices in params before merge
