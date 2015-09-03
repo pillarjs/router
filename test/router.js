@@ -132,7 +132,7 @@ describe('Router', function () {
       .expect(200, 'hello, world', done)
     })
 
-    describe('with "caseSensitive" option', function () {
+    describe('with path "sensitive" option', function () {
       it('should not match paths case-sensitively by default', function (done) {
         var cb = after(3, done)
         var router = new Router()
@@ -155,7 +155,7 @@ describe('Router', function () {
 
       it('should not match paths case-sensitively when false', function (done) {
         var cb = after(3, done)
-        var router = new Router({ caseSensitive: false })
+        var router = new Router({ path: { sensitive: false } })
         var server = createServer(router)
 
         router.all('/foo/bar', saw)
@@ -175,7 +175,7 @@ describe('Router', function () {
 
       it('should match paths case-sensitively when true', function (done) {
         var cb = after(3, done)
-        var router = new Router({ caseSensitive: true })
+        var router = new Router({ path: { sensitive: true } })
         var server = createServer(router)
 
         router.all('/foo/bar', saw)
@@ -213,7 +213,7 @@ describe('Router', function () {
 
       it('should accept optional trailing slashes when false', function (done) {
         var cb = after(2, done)
-        var router = new Router({ strict: false })
+        var router = new Router({ path: { strict: false } })
         var server = createServer(router)
 
         router.all('/foo', saw)
@@ -229,7 +229,7 @@ describe('Router', function () {
 
       it('should not accept optional trailing slashes when true', function (done) {
         var cb = after(2, done)
-        var router = new Router({ strict: true })
+        var router = new Router({ path: { strict: true } })
         var server = createServer(router)
 
         router.all('/foo', saw)
@@ -710,7 +710,7 @@ describe('Router', function () {
 
       it('should match paths case-sensitively when true', function (done) {
         var cb = after(3, done)
-        var router = new Router({ caseSensitive: true })
+        var router = new Router({ path: { sensitive: true } })
         var server = createServer(router)
 
         router.use('/foo', saw)
