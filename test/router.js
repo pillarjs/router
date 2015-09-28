@@ -13,7 +13,7 @@ var shouldNotHitHandle = utils.shouldNotHitHandle
 
 describe('Router', function () {
   it('should return a function', function () {
-    assert.equal(typeof Router(), 'function')
+    assert.equal(typeof new Router(), 'function')
   })
 
   it('should return a function using new', function () {
