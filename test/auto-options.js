@@ -7,7 +7,7 @@ var request = utils.request
 
 describe('OPTIONS', function () {
   it('should respond with defined routes', function (done) {
-    var router = Router()
+    var router = new Router()
     var server = createServer(router)
 
     router.delete('/', saw)
@@ -22,7 +22,7 @@ describe('OPTIONS', function () {
   })
 
   it('should not contain methods multiple times', function (done) {
-    var router = Router()
+    var router = new Router()
     var server = createServer(router)
 
     router.delete('/', saw)
@@ -37,7 +37,7 @@ describe('OPTIONS', function () {
   })
 
   it('should not include "all" routes', function (done) {
-    var router = Router()
+    var router = new Router()
     var server = createServer(router)
 
     router.get('/', saw)
@@ -53,7 +53,7 @@ describe('OPTIONS', function () {
   })
 
   it('should not respond if no matching path', function (done) {
-    var router = Router()
+    var router = new Router()
     var server = createServer(router)
 
     router.get('/users', saw)
@@ -64,7 +64,7 @@ describe('OPTIONS', function () {
   })
 
   it('should do nothing with explicit options route', function (done) {
-    var router = Router()
+    var router = new Router()
     var server = createServer(router)
 
     router.get('/users', saw)
@@ -77,7 +77,7 @@ describe('OPTIONS', function () {
 
   describe('when error occurs in respone handler', function () {
     it('should pass error to callback', function (done) {
-      var router = Router()
+      var router = new Router()
       var server = createServer(function hander(req, res, next) {
         res.writeHead(200)
         router(req, res, function (err) {

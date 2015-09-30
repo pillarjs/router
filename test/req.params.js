@@ -9,7 +9,7 @@ var request = utils.request
 
 describe('req.params', function () {
   it('should default to empty object', function (done) {
-    var router = Router()
+    var router = new Router()
     var server = createServer(router)
 
     router.get('/', sawParams)
@@ -20,7 +20,7 @@ describe('req.params', function () {
   })
 
   it('should not exist outside the router', function (done) {
-    var router = Router()
+    var router = new Router()
     var server = createServer(function (req, res, next) {
       router(req, res, function (err) {
         if (err) return next(err)
@@ -37,7 +37,7 @@ describe('req.params', function () {
   })
 
   it('should overwrite value outside the router', function (done) {
-    var router = Router()
+    var router = new Router()
     var server = createServer(function (req, res, next) {
       req.params = {'foo': 'bar'}
       router(req, res, done)
@@ -51,7 +51,7 @@ describe('req.params', function () {
   })
 
   it('should restore previous value outside the router', function (done) {
-    var router = Router()
+    var router = new Router()
     var server = createServer(function (req, res, next) {
       req.params = {'foo': 'bar'}
 
@@ -71,7 +71,7 @@ describe('req.params', function () {
 
   describe('when "mergeParams: true"', function () {
     it('should merge outsite object with params', function (done) {
-      var router = Router({ mergeParams: true })
+      var router = new Router({ mergeParams: true })
       var server = createServer(function (req, res, next) {
         req.params = {'foo': 'bar'}
 
@@ -90,7 +90,7 @@ describe('req.params', function () {
     })
 
     it('should ignore non-object outsite object', function (done) {
-      var router = Router({ mergeParams: true })
+      var router = new Router({ mergeParams: true })
       var server = createServer(function (req, res, next) {
         req.params = 42
 
@@ -109,7 +109,7 @@ describe('req.params', function () {
     })
 
     it('should overwrite outside keys that are the same', function (done) {
-      var router = Router({ mergeParams: true })
+      var router = new Router({ mergeParams: true })
       var server = createServer(function (req, res, next) {
         req.params = {'foo': 'bar'}
 
@@ -129,7 +129,7 @@ describe('req.params', function () {
 
     describe('with numeric properties in req.params', function () {
       it('should merge numeric properies by offsetting', function (done) {
-        var router = Router({ mergeParams: true })
+        var router = new Router({ mergeParams: true })
         var server = createServer(function (req, res, next) {
           req.params = {'0': 'foo', '1': 'bar'}
 
@@ -148,7 +148,7 @@ describe('req.params', function () {
       })
 
       it('should merge with same numeric properties', function (done) {
-        var router = Router({ mergeParams: true })
+        var router = new Router({ mergeParams: true })
         var server = createServer(function (req, res, next) {
           req.params = {'0': 'foo'}
 

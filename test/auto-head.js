@@ -7,7 +7,7 @@ var request = utils.request
 
 describe('HEAD', function () {
   it('should invoke get without head', function (done) {
-    var router = Router()
+    var router = new Router()
     var server = createServer(router)
 
     router.get('/users', sethit(1), saw)
@@ -20,7 +20,7 @@ describe('HEAD', function () {
   })
 
   it('should invoke head if prior to get', function (done) {
-    var router = Router()
+    var router = new Router()
     var server = createServer(router)
 
     router.head('/users', sethit(1), saw)
