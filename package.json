@@ -16,7 +16,7 @@
   },
   "devDependencies": {
     "after": "0.8.1",
-    "bluebird": "^2.10.2",
+    "bluebird": "2.10.2",
     "finalhandler": "0.4.0",
     "istanbul": "0.3.17",
     "mocha": "2.2.5",
