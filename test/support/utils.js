@@ -6,6 +6,7 @@ var request = require('supertest')
 
 exports.assert = assert
 exports.createHitHandle = createHitHandle
+exports.createErrorHitHandle = createErrorHitHandle
 exports.createServer = createServer
 exports.rawrequest = rawrequest
 exports.request = request
@@ -17,6 +18,13 @@ function createHitHandle(num) {
   return function hit(req, res, next) {
     res.setHeader(name, 'hit')
     next()
+  }
+}
+
+function createErrorHitHandle(num) {
+  var hit = createHitHandle(num)
+  return function hitError(error, req, res, next) {
+    hit(req, res, function () { next(error) })
   }
 }
 

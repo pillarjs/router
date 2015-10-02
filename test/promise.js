@@ -4,6 +4,9 @@ var utils = require('./support/utils')
 var Promise = require('bluebird')
 
 var assert = utils.assert
+var createHitHandle = utils.createHitHandle
+var createErrorHitHandle = utils.createErrorHitHandle
+var shouldHitHandle = utils.shouldHitHandle
 var createServer = utils.createServer
 var request = utils.request
 
@@ -26,46 +29,41 @@ describe('Promise', function () {
   it('will be ignored if next is called', function (done) {
     var router = Router()
     var server = createServer(router)
-    var count = 0
+    var timeoutCalled = false
 
-    router.use(function (req, res, next) {
-      count++
+    router.use(createHitHandle(1), function (req, res, next) {
       return new Promise(function (resolve, reject) {
-        count++
         next()
         setTimeout(function () {
-          count++
+          timeoutCalled = true
           resolve()
         }, 5)
       })
     })
 
-    router.use(function (req, res) {
-      assert.equal(count, 2)
+    router.use(createHitHandle(2), function (req, res) {
+      assert(!timeoutCalled)
       res.end('Awesome!')
     })
 
     request(server)
     .get('/')
+    .expect(shouldHitHandle(1))
+    .expect(shouldHitHandle(2))
     .expect(200, done)
   })
 
   it('can be used in error handlers', function (done) {
     var router = Router()
     var server = createServer(router)
-    var count = 0
 
-    router.use(function (req, res, next) {
-      count++
+    router.use(createHitHandle(1), function (req, res, next) {
       next(new Error('Happy error'))
     })
 
-    router.use(function (error, req, res, next) {
-      count++
+    router.use(createErrorHitHandle(2), function (error, req, res, next) {
       return new Promise(function (resolve, reject) {
-        count++
         setTimeout(function () {
-          count++
           next(error)
           resolve()
         }, 5)
@@ -76,13 +74,15 @@ describe('Promise', function () {
       done(new Error('This should never be reached'))
     })
 
-    router.use(function (error, req, res, next) {
-      assert.equal(count, 4)
+    router.use(createErrorHitHandle(3), function (error, req, res, next) {
       res.end('Awesome!')
     })
 
     request(server)
     .get('/')
+    .expect(shouldHitHandle(1))
+    .expect(shouldHitHandle(2))
+    .expect(shouldHitHandle(3))
     .expect(200, done)
   })
 })
