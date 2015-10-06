@@ -17,7 +17,7 @@ exports.manyAsyncCalls = manyAsyncCalls
 function createHitHandle(num) {
   var name = 'x-fn-' + String(num)
   return function hit(req, res, next) {
-    if (!res.headersSent) { res.setHeader(name, 'hit') }
+    if (!(res.headersSent || res._headerSent)) { res.setHeader(name, 'hit') }
     next()
   }
 }
