@@ -67,4 +67,33 @@ describe('middleware', function () {
     .expect(shouldNotHitHandle(2))
     .expect(200, done)
   })
+
+  it('can call next multiple times with an error', function (done) {
+    var router = Router()
+    var server = createServer(router)
+    done = manyAsyncCalls(done, 3)
+
+    router.use(function (req, res, next) {
+      next(new Error('1'))
+      next(new Error('2'))
+      res.end()
+    })
+
+    router.use(createHitHandle(1))
+
+    router.use(function (error, req, res, next) {
+      assert.equal(error.message, '1')
+      done()
+    })
+
+    router.use(function (error, req, res, next) {
+      assert.equal(error.message, '2')
+      done()
+    })
+
+    request(server)
+    .get('/')
+    .expect(shouldNotHitHandle(1))
+    .expect(200, done)
+  })
 })
