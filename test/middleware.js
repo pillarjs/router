@@ -18,14 +18,39 @@ describe('middleware', function () {
 
     router.use(function (req, res, next) {
       res.writeHead(200)
-      res.end('Hooray!')
+      res.end()
     })
 
     router.use(function () { done(new Error('this should not be called')) })
 
     request(server)
     .get('/')
-    .expect(200, 'Hooray!', done)
+    .expect(200, done)
+  }, function (err) { assert.equal(err.message, 'cannot call `next` more than once') }))
+
+  it('cannot call the next function twice in an error handler', catchAsyncError(function (done) {
+    var router = Router()
+    var server = createServer(router)
+
+    router.use(function (req, res, next) {
+      next(new Error('Happy error'))
+    })
+
+    router.use(function (error, req, res, next) {
+      next(error)
+      next(error)
+    })
+
+    router.use(function (error, req, res, next) {
+      res.writeHead(200)
+      res.end()
+    })
+
+    router.use(function () { done(new Error('this should not be called')) })
+
+    request(server)
+    .get('/')
+    .expect(200, done)
   }, function (err) { assert.equal(err.message, 'cannot call `next` more than once') }))
 })
 
