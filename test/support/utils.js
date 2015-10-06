@@ -97,7 +97,7 @@ function rawrequest(server) {
 function shouldHitHandle(num) {
   var header = 'x-fn-' + String(num)
   return function (res) {
-    assert.equal(res.headers[header], 'hit', 'didn\'t hit ' + num)
+    assert.equal(res.headers[header], 'hit', 'header ' + header + ' was included in the response')
   }
 }
 
