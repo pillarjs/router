@@ -24,8 +24,8 @@ describe('middleware', function () {
     })
 
     router.use(function (req, res, next) { res.end() })
-    router.use(createHitHandle(1))
-    router.use(createErrorHitHandle(2))
+    router.use(createHitHandle(1, { checkHeadersSent: true }))
+    router.use(createErrorHitHandle(2, { checkHeadersSent: true }))
 
     router.use(function (error, req, res, next) {
       assert.equal(error.message, 'next() cannot be called twice')
@@ -54,8 +54,8 @@ describe('middleware', function () {
     })
 
     router.use(function (req, res, next) { res.end() })
-    router.use(createHitHandle(1))
-    router.use(createErrorHitHandle(2))
+    router.use(createHitHandle(1, { checkHeadersSent: true }))
+    router.use(createErrorHitHandle(2, { checkHeadersSent: true }))
 
     router.use(function (error, req, res, next) {
       assert.equal(error.message, 'next() cannot be called twice')
@@ -80,7 +80,7 @@ describe('middleware', function () {
       res.end()
     })
 
-    router.use(createHitHandle(1))
+    router.use(createHitHandle(1, { checkHeadersSent: true }))
 
     router.use(function (error, req, res, next) {
       assert.equal(error.message, '1')

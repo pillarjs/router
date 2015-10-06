@@ -13,16 +13,19 @@ exports.request = request
 exports.shouldHitHandle = shouldHitHandle
 exports.shouldNotHitHandle = shouldNotHitHandle
 
-function createHitHandle(num) {
+function createHitHandle(num, options) {
+  options = options || {}
   var name = 'x-fn-' + String(num)
   return function hit(req, res, next) {
-    if (!(res.headersSent || res._headerSent)) { res.setHeader(name, 'hit') }
+    if (!options.checkHeadersSent || (options.checkHeadersSent && res._headers)) {
+      res.setHeader(name, 'hit')
+    }
     next()
   }
 }
 
-function createErrorHitHandle(num) {
-  var hit = createHitHandle(num)
+function createErrorHitHandle(num, options) {
+  var hit = createHitHandle(num, options)
   return function hitError(error, req, res, next) {
     hit(req, res, function () { next(error) })
   }
