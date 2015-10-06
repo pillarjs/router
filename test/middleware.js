@@ -3,70 +3,66 @@ var Router = require('..')
 var utils = require('./support/utils')
 
 var assert = utils.assert
+var createHitHandle = utils.createHitHandle
+var createErrorHitHandle = utils.createErrorHitHandle
+var shouldHitHandle = utils.shouldHitHandle
+var shouldNotHitHandle = utils.shouldNotHitHandle
 var createServer = utils.createServer
 var request = utils.request
 
 describe('middleware', function () {
-  it('cannot call the next function twice', catchAsyncError(function (done) {
+  it('cannot call the next function twice', function (done) {
     var router = Router()
     var server = createServer(router)
 
+    router.use(createHitHandle(1))
+
     router.use(function (req, res, next) {
       next()
       next()
     })
 
-    router.use(function (req, res, next) {
-      res.writeHead(200)
-      res.end()
-    })
-
-    router.use(function () { done(new Error('this should not be called')) })
+    router.use(createHitHandle(2), function (req, res, next) { res.end() })
+    router.use(createHitHandle(3))
+    router.use(createErrorHitHandle(4))
+    router.use(function (a, b, c, d) { assert.equal(error.message, 'next() cannot be called twice') })
 
     request(server)
     .get('/')
+    .expect(shouldHitHandle(1))
+    .expect(shouldHitHandle(2))
+    .expect(shouldNotHitHandle(3))
+    .expect(shouldNotHitHandle(4))
     .expect(200, done)
-  }, function (err) { assert.equal(err.message, 'next() cannot be called twice') }))
+  })
 
-  it('cannot call the next function twice in an error handler', catchAsyncError(function (done) {
+  it('cannot call the next function twice in an error handler', function (done) {
     var router = Router()
     var server = createServer(router)
 
-    router.use(function (req, res, next) {
+    router.use(createHitHandle(1), function (req, res, next) {
       next(new Error('Happy error'))
     })
 
+    router.use(createErrorHitHandle(2))
+
     router.use(function (error, req, res, next) {
       next(error)
       next(error)
     })
 
-    router.use(function (error, req, res, next) {
-      res.writeHead(200)
-      res.end()
-    })
-
-    router.use(function () { done(new Error('this should not be called')) })
+    router.use(createErrorHitHandle(3), function (error, req, res, next) { res.end() })
+    router.use(createErrorHitHandle(4))
+    router.use(createHitHandle(5))
+    router.use(function (a, b, c, d) { assert.equal(error.message, 'next() cannot be called twice') })
 
     request(server)
     .get('/')
+    .expect(shouldHitHandle(1))
+    .expect(shouldHitHandle(2))
+    .expect(shouldHitHandle(3))
+    .expect(shouldNotHitHandle(4))
+    .expect(shouldNotHitHandle(5))
     .expect(200, done)
-  }, function (err) { assert.equal(err.message, 'next() cannot be called twice') }))
+  })
 })
-
-function catchAsyncError(test, uncaughtException) {
-  return function (done) {
-    var mochaUncaughtException = process.listeners('uncaughtException').pop()
-    // Needed in node 0.10.5+
-    process.removeListener('uncaughtException', mochaUncaughtException)
-
-    process.once('uncaughtException', uncaughtException)
-
-    test(function (err) {
-      if (err) { done(err) }
-      assert.equal(process.listeners('uncaughtException').indexOf(uncaughtException), -1)
-      process.addListener('uncaughtException', mochaUncaughtException)
-      done()
-    })
-  }
-}
