@@ -1,4 +1,5 @@
 
+var after = require('after')
 var Router = require('..')
 var utils = require('./support/utils')
 
@@ -15,7 +16,7 @@ describe('middleware', function () {
   it('cannot call the next function twice', function (done) {
     var router = Router()
     var server = createServer(router)
-    done = manyAsyncCalls(done, 2)
+    done = after(2, done)
 
     router.use(function (req, res, next) {
       next()
@@ -41,7 +42,7 @@ describe('middleware', function () {
   it('cannot call the next function twice in an error handler', function (done) {
     var router = Router()
     var server = createServer(router)
-    done = manyAsyncCalls(done, 2)
+    done = after(2, done)
 
     router.use(function (req, res, next) {
       next(new Error('Happy error'))
@@ -71,7 +72,7 @@ describe('middleware', function () {
   it('can call next multiple times with an error', function (done) {
     var router = Router()
     var server = createServer(router)
-    done = manyAsyncCalls(done, 3)
+    done = after(3, done)
 
     router.use(function (req, res, next) {
       next(new Error('1'))

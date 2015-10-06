@@ -12,7 +12,6 @@ exports.rawrequest = rawrequest
 exports.request = request
 exports.shouldHitHandle = shouldHitHandle
 exports.shouldNotHitHandle = shouldNotHitHandle
-exports.manyAsyncCalls = manyAsyncCalls
 
 function createHitHandle(num) {
   var name = 'x-fn-' + String(num)
@@ -108,16 +107,5 @@ function shouldNotHitHandle(num) {
 function shouldNotHaveHeader(header) {
   return function (res) {
     assert.ok(!(header.toLowerCase() in res.headers), 'should not have header ' + header)
-  }
-}
-
-function manyAsyncCalls(done, calls) {
-  return function (err) {
-    if (err) {
-      calls = 0
-      return done(err)
-    }
-    calls--
-    if (calls === 0) { done() }
   }
 }
