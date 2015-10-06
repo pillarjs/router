@@ -26,7 +26,7 @@ describe('middleware', function () {
     request(server)
     .get('/')
     .expect(200, done)
-  }, function (err) { assert.equal(err.message, 'cannot call `next` more than once') }))
+  }, function (err) { assert.equal(err.message, 'next() cannot be called twice') }))
 
   it('cannot call the next function twice in an error handler', catchAsyncError(function (done) {
     var router = Router()
@@ -51,7 +51,7 @@ describe('middleware', function () {
     request(server)
     .get('/')
     .expect(200, done)
-  }, function (err) { assert.equal(err.message, 'cannot call `next` more than once') }))
+  }, function (err) { assert.equal(err.message, 'next() cannot be called twice') }))
 })
 
 function catchAsyncError(test, uncaughtException) {
