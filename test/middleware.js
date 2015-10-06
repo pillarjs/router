@@ -26,7 +26,7 @@ describe('middleware', function () {
 
     router.use(function () { done(new Error('this should not be called')) })
 
-    function uncaughtException(err) { assert.equal(err.message, 'cannot call next twice') }
+    function uncaughtException(err) { assert.equal(err.message, 'cannot call `next` more than once') }
     process.once('uncaughtException', uncaughtException)
 
     request(server)
