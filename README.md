@@ -47,7 +47,7 @@ Options
 - `mergeParams`   - When `true` any `req.params` passed to the router will be
   merged into the router's `req.params`. (default: `false`) ([example](#example-using-mergeparams))
 
-Returns a function with the signature `router(res, res, callback)` where
+Returns a function with the signature `router(req, res, callback)` where
 `callback([err])` must be provided to handle errors and fall-through from
 not handling requests.
 
