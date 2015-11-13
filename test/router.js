@@ -459,6 +459,21 @@ describe('Router', function () {
       .expect(200, 'saw POST /foo', cb)
     })
 
+    it('should exit the router', function (done) {
+      var router = new Router()
+      var server = createServer(router)
+
+      router.use(function (req, res, next) {
+        next('router')
+      })
+
+      router.use(helloWorld)
+
+      request(server)
+      .get('/')
+      .expect(404, done)
+    })
+
     it('should not invoke for blank URLs', function (done) {
       var router = new Router()
       var server = createServer(function hander(req, res, next) {

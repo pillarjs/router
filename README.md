@@ -95,6 +95,8 @@ exactly as normal with one exception: they may invoke `next('route')`.
 Calling `next('route')` bypasses the remaining middleware and handler for this
 route, passing the request on to the next route.
 
+Route handlers and middleware can use `next('router')` (yes, that's "router" with an "r") to quick exit the current router instance and continue traversing routes of subsequent routers in the stack.
+
 ### router.param(name, param_middleware)
 
 Maps the specified path parameter `name` to a specialized param-capturing middleware.
