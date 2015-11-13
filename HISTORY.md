@@ -1,6 +1,7 @@
 unreleased
 ==========
 
+  * Add `next("router")` to exit from router
   * Fix case where `router.use` skipped requests routes did not
   * Use `%o` in path debug to tell types apart
   * deps: setprototypeof@1.0.3

@@ -418,6 +418,55 @@ describe('Router', function () {
       })
     })
 
+    describe('next("router")', function () {
+      it('should exit the router', function (done) {
+        var router = new Router()
+        var route = router.route('/foo')
+        var server = createServer(router)
+
+        function handle (req, res, next) {
+          res.setHeader('x-next', 'router')
+          next('router')
+        }
+
+        route.get(handle, createHitHandle(1))
+
+        router.use(saw)
+
+        request(server)
+        .get('/foo')
+        .expect('x-next', 'router')
+        .expect(shouldNotHitHandle(1))
+        .expect(404, done)
+      })
+
+      it('should not invoke error handlers', function (done) {
+        var router = new Router()
+        var route = router.route('/foo')
+        var server = createServer(router)
+
+        route.all(function goNext (req, res, next) {
+          res.setHeader('x-next', 'router')
+          next('router')
+        })
+
+        route.all(function handleError (err, req, res, next) {
+          res.statusCode = 500
+          res.end('caught: ' + err.message)
+        })
+
+        router.use(function handleError (err, req, res, next) {
+          res.statusCode = 500
+          res.end('caught: ' + err.message)
+        })
+
+        request(server)
+        .get('/foo')
+        .expect('x-next', 'router')
+        .expect(404, done)
+      })
+    })
+
     describe('path', function () {
       describe('using ":name"', function () {
         it('should name a capture group', function (done) {

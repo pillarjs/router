@@ -74,6 +74,9 @@ router.use(function (req, res, next) {
 })
 ```
 
+[Middleware](#middleware) can themselves use `next('router')` at any time to
+exit the current router instance completely, invoking the top-level callback.
+
 ### router\[method](path, ...[middleware], handler)
 
 The [http methods](https://github.com/jshttp/methods/blob/master/index.js) provide
@@ -94,6 +97,9 @@ router.get('/', function (req, res) {
 they may invoke `next('route')`. Calling `next('route')` bypasses the remaining
 middleware and the handler mounted for this route, passing the request to the
 next route suitable for handling this request.
+
+Route handlers and middleware can themselves use `next('router')` at any time
+to exit the current router instance completely, invoking the top-level callback.
 
 ### router.param(name, param_middleware)
 

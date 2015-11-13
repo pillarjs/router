@@ -206,6 +206,12 @@ Router.prototype.handle = function handle(req, res, callback) {
       removed = ''
     }
 
+    // signal to exit router
+    if (layerError === 'router') {
+      defer(done, null)
+      return
+    }
+
     // no more matching layers
     if (idx >= stack.length) {
       defer(done, layerError)

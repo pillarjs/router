@@ -652,6 +652,44 @@ describe('Router', function () {
       })
     })
 
+    describe('next("router")', function () {
+      it('should exit the router', function (done) {
+        var router = new Router()
+        var server = createServer(router)
+
+        function handle (req, res, next) {
+          res.setHeader('x-next', 'router')
+          next('router')
+        }
+
+        router.use(handle, createHitHandle(1))
+        router.use(saw)
+
+        request(server)
+        .get('/')
+        .expect('x-next', 'router')
+        .expect(shouldNotHitHandle(1))
+        .expect(404, done)
+      })
+
+      it('should not invoke error handlers', function (done) {
+        var router = new Router()
+        var server = createServer(router)
+
+        router.use(function handle (req, res, next) {
+          res.setHeader('x-next', 'router')
+          next('route')
+        })
+
+        router.use(sawError)
+
+        request(server)
+        .get('/')
+        .expect('x-next', 'router')
+        .expect(404, done)
+      })
+    })
+
     describe('req.baseUrl', function () {
       it('should be empty', function (done) {
         var router = new Router()
