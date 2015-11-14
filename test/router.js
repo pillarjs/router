@@ -526,6 +526,66 @@ describe('Router', function () {
       .expect(200, 'hello, world', done)
     })
 
+    it('should not invoke singular error function', function (done) {
+      var router = new Router()
+      var server = createServer(router)
+
+      router.use(function handleError(err, req, res, next) {
+        throw new Error('boom!')
+      })
+
+      request(server)
+      .get('/')
+      .expect(404, done)
+    })
+
+    describe('error handling', function () {
+      it('should invoke error function after next(err)', function (done) {
+        var router = new Router()
+        var server = createServer(router)
+
+        router.use(function handle(req, res, next) {
+          next(new Error('boom!'))
+        })
+
+        router.use(sawError)
+
+        request(server)
+        .get('/')
+        .expect(200, 'saw Error: boom!', done)
+      })
+
+      it('should invoke error function after throw err', function (done) {
+        var router = new Router()
+        var server = createServer(router)
+
+        router.use(function handle(req, res, next) {
+          throw new Error('boom!')
+        })
+
+        router.use(sawError)
+
+        request(server)
+        .get('/')
+        .expect(200, 'saw Error: boom!', done)
+      })
+
+      it('should not invoke error functions above function', function (done) {
+        var router = new Router()
+        var server = createServer(router)
+
+        router.use(sawError)
+
+        router.use(function handle(req, res, next) {
+          throw new Error('boom!')
+        })
+
+        request(server)
+        .get('/')
+        .expect(500, done)
+      })
+    })
+
     describe('req.baseUrl', function () {
       it('should be empty', function (done) {
         var router = new Router()
@@ -949,6 +1009,13 @@ function setsawBase(num) {
 
 function saw(req, res) {
   var msg = 'saw ' + req.method + ' ' + req.url
+  res.statusCode = 200
+  res.setHeader('Content-Type', 'text/plain')
+  res.end(msg)
+}
+
+function sawError(err, req, res, next) {
+  var msg = 'saw ' + err.name + ': ' + err.message
   res.statusCode = 200
   res.setHeader('Content-Type', 'text/plain')
   res.end(msg)
