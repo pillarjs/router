@@ -1,6 +1,7 @@
 
 var after = require('after')
 var methods = require('methods')
+var Bluebird = require('bluebird')
 var Router = require('..')
 var utils = require('./support/utils')
 
@@ -539,6 +540,24 @@ describe('Router', function () {
       .expect(404, done)
     })
 
+    it('should read downstream results', function (done) {
+      var router = new Router()
+      var server = createServer(router)
+      var message = 'hello world'
+
+      router.use(function (req, res, next) {
+        return next().then(res.end.bind(res))
+      })
+
+      router.use(function (req, res, next) {
+        return Bluebird.resolve(message)
+      })
+
+      request(server)
+      .get('/')
+      .expect(200, message, done)
+    })
+
     describe('error handling', function () {
       it('should invoke error function after next(err)', function (done) {
         var router = new Router()
@@ -561,6 +580,21 @@ describe('Router', function () {
 
         router.use(function handle(req, res, next) {
           throw new Error('boom!')
+        })
+
+        router.use(sawError)
+
+        request(server)
+        .get('/')
+        .expect(200, 'saw Error: boom!', done)
+      })
+
+      it('should invoke error function after rejected promise', function (done) {
+        var router = new Router()
+        var server = createServer(router)
+
+        router.use(function handle(req, res, next) {
+          return Bluebird.reject(new Error('boom!'))
         })
 
         router.use(sawError)

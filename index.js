@@ -28,11 +28,6 @@ var setPrototypeOf = require('setprototypeof')
 
 var slice = Array.prototype.slice
 
-/* istanbul ignore next */
-var defer = typeof setImmediate === 'function'
-  ? setImmediate
-  : function(fn){ process.nextTick(fn.bind.apply(fn, arguments)) }
-
 /**
  * Expose `Router`.
  */
@@ -61,7 +56,7 @@ function Router(options) {
   var opts = options || {}
 
   function router(req, res, next) {
-    router.handle(req, res, next)
+    return router.handle(req, res, next)
   }
 
   // inherit from the correct prototype
@@ -186,7 +181,7 @@ Router.prototype.handle = function handle(req, res, callback) {
   req.baseUrl = parentUrl
   req.originalUrl = req.originalUrl || req.url
 
-  next()
+  return next()
 
   function next(err) {
     var layerError = err === 'route'
@@ -208,8 +203,7 @@ Router.prototype.handle = function handle(req, res, callback) {
 
     // no more matching layers
     if (idx >= stack.length) {
-      defer(done, layerError)
-      return
+      return done(layerError)
     }
 
     // get pathname of request
@@ -281,7 +275,7 @@ Router.prototype.handle = function handle(req, res, callback) {
     var layerPath = layer.path
 
     // this should be done for the layer
-    self.process_params(layer, paramcalled, req, res, function (err) {
+    return self.process_params(layer, paramcalled, req, res, function (err) {
       if (err) {
         return next(layerError || err)
       }
@@ -290,7 +284,7 @@ Router.prototype.handle = function handle(req, res, callback) {
         return layer.handle_request(req, res, next)
       }
 
-      trim_prefix(layer, layerError, layerPath, path)
+      return trim_prefix(layer, layerError, layerPath, path)
     })
   }
 
@@ -298,8 +292,7 @@ Router.prototype.handle = function handle(req, res, callback) {
     var c = path[layerPath.length]
 
     if (c && c !== '/') {
-      next(layerError)
-      return
+      return next(layerError)
     }
 
      // Trim off the part of the url that matches the route
@@ -324,9 +317,9 @@ Router.prototype.handle = function handle(req, res, callback) {
     debug('%s %s : %s', layer.name, layerPath, req.originalUrl)
 
     if (layerError) {
-      layer.handle_error(layerError, req, res, next)
+      return layer.handle_error(layerError, req, res, next)
     } else {
-      layer.handle_request(req, res, next)
+      return layer.handle_request(req, res, next)
     }
   }
 }
@@ -399,7 +392,7 @@ Router.prototype.process_params = function process_params(layer, called, req, re
       value: paramVal
     }
 
-    paramCallback()
+    return paramCallback()
   }
 
   // single param callbacks
@@ -412,20 +405,19 @@ Router.prototype.process_params = function process_params(layer, called, req, re
     if (err) {
       // store error
       paramCalled.error = err
-      param(err)
-      return
+      return param(err)
     }
 
     if (!fn) return param()
 
     try {
-      fn(req, res, paramCallback, paramVal, key.name)
+      return fn(req, res, paramCallback, paramVal, key.name)
     } catch (e) {
-      paramCallback(e)
+      return paramCallback(e)
     }
   }
 
-  param()
+  return param()
 }
 
 /**

@@ -16,7 +16,7 @@ function createHitHandle(num) {
   var name = 'x-fn-' + String(num)
   return function hit(req, res, next) {
     res.setHeader(name, 'hit')
-    next()
+    return next()
   }
 }
 
