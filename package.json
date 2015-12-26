@@ -16,7 +16,7 @@
   },
   "devDependencies": {
     "after": "0.8.1",
-    "finalhandler": "0.4.0",
+    "finalhandler": "0.4.1",
     "istanbul": "0.4.0",
     "mocha": "2.3.3",
     "supertest": "1.1.0"
