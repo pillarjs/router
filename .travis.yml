@@ -12,6 +12,9 @@ node_js:
   - "4.0"
   - "4.2"
   - "5.0"
+  - "5.1"
+  - "5.2"
+  - "5.3"
 sudo: false
 before_install:
   # Setup Node.js version-specific dependencies
