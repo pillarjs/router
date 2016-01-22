@@ -1,5 +1,5 @@
-unreleased
-==========
+1.1.4 / 2016-01-21
+==================
 
   * deps: array-flatten@2.0.0
   * deps: methods@~1.1.2
