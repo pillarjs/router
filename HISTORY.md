@@ -2,6 +2,8 @@ unreleased
 ==========
 
   * deps: array-flatten@2.0.0
+  * deps: methods@~1.1.2
+    - perf: enable strict mode
 
 1.1.3 / 2015-08-02
 ==================
