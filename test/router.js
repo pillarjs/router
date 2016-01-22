@@ -22,7 +22,7 @@ describe('Router', function () {
 
   it('should reject missing callback', function () {
     var router = new Router()
-    assert.throws(router.bind(router, {}, {}), /argument callback is required/)
+    assert.throws(function () { router({}, {}) }, /argument callback is required/)
   })
 
   describe('.all(path, fn)', function () {
