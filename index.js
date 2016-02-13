@@ -286,6 +286,11 @@ Router.prototype.handle = function handle(req, res, callback) {
         return next(layerError || err)
       }
 
+      // store matched routes
+      if (layer.path) {
+        req.matchedRoutes = (req.matchedRoutes || []).concat(layer.matchedPath.path)
+      }
+
       if (route) {
         return layer.handle_request(req, res, next)
       }
@@ -341,7 +346,7 @@ Router.prototype.process_params = function process_params(layer, called, req, re
   var params = this.params
 
   // captured parameters from the layer, keys and values
-  var keys = layer.keys
+  var keys = layer.matchedPath ? layer.matchedPath.keys : []
 
   // fast track
   if (!keys || keys.length === 0) {

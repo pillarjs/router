@@ -985,6 +985,31 @@ describe('Router', function () {
   })
 })
 
+describe('req.matchedRoutes', function() {
+  it('should store matchedRoutes in request', function(done) {
+    var router = new Router()
+    var barRouter = new Router()
+    var bazRouter = new Router()
+    var server = createServer(router)
+    var matchedRoutes
+
+    router.use(['/foo/:id', '/foe'], barRouter)
+    barRouter.use(['/bar'], bazRouter)
+    bazRouter.get(['/bez', '/baz/:subId'], function(req, res, next) {
+      matchedRoutes = req.matchedRoutes
+      next()
+    })
+    router.use(saw)
+
+    request(server)
+    .get('/foo/10/bar/baz/30')
+    .expect(200, 'saw GET /foo/10/bar/baz/30', function(err, res) {
+      assert.deepEqual(matchedRoutes, ['/foo/:id', '/bar', '/baz/:subId'])
+      done(err)
+    })
+  })
+})
+
 function helloWorld(req, res) {
   res.statusCode = 200
   res.setHeader('Content-Type', 'text/plain')
