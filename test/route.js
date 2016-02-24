@@ -17,6 +17,19 @@ describe('Router', function () {
       assert.equal(route.path, '/foo')
     })
 
+    it('should set the route name iff provided', function () {
+      var router = new Router()
+      var route = router.route('/abc', 'abcRoute')
+      assert.equal(route.path, '/abc')
+      assert.equal(route.name, 'abcRoute')
+      assert.equal(router.findRoute('abcRoute'), route)
+      assert.throws(router.route.bind(router, '/xyz', 'abcRoute'), /a route with that name already exists/)
+
+      var route2 = router.route('/def')
+      assert.equal(router.findRoute('abcRoute'), route)
+      assert.equal(null, router.findRoute(undefined))
+    })
+
     it('should respond to multiple methods', function (done) {
       var cb = after(3, done)
       var router = new Router()

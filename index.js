@@ -502,12 +502,16 @@ Router.prototype.use = function use(handler) {
  * and middleware to routes.
  *
  * @param {string} path
+ * @param {string} name (optional)
  * @return {Route}
  * @public
  */
 
-Router.prototype.route = function route(path) {
-  var route = new Route(path)
+Router.prototype.route = function route(path, name) {
+  if(arguments.length > 1 && this.findRoute(name) != null) {
+    throw new Error('a route with that name already exists')
+  }
+  var route = new Route(path, name)
 
   var layer = new Layer(path, {
     sensitive: this.caseSensitive,
@@ -523,6 +527,27 @@ Router.prototype.route = function route(path) {
 
   this.stack.push(layer)
   return route
+}
+
+
+/**
+ * Find a Route with the given name
+ *
+ * @param {string} name
+ * @return {Route} or null if the route does not exist
+ * @public
+ */
+
+Router.prototype.findRoute = function findRoute(name) {
+  var index = 0;
+  while (index < this.stack.length) {
+    var layer = this.stack[index++]
+    var route = layer.route
+    if(route.name != undefined && route.name === name) {
+      return route
+    }
+  }
+  return null
 }
 
 // create Router#VERB functions
