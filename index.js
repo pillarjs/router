@@ -508,7 +508,7 @@ Router.prototype.use = function use(handler) {
  */
 
 Router.prototype.route = function route(path, name) {
-  if(arguments.length > 1 && this.findRoute(name) != null) {
+  if(name && this.findRoute(name) !== null) {
     throw new Error('a route with that name already exists')
   }
   var route = new Route(path, name)
@@ -543,7 +543,7 @@ Router.prototype.findRoute = function findRoute(name) {
   while (index < this.stack.length) {
     var layer = this.stack[index++]
     var route = layer.route
-    if(route.name != undefined && route.name === name) {
+    if(route.name !== undefined && route.name === name) {
       return route
     }
   }
