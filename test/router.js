@@ -539,9 +539,9 @@ describe('Router', function () {
       .expect(404, done)
     })
 
-    it('should support named handlers' {
+   // it('should support named handlers' {
         // TODO
-    })
+  //  })
 
     describe('error handling', function () {
       it('should invoke error function after next(err)', function (done) {
