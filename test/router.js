@@ -539,6 +539,10 @@ describe('Router', function () {
       .expect(404, done)
     })
 
+    it('should support named handlers' {
+        // TODO
+    })
+
     describe('error handling', function () {
       it('should invoke error function after next(err)', function (done) {
         var router = new Router()
@@ -981,6 +985,18 @@ describe('Router', function () {
       .expect(shouldNotHitHandle(3))
       .expect(shouldHitHandle(4))
       .expect(200, 'saw GET /bar', done)
+    })
+  })
+
+  describe('.findPath(path)', function () {
+    it('should support nested routers', function (done) {
+      var routerA = new Router()
+      var routerB = new Router()
+      routerA.use('/base/:path', routerB, 'routerB')
+      var r = routerB.route('/some/:thing', 'thing')
+      var path = routerA.findPath('routerB.thing', {path: 'foo', thing: 'bar'})
+      assert.equal(path, '/base/foo/some/bar')
+      done()
     })
   })
 })

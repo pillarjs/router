@@ -20,6 +20,7 @@ var mixin = require('utils-merge')
 var parseUrl = require('parseurl')
 var Route = require('./lib/route')
 var setPrototypeOf = require('setprototypeof')
+var pathToRegexp = require('path-to-regexp')
 
 /**
  * Module variables.
@@ -72,6 +73,7 @@ function Router(options) {
   router.params = {}
   router.strict = opts.strict
   router.stack = []
+  router.routes = {}
 
   return router
 }
@@ -429,7 +431,8 @@ Router.prototype.process_params = function process_params(layer, called, req, re
 }
 
 /**
- * Use the given middleware function, with optional path, defaulting to "/".
+ * Use the given middleware function, with optional path,
+ * defaulting to "/" and optional name.
  *
  * Use (like `.all`) will run for any http METHOD, but it will not add
  * handlers for those methods so OPTIONS requests will not consider `.use`
@@ -441,9 +444,16 @@ Router.prototype.process_params = function process_params(layer, called, req, re
  * pathname.
  *
  * @public
+ * @param {string} path (optional)
+ * @param {function} handler
+ * @param {string} name (optional)
+ * 
  */
 
 Router.prototype.use = function use(handler) {
+  if(name && this.routes[name]) {
+    throw new Error('a route or handler with that name already exists')
+  }
   var offset = 0
   var path = '/'
 
@@ -469,6 +479,20 @@ Router.prototype.use = function use(handler) {
     throw new TypeError('argument handler is required')
   }
 
+  var name
+
+  // If a name is used, the last argument will be a string, not a function
+  if (callbacks.length > 1 && typeof callbacks[callbacks.length - 1] !== 'function') {
+    name = callbacks.pop()
+  }
+
+  if (name && callbacks.length > 1) {
+    throw new Error('only one handler can be used if Router.use is called with a name parameter')
+  }
+  if (name && ! callbacks[0] instanceof Router) {
+    throw new Error('handler should be a Router if Router.use is called with a name parameter')
+  }
+
   for (var i = 0; i < callbacks.length; i++) {
     var fn = callbacks[i]
 
@@ -488,6 +512,10 @@ Router.prototype.use = function use(handler) {
     layer.route = undefined
 
     this.stack.push(layer)
+
+    if(name) {
+      this.routes[name] = {'path':path, 'handler':fn};
+    }
   }
 
   return this
@@ -508,10 +536,14 @@ Router.prototype.use = function use(handler) {
  */
 
 Router.prototype.route = function route(path, name) {
-  if(name && this.findRoute(name) !== null) {
-    throw new Error('a route with that name already exists')
+  if(name && this.routes[name]) {
+    throw new Error('a route or handler with that name already exists')
   }
   var route = new Route(path, name)
+
+  if(name) {
+      this.routes[name] = route
+  }
 
   var layer = new Layer(path, {
     sensitive: this.caseSensitive,
@@ -529,27 +561,6 @@ Router.prototype.route = function route(path, name) {
   return route
 }
 
-
-/**
- * Find a Route with the given name
- *
- * @param {string} name
- * @return {Route} or null if the route does not exist
- * @public
- */
-
-Router.prototype.findRoute = function findRoute(name) {
-  var index = 0;
-  while (index < this.stack.length) {
-    var layer = this.stack[index++]
-    var route = layer.route
-    if(route.name !== undefined && route.name === name) {
-      return route
-    }
-  }
-  return null
-}
-
 // create Router#VERB functions
 methods.concat('all').forEach(function(method){
   Router.prototype[method] = function (path) {
@@ -558,6 +569,41 @@ methods.concat('all').forEach(function(method){
     return this
   }
 })
+
+/**
+ * Find a path
+ *
+ * @param {string} route path
+ * @param {Object} params
+ * @return {string}
+ */
+
+Router.prototype.findPath = function findPath(routePath, params) {
+  if (!routePath instanceof String) {
+    throw new Error('route path should be a String')
+  }
+  var firstDot = routePath.indexOf('.')
+  var routeToFind;
+  if (firstDot === -1) {
+    routeToFind = routePath
+  } else {
+    routeToFind = routePath.substring(0, firstDot)
+  }
+  var thisRoute = this.routes[routeToFind]
+  if (!thisRoute) {
+    throw new Error('route path: ' + routeToFind + ' does not match any named routes')
+  }
+  var toPath = pathToRegexp.compile(thisRoute.path)
+  var path = toPath(params)
+  if (firstDot === -1) { // only one segment or this is the last segment
+    return path
+  }
+  if(typeof thisRoute.handler.findPath === 'function') {
+    return path + thisRoute.handler.findPath(routePath.substring(firstDot + 1), params)
+  } else {
+      throw new Error('nested handler was not a router')
+  }
+}
 
 /**
  * Generate a callback that will make an OPTIONS response.
