@@ -591,7 +591,7 @@ Router.prototype.findPath = function findPath(routePath, params) {
   }
   var thisRoute = this.routes[routeToFind]
   if (!thisRoute) {
-    throw new Error('route path: ' + routeToFind + ' does not match any named routes')
+    throw new Error('route path does not match any named routes')
   }
   var toPath = pathToRegexp.compile(thisRoute.path)
   var path = toPath(params)

@@ -23,11 +23,18 @@ describe('Router', function () {
       assert.equal(route.path, '/abc')
       assert.equal(route.name, 'abcRoute')
       assert.equal(router.routes['abcRoute'], route)
-      assert.throws(router.route.bind(router, '/xyz', 'abcRoute'), /a route or handler with that name already exists/)
-
       var route2 = router.route('/def')
       assert.equal(router.routes['abcRoute'], route)
       assert.equal(null, router.routes[undefined])
+    })
+
+    it('should not allow duplicate route or handler names', function () {
+      var router = new Router()
+      var route = router.route('/abc', 'abcRoute')
+      assert.throws(router.route.bind(router, '/xyz', 'abcRoute'), /a route or handler with that name already exists/)
+      var nestedRouter = new Router()
+      router.use(nestedRouter, 'nestedRoute')
+      assert.throws(router.route.bind(router, '/xyz', 'nestedRoute'), /a route or handler with that name already exists/)
     })
 
     it('should respond to multiple methods', function (done) {
