@@ -483,6 +483,10 @@ Router.prototype.use = function use(handler) {
     name = callbacks.pop()
   }
 
+  if(name && !((path instanceof String) || typeof path === 'string')) {
+    throw new Error('only paths that are strings can be named')
+  }
+
   if(name && this.routes[name]) {
     throw new Error('a route or handler with that name already exists')
   }
@@ -543,7 +547,7 @@ Router.prototype.route = function route(path, name) {
   var route = new Route(path, name)
 
   if(name) {
-      this.routes[name] = route
+    this.routes[name] = route
   }
 
   var layer = new Layer(path, {
@@ -572,9 +576,12 @@ methods.concat('all').forEach(function(method){
 })
 
 /**
- * Find a path
+ * Find a path for the previously created named route. The name
+ * supplied should be separated by '.' if nested routing is
+ * used. Parameters should be supplied if the route includes any
+ * (e.g. {userid: 'user1'}).
  *
- * @param {string} route path
+ * @param {string} route name or '.' separated path
  * @param {Object} params
  * @return {string}
  */
@@ -592,14 +599,18 @@ Router.prototype.findPath = function findPath(routePath, params) {
   }
   var thisRoute = this.routes[routeToFind]
   if (!thisRoute) {
-    throw new Error('route path does not match any named routes')
+    throw new Error('route path \"'+ routeToFind + '\" does not match any named routes')
   }
   var toPath = pathToRegexp.compile(thisRoute.path)
   var path = toPath(params)
   if (firstDot === -1) { // only one segment or this is the last segment
     return path
   }
-  return path + thisRoute.handler.findPath(routePath.substring(firstDot + 1), params)
+  var subPath = routePath.substring(firstDot + 1)
+  if(thisRoute.handler === undefined || thisRoute.handler.findPath === undefined) {
+    throw new Error('part of route path \"' + subPath + '\" does not match any named nested routes')
+  }
+  return path + thisRoute.handler.findPath(subPath, params)
 }
 
 /**
