@@ -451,9 +451,6 @@ Router.prototype.process_params = function process_params(layer, called, req, re
  */
 
 Router.prototype.use = function use(handler) {
-  if(name && this.routes[name]) {
-    throw new Error('a route or handler with that name already exists')
-  }
   var offset = 0
   var path = '/'
 
@@ -486,10 +483,14 @@ Router.prototype.use = function use(handler) {
     name = callbacks.pop()
   }
 
+  if(name && this.routes[name]) {
+    throw new Error('a route or handler with that name already exists')
+  }
+
   if (name && callbacks.length > 1) {
     throw new Error('only one handler can be used if Router.use is called with a name parameter')
   }
-  if (name && ! callbacks[0] instanceof Router) {
+  if (name && !(callbacks[0] instanceof Router)) {
     throw new Error('handler should be a Router if Router.use is called with a name parameter')
   }
 
@@ -579,8 +580,8 @@ methods.concat('all').forEach(function(method){
  */
 
 Router.prototype.findPath = function findPath(routePath, params) {
-  if (!routePath instanceof String) {
-    throw new Error('route path should be a String')
+  if (!((routePath instanceof String) || typeof routePath === 'string')) {
+    throw new Error('route path should be a string')
   }
   var firstDot = routePath.indexOf('.')
   var routeToFind;
@@ -598,11 +599,7 @@ Router.prototype.findPath = function findPath(routePath, params) {
   if (firstDot === -1) { // only one segment or this is the last segment
     return path
   }
-  if(typeof thisRoute.handler.findPath === 'function') {
-    return path + thisRoute.handler.findPath(routePath.substring(firstDot + 1), params)
-  } else {
-      throw new Error('nested handler was not a router')
-  }
+  return path + thisRoute.handler.findPath(routePath.substring(firstDot + 1), params)
 }
 
 /**
