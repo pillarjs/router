@@ -33,7 +33,7 @@ describe('Router', function () {
       var route = router.route('/abc', 'abcRoute')
       assert.throws(router.route.bind(router, '/xyz', 'abcRoute'), /a route or handler named "abcRoute" already exists/)
       var nestedRouter = new Router()
-      router.use(nestedRouter, 'nestedRoute')
+      router.use('/xyz', 'nestedRoute', nestedRouter)
       assert.throws(router.route.bind(router, '/xyz', 'nestedRoute'), /a route or handler named "nestedRoute" already exists/)
     })
 

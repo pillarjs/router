@@ -443,21 +443,34 @@ Router.prototype.process_params = function process_params(layer, called, req, re
  * handlers can operate without any code changes regardless of the "prefix"
  * pathname.
  *
+ * Note: If a name is supplied, a path must be specified and
+ * only one handler function is permitted. The handler must also
+ * implement the 'findPath' function.
+ *
  * @public
  * @param {string=} path
- * @param {function} handler
  * @param {string=} name
+ * @param {function} handler
  * 
  */
 
 Router.prototype.use = function use(handler) {
   var offset = 0
   var path = '/'
+  var name
 
   // default path to '/'
   // disambiguate router.use([handler])
   if (typeof handler !== 'function') {
     var arg = handler
+    var arg1 = arguments[1]
+    // If a name is used, the second argument will be a string, not a function
+    if(typeof arg1 !== 'function' && arguments.length > 2) {
+      name = arg1
+      if(typeof name !== 'string' || name.length === 0) {
+        throw new TypeError('name should be a non-empty string')
+      }
+    }
 
     while (Array.isArray(arg) && arg.length !== 0) {
       arg = arg[0]
@@ -468,6 +481,9 @@ Router.prototype.use = function use(handler) {
       offset = 1
       path = handler
     }
+    if (name) {
+      offset = 2
+    }
   }
 
   var callbacks = flatten(slice.call(arguments, offset))
@@ -476,27 +492,18 @@ Router.prototype.use = function use(handler) {
     throw new TypeError('argument handler is required')
   }
 
-  var name
-
-  // If a name is used, the last argument will be a string, not a function
-  if (callbacks.length > 1 && typeof callbacks[callbacks.length - 1] !== 'function') {
-    name = callbacks.pop()
-    if(typeof name !== 'string' || name.length === 0) {
-        throw new TypeError('name should be a non-empty string')
-    }
-  }
-
-  if(name && typeof path !== 'string') {
+  if (name && typeof path !== 'string') {
     throw new TypeError('only paths that are strings can be named')
   }
 
-  if(name && this.routes[name]) {
+  if (name && this.routes[name]) {
     throw new Error('a route or handler named \"' + name + '\" already exists')
   }
 
   if (name && callbacks.length > 1) {
     throw new TypeError('Router.use cannot be called with multiple handlers if a name argument is used, each handler should have its own name')
   }
+
   if (name && typeof callbacks[0].findPath !== 'function') {
     throw new TypeError('handler must implement findPath function if Router.use is called with a name argument')
   }

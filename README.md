@@ -51,10 +51,14 @@ Returns a function with the signature `router(req, res, callback)` where
 `callback([err])` must be provided to handle errors and fall-through from
 not handling requests.
 
-### router.use([path], ...middleware)
+### router.use([path], name, ...middleware)
 
 Use the given middleware function for all http methods on the given `path`,
 defaulting to the root path.
+
+`name` is optional, but if it is supplied `path` must be a string and only
+one `middleware` is allowed (each name must only apply to one path and one middleware).
+Using a name enables `findPath` to be used to construct a path to a route.
 
 `router` does not automatically see `use` as a handler. As such, it will not
 consider it one for handling `OPTIONS` requests.
@@ -122,10 +126,13 @@ router.param('user_id', function (req, res, next, id) {
 })
 ```
 
-### router.route(path)
+### router.route(path, name)
 
 Creates an instance of a single `Route` for the given `path`.
 (See `Router.Route` below)
+
+`name` is optional, using a name enables findPath to be used to
+construct a path to a route.
 
 Routes can be used to handle http `methods` with their own, optional middleware.
 
@@ -134,6 +141,7 @@ route naming and thus typo errors.
 
 ```js
 var api = router.route('/api/')
+var api = router.route('/api/', 'api')
 ```
 
 ## Router.Route(path)
@@ -173,6 +181,16 @@ router.route('/')
   res.setHeader('Content-Type', 'text/plain; charset=utf-8')
   res.end('Hello World!')
 })
+```
+
+### route.findPath(routePath, params)
+
+Constructs a path to a named route, with optional parameters.
+Supports nested named routers. Nested names are separated by the '.' character.
+
+```js
+var path = router.findPath('users', {user_id: 'userA'})
+var path = router.findPath('users.messages', {user_id: 'userA'})
 ```
 
 ## Examples

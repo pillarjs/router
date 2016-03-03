@@ -543,50 +543,54 @@ describe('Router', function () {
       var router = new Router()
 
       var router2 = new Router()
-      router.use(router2, 'router2')
+      router.use('/', 'router2', router2)
       assert.notEqual(router.routes['router2'], undefined)
       assert.equal(router.routes['router2'].handler, router2)
       assert.equal(router.routes['router2'].path, '/')
 
       var router3 = new Router()
-      router.use('/mypath', router3, 'router3')
+      router.use('/mypath', 'router3', router3)
       assert.notEqual(router.routes['router3'], undefined)
       assert.equal(router.routes['router3'].handler, router3)
       assert.equal(router.routes['router2'].handler, router2)
       assert.equal(router.routes['router3'].path, '/mypath')
 
       var router4 = new Router()
-      router.use(router4, 'router4')
+      router.use('/', 'router4', router4)
       assert.equal(router.routes['router4'].handler, router4)
       assert.equal(router.routes['router4'].path, '/')
     })
 
     it('should not allow duplicate names', function () {
       var router = new Router()
-      router.use('/', new Router(), 'router1')
-      assert.throws(router.use.bind(router, new Router(), 'router1'), /a route or handler named "router1" already exists/)
+      router.use('/', 'router1', new Router())
+      assert.throws(router.use.bind(router, '/', 'router1', new Router()), /a route or handler named "router1" already exists/)
       router.route('/users', 'users')
-      assert.throws(router.use.bind(router, new Router(), 'users'), /a route or handler named "users" already exists/)
+      assert.throws(router.use.bind(router, '/', 'users', new Router()), /a route or handler named "users" already exists/)
     })
 
     it('should not allow empty names', function () {
       var router = new Router()
-      assert.throws(router.use.bind(router, new Router(), ''), /name should be a non-empty string/)
-      assert.throws(router.use.bind(router, '/users', new Router(), ''), /name should be a non-empty string/)
+      assert.throws(router.use.bind(router,'/', '', new Router()), /name should be a non-empty string/)
+      assert.throws(router.use.bind(router, '/users', '', new Router()), /name should be a non-empty string/)
+      assert.throws(router.use.bind(router, '/users', new String('users'), new Router()), /name should be a non-empty string/)
     })
 
-    it('should not support named handlers if handler is a function', function () {
+    it('should not support named handlersif handler does not implement findPath', function () {
       var router = new Router()
-      assert.throws(router.use.bind(router, '/', new Router(), new Router(), 'hello'), /Router.use cannot be called with multiple handlers if a name argument is used, each handler should have its own name/)
-      assert.throws(router.use.bind(router, '/', function() {}, function () {}, 'hello'), /Router.use cannot be called with multiple handlers if a name argument is used, each handler should have its own name/)
-      assert.throws(router.use.bind(router, '/', function(){}, 'hello'), /handler must implement findPath function if Router.use is called with a name argument/)
-      assert.throws(router.use.bind(router, function(){}, 'hello'), /handler must implement findPath function if Router.use is called with a name argument/)
+      assert.throws(router.use.bind(router, '/', 'hello', function() {}, function () {}), /Router.use cannot be called with multiple handlers if a name argument is used, each handler should have its own name/)
+      assert.throws(router.use.bind(router, '/', 'hello', function(){}), /handler must implement findPath function if Router.use is called with a name argument/)
+    })
+
+    it('should not support named handlers for multiple handlers', function () {
+      var router = new Router()
+      assert.throws(router.use.bind(router, '/', 'hello', new Router(), new Router()), /Router.use cannot be called with multiple handlers if a name argument is used, each handler should have its own name/)
     })
 
     it('should not support named handlers unless path is a string', function () {
       var router = new Router()
-      assert.throws(router.use.bind(router, ['/123', '/abc'], new Router(), '123abc'), /only paths that are strings can be named/)
-      assert.throws(router.use.bind(router, /\/abc|\/xyz/, new Router(), '123abc'), /only paths that are strings can be named/)
+      assert.throws(router.use.bind(router, ['/123', '/abc'], '123abc', new Router()), /only paths that are strings can be named/)
+      assert.throws(router.use.bind(router, /\/abc|\/xyz/, '123abc', new Router()), /only paths that are strings can be named/)
     })
 
     describe('error handling', function () {
@@ -1065,7 +1069,7 @@ describe('Router', function () {
     it('should support nested routers', function () {
       var routerA = new Router()
       var routerB = new Router()
-      routerA.use('/base/:path', routerB, 'routerB')
+      routerA.use('/base/:path', 'routerB', routerB)
       var r = routerB.route('/some/:thing', 'thing')
       var path = routerA.findPath('routerB.thing', {path: 'foo', thing: 'bar'})
       assert.equal(path, '/base/foo/some/bar')
