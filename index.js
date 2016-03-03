@@ -444,9 +444,9 @@ Router.prototype.process_params = function process_params(layer, called, req, re
  * pathname.
  *
  * @public
- * @param {string} path (optional)
+ * @param {string=} path
  * @param {function} handler
- * @param {string} name (optional)
+ * @param {string=} name
  * 
  */
 
@@ -481,21 +481,24 @@ Router.prototype.use = function use(handler) {
   // If a name is used, the last argument will be a string, not a function
   if (callbacks.length > 1 && typeof callbacks[callbacks.length - 1] !== 'function') {
     name = callbacks.pop()
+    if(typeof name !== 'string' || name.length === 0) {
+        throw new TypeError('name should be a non-empty string')
+    }
   }
 
-  if(name && !((path instanceof String) || typeof path === 'string')) {
-    throw new Error('only paths that are strings can be named')
+  if(name && typeof path !== 'string') {
+    throw new TypeError('only paths that are strings can be named')
   }
 
   if(name && this.routes[name]) {
-    throw new Error('a route or handler with that name already exists')
+    throw new Error('a route or handler named \"' + name + '\" already exists')
   }
 
   if (name && callbacks.length > 1) {
-    throw new Error('only one handler can be used if Router.use is called with a name parameter')
+    throw new TypeError('Router.use cannot be called with multiple handlers if a name argument is used, each handler should have its own name')
   }
-  if (name && !(callbacks[0] instanceof Router)) {
-    throw new Error('handler should be a Router if Router.use is called with a name parameter')
+  if (name && typeof callbacks[0].findPath !== 'function') {
+    throw new TypeError('handler must implement findPath function if Router.use is called with a name argument')
   }
 
   for (var i = 0; i < callbacks.length; i++) {
@@ -535,15 +538,19 @@ Router.prototype.use = function use(handler) {
  * and middleware to routes.
  *
  * @param {string} path
- * @param {string} name (optional)
+ * @param {string=} name
  * @return {Route}
  * @public
  */
 
 Router.prototype.route = function route(path, name) {
-  if(name && this.routes[name]) {
-    throw new Error('a route or handler with that name already exists')
+  if(name !== undefined && (typeof name !== 'string' || name.length === 0)) {
+      throw new Error('name should be a non-empty string')
   }
+  if(name && this.routes[name]) {
+    throw new Error('a route or handler named \"' + name + '\" already exists')
+  }
+
   var route = new Route(path, name)
 
   if(name) {
@@ -581,14 +588,15 @@ methods.concat('all').forEach(function(method){
  * used. Parameters should be supplied if the route includes any
  * (e.g. {userid: 'user1'}).
  *
- * @param {string} route name or '.' separated path
- * @param {Object} params
+ * @param {string} routePath - name of route or '.' separated 
+ *        path
+ * @param {Object=} params - parameters for route
  * @return {string}
  */
 
 Router.prototype.findPath = function findPath(routePath, params) {
-  if (!((routePath instanceof String) || typeof routePath === 'string')) {
-    throw new Error('route path should be a string')
+  if (typeof routePath !== 'string') {
+    throw new TypeError('route path should be a string')
   }
   var firstDot = routePath.indexOf('.')
   var routeToFind;
