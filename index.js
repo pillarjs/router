@@ -20,6 +20,7 @@ var mixin = require('utils-merge')
 var parseUrl = require('parseurl')
 var Route = require('./lib/route')
 var setPrototypeOf = require('setprototypeof')
+var pathToRegexp = require('path-to-regexp')
 
 /**
  * Module variables.
@@ -72,6 +73,7 @@ function Router(options) {
   router.params = {}
   router.strict = opts.strict
   router.stack = []
+  router.routes = {}
 
   return router
 }
@@ -429,7 +431,8 @@ Router.prototype.process_params = function process_params(layer, called, req, re
 }
 
 /**
- * Use the given middleware function, with optional path, defaulting to "/".
+ * Use the given middleware function, with optional path,
+ * defaulting to "/" and optional name.
  *
  * Use (like `.all`) will run for any http METHOD, but it will not add
  * handlers for those methods so OPTIONS requests will not consider `.use`
@@ -440,17 +443,34 @@ Router.prototype.process_params = function process_params(layer, called, req, re
  * handlers can operate without any code changes regardless of the "prefix"
  * pathname.
  *
+ * Note: If a name is supplied, a path must be specified and
+ * only one handler function is permitted. The handler must also
+ * implement the 'findPath' function.
+ *
  * @public
+ * @param {string=} path
+ * @param {string=} name
+ * @param {function} handler
+ * 
  */
 
 Router.prototype.use = function use(handler) {
   var offset = 0
   var path = '/'
+  var name
 
   // default path to '/'
   // disambiguate router.use([handler])
   if (typeof handler !== 'function') {
     var arg = handler
+    var arg1 = arguments[1]
+    // If a name is used, the second argument will be a string, not a function
+    if(typeof arg1 !== 'function' && arguments.length > 2) {
+      name = arg1
+      if(typeof name !== 'string' || name.length === 0) {
+        throw new TypeError('name should be a non-empty string')
+      }
+    }
 
     while (Array.isArray(arg) && arg.length !== 0) {
       arg = arg[0]
@@ -461,12 +481,31 @@ Router.prototype.use = function use(handler) {
       offset = 1
       path = handler
     }
+    if (name) {
+      offset = 2
+    }
   }
 
   var callbacks = flatten(slice.call(arguments, offset))
 
   if (callbacks.length === 0) {
     throw new TypeError('argument handler is required')
+  }
+
+  if (name && typeof path !== 'string') {
+    throw new TypeError('only paths that are strings can be named')
+  }
+
+  if (name && this.routes[name]) {
+    throw new Error('a route or handler named \"' + name + '\" already exists')
+  }
+
+  if (name && callbacks.length > 1) {
+    throw new TypeError('Router.use cannot be called with multiple handlers if a name argument is used, each handler should have its own name')
+  }
+
+  if (name && typeof callbacks[0].findPath !== 'function') {
+    throw new TypeError('handler must implement findPath function if Router.use is called with a name argument')
   }
 
   for (var i = 0; i < callbacks.length; i++) {
@@ -488,6 +527,10 @@ Router.prototype.use = function use(handler) {
     layer.route = undefined
 
     this.stack.push(layer)
+
+    if(name) {
+      this.routes[name] = {'path':path, 'handler':fn};
+    }
   }
 
   return this
@@ -502,12 +545,24 @@ Router.prototype.use = function use(handler) {
  * and middleware to routes.
  *
  * @param {string} path
+ * @param {string=} name
  * @return {Route}
  * @public
  */
 
-Router.prototype.route = function route(path) {
-  var route = new Route(path)
+Router.prototype.route = function route(path, name) {
+  if(name !== undefined && (typeof name !== 'string' || name.length === 0)) {
+      throw new Error('name should be a non-empty string')
+  }
+  if(name && this.routes[name]) {
+    throw new Error('a route or handler named \"' + name + '\" already exists')
+  }
+
+  var route = new Route(path, name)
+
+  if(name) {
+    this.routes[name] = route
+  }
 
   var layer = new Layer(path, {
     sensitive: this.caseSensitive,
@@ -533,6 +588,45 @@ methods.concat('all').forEach(function(method){
     return this
   }
 })
+
+/**
+ * Find a path for the previously created named route. The name
+ * supplied should be separated by '.' if nested routing is
+ * used. Parameters should be supplied if the route includes any
+ * (e.g. {userid: 'user1'}).
+ *
+ * @param {string} routePath - name of route or '.' separated 
+ *        path
+ * @param {Object=} params - parameters for route
+ * @return {string}
+ */
+
+Router.prototype.findPath = function findPath(routePath, params) {
+  if (typeof routePath !== 'string') {
+    throw new TypeError('route path should be a string')
+  }
+  var firstDot = routePath.indexOf('.')
+  var routeToFind;
+  if (firstDot === -1) {
+    routeToFind = routePath
+  } else {
+    routeToFind = routePath.substring(0, firstDot)
+  }
+  var thisRoute = this.routes[routeToFind]
+  if (!thisRoute) {
+    throw new Error('route path \"'+ routeToFind + '\" does not match any named routes')
+  }
+  var toPath = pathToRegexp.compile(thisRoute.path)
+  var path = toPath(params)
+  if (firstDot === -1) { // only one segment or this is the last segment
+    return path
+  }
+  var subPath = routePath.substring(firstDot + 1)
+  if(thisRoute.handler === undefined || thisRoute.handler.findPath === undefined) {
+    throw new Error('part of route path \"' + subPath + '\" does not match any named nested routes')
+  }
+  return path + thisRoute.handler.findPath(subPath, params)
+}
 
 /**
  * Generate a callback that will make an OPTIONS response.
