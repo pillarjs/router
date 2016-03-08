@@ -313,6 +313,32 @@ curl http://127.0.0.1:8080/such_path
 > such_path
 ```
 
+### Example using named routes
+
+```js
+var http         = require('http')
+var Router       = require('router')
+var finalhandler = require('finalhandler')
+
+var router = new Router()
+var nestedRouter = new Router()
+
+// setup some parameters to be passed in to create a path
+var params = {userid: 'user1'}
+
+var server = http.createServer(function onRequest(req, res) {
+  router(req, res, finalhandler(req, res))
+})
+
+router.use('/users/:userid', 'users', nestedRouter).get('/', function (req, res) {
+  res.setHeader('Content-Type', 'text/plain; charset=utf-8')
+  // Use findPath to create a path with parameters filled in
+  res.end(router.findPath('users', params))
+})
+
+server.listen(8080)
+```
+
 ## License
 
 [MIT](LICENSE)
