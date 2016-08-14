@@ -327,6 +327,74 @@ describe('Router', function () {
         .get('/foo')
         .expect(500, 'caught: oh, no!', done)
       })
+
+      it('should handle a returned rejected promise', function(done) {
+        // Only run this test in environments where Promise is defined.
+        if (!global.Promise) {
+          return done();
+        }
+
+        var router = new Router()
+        var route = router.route('/foo')
+        var server = createServer(router)
+
+        route.all(function createError(req, res, next) {
+          return new Promise(function () {
+            throw new Error('boom!')
+          })
+        })
+
+        route.all(function handleError(err, req, res, next) {
+          return new Promise(function () {
+            throw new Error('oh, no!')
+          })
+        })
+
+        route.all(function handleError(err, req, res, next) {
+          return new Promise(function () {
+            res.statusCode = 500
+            res.end('caught: ' + err.message)
+          })
+        })
+
+        request(server)
+        .get('/foo')
+        .expect(500, 'caught: oh, no!', done)
+      })
+
+      it('should handle a returned rejected promise with no value', function(done) {
+        // Only run this test in environments where Promise is defined.
+        if (!global.Promise) {
+          return done();
+        }
+
+        var router = new Router()
+        var route = router.route('/foo')
+        var server = createServer(router)
+
+        route.all(function createError(req, res, next) {
+          return new Promise(function (_, reject) {
+            reject()
+          })
+        })
+
+        route.all(function handleError(err, req, res, next) {
+          return new Promise(function (_, reject) {
+            reject()
+          })
+        })
+
+        route.all(function handleError(err, req, res, next) {
+          return new Promise(function () {
+            res.statusCode = 500
+            res.end('caught: ' + err.message)
+          })
+        })
+
+        request(server)
+        .get('/foo')
+        .expect(500, 'caught: Promise rejected with: undefined', done)
+      })
     })
 
     describe('path', function () {
