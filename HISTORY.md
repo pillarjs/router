@@ -1,6 +1,8 @@
 2.x
 ===
 
+  * Add basic support for returned, rejected Promises
+    - Rejected Promises from middleware functions `next(error)`
   * Drop support for Node.js below 0.10
   * deps: debug@3.1.0
     - Add `DEBUG_HIDE_DATE` environment variable

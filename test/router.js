@@ -12,6 +12,8 @@ var request = utils.request
 var shouldHitHandle = utils.shouldHitHandle
 var shouldNotHitHandle = utils.shouldNotHitHandle
 
+var describePromises = global.Promise ? describe : describe.skip
+
 describe('Router', function () {
   it('should return a function', function () {
     assert.equal(typeof Router(), 'function')
@@ -687,6 +689,118 @@ describe('Router', function () {
         .get('/')
         .expect('x-next', 'router')
         .expect(404, done)
+      })
+    })
+
+    describePromises('promise support', function () {
+      it('should pass rejected promise value', function (done) {
+        var router = new Router()
+        var server = createServer(router)
+
+        router.use(function createError (req, res, next) {
+          return Promise.reject(new Error('boom!'))
+        })
+
+        router.use(sawError)
+
+        request(server)
+        .get('/')
+        .expect(200, 'saw Error: boom!', done)
+      })
+
+      it('should pass rejected promise without value', function (done) {
+        var router = new Router()
+        var server = createServer(router)
+
+        router.use(function createError (req, res, next) {
+          return Promise.reject()
+        })
+
+        router.use(sawError)
+
+        request(server)
+        .get('/')
+        .expect(200, 'saw Error: Rejected promise', done)
+      })
+
+      it('should ignore resolved promise', function (done) {
+        var router = new Router()
+        var server = createServer(router)
+
+        router.use(function createError (req, res, next) {
+          saw(req, res)
+          return Promise.resolve('foo')
+        })
+
+        router.use(function () {
+          done(new Error('Unexpected middleware invoke'))
+        })
+
+        request(server)
+        .get('/foo')
+        .expect(200, 'saw GET /foo', done)
+      })
+
+      describe('error handling', function () {
+        it('should pass rejected promise value', function (done) {
+          var router = new Router()
+          var server = createServer(router)
+
+          router.use(function createError (req, res, next) {
+            return Promise.reject(new Error('boom!'))
+          })
+
+          router.use(function handleError (err, req, res, next) {
+            return Promise.reject(new Error('caught: ' + err.message))
+          })
+
+          router.use(sawError)
+
+          request(server)
+          .get('/')
+          .expect(200, 'saw Error: caught: boom!', done)
+        })
+
+        it('should pass rejected promise without value', function (done) {
+          var router = new Router()
+          var server = createServer(router)
+
+          router.use(function createError (req, res, next) {
+            return Promise.reject()
+          })
+
+          router.use(function handleError (err, req, res, next) {
+            return Promise.reject(new Error('caught: ' + err.message))
+          })
+
+          router.use(sawError)
+
+          request(server)
+          .get('/')
+          .expect(200, 'saw Error: caught: Rejected promise', done)
+        })
+
+        it('should ignore resolved promise', function (done) {
+          var router = new Router()
+          var server = createServer(router)
+
+          router.use(function createError (req, res, next) {
+            return Promise.reject(new Error('boom!'))
+          })
+
+          router.use(function handleError (err, req, res, next) {
+            sawError(err, req, res, next)
+            return Promise.resolve('foo')
+          })
+
+          router.use(function () {
+            done(new Error('Unexpected middleware invoke'))
+          })
+
+          request(server)
+          .get('/foo')
+          .expect(200, 'saw Error: boom!', done)
+        })
       })
     })
 

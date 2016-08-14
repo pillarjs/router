@@ -11,6 +11,8 @@ var request = utils.request
 var shouldHitHandle = utils.shouldHitHandle
 var shouldNotHitHandle = utils.shouldNotHitHandle
 
+var describePromises = global.Promise ? describe : describe.skip
+
 describe('Router', function () {
   describe('.route(path)', function () {
     it('should return a new route', function () {
@@ -464,6 +466,141 @@ describe('Router', function () {
         .get('/foo')
         .expect('x-next', 'router')
         .expect(404, done)
+      })
+    })
+
+    describePromises('promise support', function () {
+      it('should pass rejected promise value', function (done) {
+        var router = new Router()
+        var route = router.route('/foo')
+        var server = createServer(router)
+
+        route.all(function createError (req, res, next) {
+          return Promise.reject(new Error('boom!'))
+        })
+
+        route.all(helloWorld)
+
+        route.all(function handleError (err, req, res, next) {
+          res.statusCode = 500
+          res.end('caught: ' + err.message)
+        })
+
+        request(server)
+        .get('/foo')
+        .expect(500, 'caught: boom!', done)
+      })
+
+      it('should pass rejected promise without value', function (done) {
+        var router = new Router()
+        var route = router.route('/foo')
+        var server = createServer(router)
+
+        route.all(function createError (req, res, next) {
+          return Promise.reject()
+        })
+
+        route.all(helloWorld)
+
+        route.all(function handleError (err, req, res, next) {
+          res.statusCode = 500
+          res.end('caught: ' + err.message)
+        })
+
+        request(server)
+        .get('/foo')
+        .expect(500, 'caught: Rejected promise', done)
+      })
+
+      it('should ignore resolved promise', function (done) {
+        var router = new Router()
+        var route = router.route('/foo')
+        var server = createServer(router)
+
+        route.all(function createError (req, res, next) {
+          saw(req, res)
+          return Promise.resolve('foo')
+        })
+
+        route.all(function () {
+          done(new Error('Unexpected route invoke'))
+        })
+
+        request(server)
+        .get('/foo')
+        .expect(200, 'saw GET /foo', done)
+      })
+
+      describe('error handling', function () {
+        it('should pass rejected promise value', function (done) {
+          var router = new Router()
+          var route = router.route('/foo')
+          var server = createServer(router)
+
+          route.all(function createError (req, res, next) {
+            return Promise.reject(new Error('boom!'))
+          })
+
+          route.all(function handleError (err, req, res, next) {
+            return Promise.reject(new Error('caught: ' + err.message))
+          })
+
+          route.all(function handleError (err, req, res, next) {
+            res.statusCode = 500
+            res.end('caught again: ' + err.message)
+          })
+
+          request(server)
+          .get('/foo')
+          .expect(500, 'caught again: caught: boom!', done)
+        })
+
+        it('should pass rejected promise without value', function (done) {
+          var router = new Router()
+          var route = router.route('/foo')
+          var server = createServer(router)
+
+          route.all(function createError (req, res, next) {
+            return Promise.reject(new Error('boom!'))
+          })
+
+          route.all(function handleError (err, req, res, next) {
+            return Promise.reject()
+          })
+
+          route.all(function handleError (err, req, res, next) {
+            res.statusCode = 500
+            res.end('caught again: ' + err.message)
+          })
+
+          request(server)
+          .get('/foo')
+          .expect(500, 'caught again: Rejected promise', done)
+        })
+
+        it('should ignore resolved promise', function (done) {
+          var router = new Router()
+          var route = router.route('/foo')
+          var server = createServer(router)
+
+          route.all(function createError (req, res, next) {
+            return Promise.reject(new Error('boom!'))
+          })
+
+          route.all(function handleError (err, req, res, next) {
+            res.statusCode = 500
+            res.end('caught: ' + err.message)
+            return Promise.resolve('foo')
+          })
+
+          route.all(function () {
+            done(new Error('Unexpected route invoke'))
+          })
+
+          request(server)
+          .get('/foo')
+          .expect(500, 'caught: boom!', done)
+        })
       })
     })
 

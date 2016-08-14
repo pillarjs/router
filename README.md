@@ -195,6 +195,11 @@ format is with three parameters - "req", "res" and "next".
 - `res`  - This is a [HTTP server response](https://nodejs.org/api/http.html#http_class_http_serverresponse) instance.
 - `next` - Calling this function that tells `router` to proceed to the next matching middleware or method handler. It accepts an error as the first argument.
 
+The function can optionally return a `Promise` object. If a `Promise` object
+is returned from the function, the router will attach an `onRejected` callback
+using `.then`. If the promise is rejected, `next` will be called with the
+rejected value, or an error if the value is falsy.
+
 Middleware and method handlers can also be defined with four arguments. When
 the function has four parameters defined, the first argument is an error and
 subsequent arguments remain, becoming - "err", "req", "res", "next". These
