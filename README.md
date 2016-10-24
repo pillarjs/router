@@ -295,6 +295,81 @@ curl http://127.0.0.1:8080/such_path
 > such_path
 ```
 
+## Events
+
+The router emits three events - `handlestart`, `layer`, and `handleend` - as it processes requests.
+
+### 1. `handlestart`
+
+This event is emitted when the router starts to process a request.
+
+Example:
+
+```js
+router.on('handlestart', function (req) {
+  req.id = Math.random().toString(36).slice(2)
+  console.log('HANDLESTART:', req.id)
+})
+```
+
+### 2. `layer`
+
+This event is emitted when a route layer is matched.
+
+Layers are matched till one of them sends a response back to the client.
+
+Example:
+
+```js
+router.on('layer', function (req, layer) {
+  console.log(layer)
+})
+```
+
+### 3. `handleend`
+
+This event is emitted when the router has finished processing a request and sent a response.
+
+Example:
+
+```js
+router.on('handleend', function (req) {
+  console.log('HANDLEEND:', req.id)
+})
+```
+
+Here is a complete example of using router events in an Express 5 app.
+
+```js
+var express = require('express')
+var app = express()
+
+app.use(function (req, res, next) {
+  next()
+})
+
+app.get('/', function (req, res) {
+  res.send('HELLO')
+})
+
+app.router.on('handlestart', function (req) {
+  req.id = Math.random().toString(36).slice(2)
+  console.log('HANDLESTART:', req.id)
+})
+
+app.router.on('layer', function (req, layer) {
+  if (!('layerCounter' in req)) req.layerCounter = 0
+  console.log('LAYER: %s -> %d', req.id, ++req.layerCounter)
+  // console.log(layer) // uncomment this to log the layer
+})
+
+app.router.on('handleend', function (req, router) {
+  console.log('HANDLEEND:', req.id)
+})
+
+app.listen(3000)
+```
+
 ## License
 
 [MIT](LICENSE)

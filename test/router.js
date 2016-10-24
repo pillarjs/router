@@ -3,6 +3,7 @@ var after = require('after')
 var methods = require('methods')
 var Router = require('..')
 var utils = require('./support/utils')
+var Layer = require('../lib/layer.js')
 
 var assert = utils.assert
 var createHitHandle = utils.createHitHandle
@@ -983,7 +984,152 @@ describe('Router', function () {
       .expect(200, 'saw GET /bar', done)
     })
   })
+
+  describe('events', function () {
+
+    describe('"handlestart"', function () {
+      it('should pass the request object', function (done) {
+        var router = new Router()
+        var server = createServer(router)
+
+        router.on('handlestart', function (req) {
+          assert.equal('true', req.headers['x-handlestart'])
+          done()
+        })
+
+        request(server).get('/').set({'x-handlestart': 'true'}).end()
+      })
+
+      it('should be emitted at the beginning of handling the router stack', function (done) {
+        var router = new Router()
+        var server = createServer(router)
+
+        var handlers = [passThrough, passThrough, passThrough]
+        router.use(handlers)
+
+        var counter = 0
+        router.on('layer', function (layer, req) {
+          counter++
+        })
+        router.on('handlestart', function (req) {
+          assert.equal(0, counter)
+          done()
+        })
+
+        request(server).get('/').end()
+      })
+    })
+
+    describe('"layer"', function () {
+      it('should pass the request object and the matched layer', function (done) {
+        var router = new Router()
+        var server = createServer(router)
+
+        router.use(passThrough)
+
+        router.on('layer', function (req, layer) {
+          assert.equal('true', req.headers['x-layer'])
+          assert(Layer.prototype.isPrototypeOf(layer))
+          done()
+        })
+
+        request(server).get('/').set({'x-layer': 'true'}).end()
+      })
+
+      it('should be emitted for each layer of the router stack', function (done) {
+        var router = new Router()
+        var server = createServer(router)
+
+        var handlers = [passThrough, passThrough, passThrough]
+        router.use(handlers)
+
+        var cb = after(handlers.length, done)
+
+        router.on('layer', function (layer, req) {
+          cb()
+        })
+
+        request(server).get('/').end()
+      })
+
+      it('should not be emitted beyond the layer which sends a response', function (done) {
+        var router = new Router()
+        var server = createServer(router)
+
+        var handlers = [helloWorld, passThrough, passThrough, passThrough]
+        router.use(handlers)
+
+        var cb = after(1, done)
+
+        router.on('layer', function (layer, req) {
+          cb()
+        })
+
+        request(server).get('/').end()
+      })
+
+    })
+
+    describe('"handleend"', function () {
+      it('should pass the request object', function (done) {
+        var router = new Router()
+        var server = createServer(router)
+
+        router.use(passThrough)
+
+        router.on('handleend', function (req) {
+          assert.equal('true', req.headers['x-handleend'])
+          done()
+        })
+
+        request(server).get('/').set({'x-handleend': 'true'}).end()
+      })
+
+      it('should be emitted at the end of handling the router stack', function (done) {
+        var router = new Router()
+        var server = createServer(router)
+
+        var handlers = [passThrough, passThrough, passThrough]
+        router.use(handlers)
+
+        var counter = 0
+        router.on('layer', function (layer, req) {
+          counter++
+        })
+        router.on('handleend', function (req) {
+          assert.equal(handlers.length, counter)
+          done()
+        })
+
+        request(server).get('/').end()
+      })
+
+      it('should be emitted when a response is sent by any of the middleware/handlers', function (done) {
+        var router = new Router()
+        var server = createServer(router)
+
+        var handlers = [helloWorld, passThrough, passThrough, passThrough]
+        router.use(handlers)
+
+        var counter = 0
+        router.on('layer', function (layer, req) {
+          counter++
+        })
+        router.on('handleend', function (req) {
+          assert.equal(1, counter)
+          done()
+        })
+
+        request(server).get('/').end()
+      })
+    })
+
+  })
 })
+
+function passThrough(req, res, next) {
+  next()
+}
 
 function helloWorld(req, res) {
   res.statusCode = 200

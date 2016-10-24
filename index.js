@@ -20,6 +20,7 @@ var mixin = require('utils-merge')
 var parseUrl = require('parseurl')
 var Route = require('./lib/route')
 var setPrototypeOf = require('setprototypeof')
+var EventEmitter = require('events').EventEmitter
 
 /**
  * Module variables.
@@ -63,6 +64,9 @@ function Router(options) {
   function router(req, res, next) {
     router.handle(req, res, next)
   }
+
+  // make Router an EventEmitter
+  mixin(this, EventEmitter.prototype, false)
 
   // inherit from the correct prototype
   setPrototypeOf(router, this)
@@ -164,6 +168,7 @@ Router.prototype.handle = function handle(req, res, callback) {
   var self = this
   var slashAdded = false
   var paramcalled = {}
+  var events = self._events
 
   // middleware and routes
   var stack = this.stack
@@ -185,6 +190,16 @@ Router.prototype.handle = function handle(req, res, callback) {
   // setup basic req values
   req.baseUrl = parentUrl
   req.originalUrl = req.originalUrl || req.url
+
+  // trigger the "beginning of route handling" event
+  if (events && 'handlestart' in events) self.emit('handlestart', req)
+
+  // trigger the "end of route handling" event
+  if (events && 'handleend' in events) {
+    res.once('finish', function () {
+      self.emit('handleend', req)
+    })
+  }
 
   next()
 
@@ -268,6 +283,9 @@ Router.prototype.handle = function handle(req, res, callback) {
     if (match !== true) {
       return done(layerError)
     }
+
+     // trigger the "layer found" event
+    if (events && 'layer' in events) self.emit('layer', req, layer)
 
     // store route for dispatch on change
     if (route) {
