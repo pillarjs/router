@@ -6,17 +6,28 @@ var request = require('supertest')
 
 exports.assert = assert
 exports.createHitHandle = createHitHandle
+exports.createErrorHitHandle = createErrorHitHandle
 exports.createServer = createServer
 exports.rawrequest = rawrequest
 exports.request = request
 exports.shouldHitHandle = shouldHitHandle
 exports.shouldNotHitHandle = shouldNotHitHandle
 
-function createHitHandle(num) {
+function createHitHandle(num, options) {
+  options = options || {}
   var name = 'x-fn-' + String(num)
   return function hit(req, res, next) {
-    res.setHeader(name, 'hit')
+    if (!options.checkHeadersSent || (options.checkHeadersSent && res._headers)) {
+      res.setHeader(name, 'hit')
+    }
     next()
+  }
+}
+
+function createErrorHitHandle(num, options) {
+  var hit = createHitHandle(num, options)
+  return function hitError(error, req, res, next) {
+    hit(req, res, function () { next(error) })
   }
 }
 
@@ -88,7 +99,7 @@ function rawrequest(server) {
 function shouldHitHandle(num) {
   var header = 'x-fn-' + String(num)
   return function (res) {
-    assert.equal(res.headers[header], 'hit')
+    assert.equal(res.headers[header], 'hit', 'header ' + header + ' was included in the response')
   }
 }
 
