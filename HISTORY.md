@@ -1,7 +1,7 @@
 unreleased
 ==========
 
-  * deps: array-flatten@2.1.0
+  * deps: array-flatten@2.1.1
   * deps: setprototypeof@1.0.2
     - Fix using fallback even when native method exists
 
