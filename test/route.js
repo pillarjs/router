@@ -69,13 +69,18 @@ describe('Router', function () {
     })
 
     it('should not error on empty route', function (done) {
+      var cb = after(2, done)
       var router = new Router()
       var route = router.route('/foo')
       var server = createServer(router)
 
       request(server)
       .get('/foo')
-      .expect(404, done)
+      .expect(404, cb)
+
+      request(server)
+      .head('/foo')
+      .expect(404, cb)
     })
 
     it('should not invoke singular error route', function (done) {
