@@ -1,5 +1,5 @@
-unreleased
-==========
+1.1.5 / 2017-01-28
+==================
 
   * deps: array-flatten@2.1.1
   * deps: setprototypeof@1.0.2
