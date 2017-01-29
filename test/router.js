@@ -586,6 +586,61 @@ describe('Router', function () {
       })
     })
 
+    describe('next("route")', function () {
+      it('should invoke next handler', function (done) {
+        var router = new Router()
+        var server = createServer(router)
+
+        router.use(function handle (req, res, next) {
+          res.setHeader('x-next', 'route')
+          next('route')
+        })
+
+        router.use(saw)
+
+        request(server)
+        .get('/')
+        .expect('x-next', 'route')
+        .expect(200, 'saw GET /', done)
+      })
+
+      it('should invoke next function', function (done) {
+        var router = new Router()
+        var server = createServer(router)
+
+        function goNext (req, res, next) {
+          res.setHeader('x-next', 'route')
+          next('route')
+        }
+
+        router.use(createHitHandle(1), goNext, createHitHandle(2), saw)
+
+        request(server)
+        .get('/')
+        .expect(shouldHitHandle(1))
+        .expect('x-next', 'route')
+        .expect(shouldHitHandle(2))
+        .expect(200, 'saw GET /', done)
+      })
+
+      it('should not invoke error handlers', function (done) {
+        var router = new Router()
+        var server = createServer(router)
+
+        router.use(function handle (req, res, next) {
+          res.setHeader('x-next', 'route')
+          next('route')
+        })
+
+        router.use(sawError)
+
+        request(server)
+        .get('/')
+        .expect('x-next', 'route')
+        .expect(404, done)
+      })
+    })
+
     describe('req.baseUrl', function () {
       it('should be empty', function (done) {
         var router = new Router()
@@ -836,6 +891,44 @@ describe('Router', function () {
         request(server)
         .get('/foo/')
         .expect(200, 'saw GET /', cb)
+      })
+    })
+
+    describe('next("route")', function () {
+      it('should invoke next handler', function (done) {
+        var router = new Router()
+        var server = createServer(router)
+
+        router.use('/foo', function handle (req, res, next) {
+          res.setHeader('x-next', 'route')
+          next('route')
+        })
+
+        router.use('/foo', saw)
+
+        request(server)
+        .get('/foo')
+        .expect('x-next', 'route')
+        .expect(200, 'saw GET /', done)
+      })
+
+      it('should invoke next function', function (done) {
+        var router = new Router()
+        var server = createServer(router)
+
+        function goNext (req, res, next) {
+          res.setHeader('x-next', 'route')
+          next('route')
+        }
+
+        router.use('/foo', createHitHandle(1), goNext, createHitHandle(2), saw)
+
+        request(server)
+        .get('/foo')
+        .expect(shouldHitHandle(1))
+        .expect('x-next', 'route')
+        .expect(shouldHitHandle(2))
+        .expect(200, 'saw GET /', done)
       })
     })
 
