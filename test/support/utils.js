@@ -88,7 +88,7 @@ function rawrequest(server) {
 function shouldHitHandle(num) {
   var header = 'x-fn-' + String(num)
   return function (res) {
-    assert.equal(res.headers[header], 'hit')
+    assert.equal(res.headers[header], 'hit', 'should hit handle ' + num)
   }
 }
 
