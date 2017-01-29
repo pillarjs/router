@@ -722,7 +722,7 @@ describe('Router', function () {
     })
 
     it('should support regexp path', function (done) {
-      var cb = after(4, done)
+      var cb = after(5, done)
       var router = new Router()
       var server = createServer(router)
 
@@ -735,6 +735,10 @@ describe('Router', function () {
       request(server)
       .get('/foo')
       .expect(200, 'saw GET /', cb)
+
+      request(server)
+      .get('/fooo')
+      .expect(404, cb)
 
       request(server)
       .get('/zoo/bear')
