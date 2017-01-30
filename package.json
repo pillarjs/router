@@ -26,6 +26,7 @@
     "LICENSE",
     "HISTORY.md",
     "README.md",
+    "engine.js",
     "index.js"
   ],
   "engines": {
