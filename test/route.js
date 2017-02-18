@@ -50,7 +50,8 @@ describe('Router', function () {
       route.post(createHitHandle(1))
       route.all(createHitHandle(2))
       route.get(createHitHandle(3))
-      route.all(saw)
+
+      router.use(saw)
 
       request(server)
       .get('/foo')
