@@ -1,6 +1,7 @@
 unreleased
 ==========
 
+  * Skip routing when `req.url` is not set
   * deps: debug@2.6.1
     - Allow colors in workers
     - Deprecated `DEBUG_FD` environment variable set to `3` or higher

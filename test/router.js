@@ -25,6 +25,12 @@ describe('Router', function () {
     assert.throws(function () { router({}, {}) }, /argument callback is required/)
   })
 
+  it('should invoke callback without "req.url"', function (done) {
+    var router = new Router()
+    router.use(saw)
+    router({}, {}, done)
+  })
+
   describe('.all(path, fn)', function () {
     it('should be chainable', function () {
       var router = new Router()

@@ -570,7 +570,7 @@ function getPathname(req) {
  */
 
 function getProtohost(url) {
-  if (url.length === 0 || url[0] === '/') {
+  if (typeof url !== 'string' || url.length === 0 || url[0] === '/') {
     return undefined
   }
 
