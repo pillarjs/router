@@ -369,11 +369,6 @@ Router.prototype.process_params = function process_params(layer, called, req, re
 
     paramIndex = 0
     key = keys[i++]
-
-    if (!key) {
-      return done()
-    }
-
     name = key.name
     paramVal = req.params[name]
     paramCallbacks = params[name]
