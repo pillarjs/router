@@ -1,5 +1,5 @@
-unreleased
-==========
+1.2.0 / 2017-02-17
+==================
 
   * Skip routing when `req.url` is not set
   * deps: debug@2.6.1
