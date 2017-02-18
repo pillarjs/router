@@ -186,11 +186,11 @@ describe('Router', function () {
 
         request(server)
         .get('/FOO/bar')
-        .expect(404, 'Cannot GET /FOO/bar\n', cb)
+        .expect(404, cb)
 
         request(server)
         .get('/FOO/BAR')
-        .expect(404, 'Cannot GET /FOO/BAR\n', cb)
+        .expect(404, cb)
       })
     })
 
@@ -240,7 +240,7 @@ describe('Router', function () {
 
         request(server)
         .get('/foo/')
-        .expect(404, 'Cannot GET /foo/\n', cb)
+        .expect(404, cb)
       })
     })
   })
@@ -840,11 +840,11 @@ describe('Router', function () {
 
         request(server)
         .get('/FOO/bar')
-        .expect(404, 'Cannot GET /FOO/bar\n', cb)
+        .expect(404, cb)
 
         request(server)
         .get('/FOO/BAR')
-        .expect(404, 'Cannot GET /FOO/BAR\n', cb)
+        .expect(404, cb)
       })
     })
 
