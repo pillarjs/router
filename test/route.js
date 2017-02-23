@@ -516,6 +516,18 @@ describe('Router', function () {
           .expect(200, {'0': '/foo/bar/baz'}, done)
         })
 
+        it('should decode the capture', function (done) {
+          var router = new Router()
+          var route = router.route('*')
+          var server = createServer(router)
+
+          route.all(sendParams)
+
+          request(server)
+          .get('/foo/%20/baz')
+          .expect(200, {'0': '/foo/ /baz'}, done)
+        })
+
         it('should capture everything with pre- and post-fixes', function (done) {
           var router = new Router()
           var route = router.route('/foo/*/bar')
