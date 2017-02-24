@@ -472,7 +472,7 @@ Router.prototype.use = function use(handler) {
     }
 
     // add the middleware
-    debug('use %s %s', path, fn.name || '<anonymous>')
+    debug('use %o %s', path, fn.name || '<anonymous>')
 
     var layer = new Layer(path, {
       sensitive: this.caseSensitive,
