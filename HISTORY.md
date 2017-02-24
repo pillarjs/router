@@ -2,6 +2,7 @@ unreleased
 ==========
 
   * deps: setprototypeof@1.0.3
+  * perf: add fast match path for `*` route
 
 1.2.0 / 2017-02-17
 ==================
