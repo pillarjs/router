@@ -7,6 +7,7 @@ var utils = require('./support/utils')
 var assert = utils.assert
 var createHitHandle = utils.createHitHandle
 var createServer = utils.createServer
+var rawrequest = utils.rawrequest
 var request = utils.request
 var shouldHitHandle = utils.shouldHitHandle
 var shouldNotHitHandle = utils.shouldNotHitHandle
@@ -446,7 +447,7 @@ describe('Router', function () {
     })
 
     it('should invoke function for all requests', function (done) {
-      var cb = after(3, done)
+      var cb = after(4, done)
       var router = new Router()
       var server = createServer(router)
 
@@ -457,12 +458,16 @@ describe('Router', function () {
       .expect(200, 'saw GET /', cb)
 
       request(server)
-      .options('/')
-      .expect(200, 'saw OPTIONS /', cb)
+      .put('/')
+      .expect(200, 'saw PUT /', cb)
 
       request(server)
       .post('/foo')
       .expect(200, 'saw POST /foo', cb)
+
+      rawrequest(server)
+      .options('*')
+      .expect(200, 'saw OPTIONS *', cb)
     })
 
     it('should not invoke for blank URLs', function (done) {

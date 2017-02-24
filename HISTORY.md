@@ -1,6 +1,7 @@
 unreleased
 ==========
 
+  * Fix case where `router.use` skipped requests routes did not
   * deps: setprototypeof@1.0.3
   * perf: add fast match path for `*` route
 

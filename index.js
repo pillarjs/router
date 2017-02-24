@@ -295,16 +295,16 @@ Router.prototype.handle = function handle(req, res, callback) {
   }
 
   function trim_prefix(layer, layerError, layerPath, path) {
-    var c = path[layerPath.length]
-
-    if (c && c !== '/') {
-      next(layerError)
-      return
-    }
-
-     // Trim off the part of the url that matches the route
-     // middleware (.use stuff) needs to have the path stripped
     if (layerPath.length !== 0) {
+      // Validate path breaks on a path separator
+      var c = path[layerPath.length]
+      if (c && c !== '/') {
+        next(layerError)
+        return
+      }
+
+      // Trim off the part of the url that matches the route
+      // middleware (.use stuff) needs to have the path stripped
       debug('trim prefix (%s) from url %s', layerPath, req.url)
       removed = layerPath
       req.url = protohost + req.url.substr(protohost.length + removed.length)
