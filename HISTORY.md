@@ -1,5 +1,5 @@
-unreleased
-==========
+1.3.0 / 2017-02-25
+==================
 
   * Add `next("router")` to exit from router
   * Fix case where `router.use` skipped requests routes did not
