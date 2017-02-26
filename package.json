@@ -3,6 +3,9 @@
   "description": "Simple middleware-style router",
   "version": "1.2.0",
   "author": "Douglas Christopher Wilson <doug@somethingdoug.com>",
+  "contributors": [
+    "Blake Embrey <hello@blakeembrey.com>"
+  ],
   "license": "MIT",
   "repository": "pillarjs/router",
   "dependencies": {
