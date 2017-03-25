@@ -355,7 +355,7 @@ This event is emitted when a route layer finishes calling middleware functions
 Example:
 
 ```js
-router.on('layerend', function (req, layer) {
+router.on('layerend', function (req, res, layer) {
   console.log('The layer ' + layer.path + ' took ' + (Date.now() - req.layerStartTime) + 'ms')
 })
 ```
@@ -385,11 +385,11 @@ app.get('/', function (req, res) {
   res.send('HELLO')
 })
 
-app.router.on('layerstart', function (req, layer) {
+app.router.on('layerstart', function (req, res, layer) {
   req.layerStartTime = Date.now()
 })
 
-app.router.on('layerend', function (req, layer) {
+app.router.on('layerend', function (req, res, layer) {
   req.layerCounter++;
   req.totalTime += Date.now() - req.layerStartTime;
 })
