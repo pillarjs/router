@@ -987,48 +987,16 @@ describe('Router', function () {
 
   describe('events', function () {
 
-    describe('"handlestart"', function () {
-      it('should pass the request object', function (done) {
-        var router = new Router()
-        var server = createServer(router)
-
-        router.on('handlestart', function (req) {
-          assert.equal('true', req.headers['x-handlestart'])
-          done()
-        })
-
-        request(server).get('/').set({'x-handlestart': 'true'}).end()
-      })
-
-      it('should be emitted at the beginning of handling the router stack', function (done) {
-        var router = new Router()
-        var server = createServer(router)
-
-        var handlers = [passThrough, passThrough, passThrough]
-        router.use(handlers)
-
-        var counter = 0
-        router.on('layer', function (layer, req) {
-          counter++
-        })
-        router.on('handlestart', function (req) {
-          assert.equal(0, counter)
-          done()
-        })
-
-        request(server).get('/').end()
-      })
-    })
-
     describe('"layer"', function () {
-      it('should pass the request object and the matched layer', function (done) {
+      it('should pass the request and response objects and the matched layer', function (done) {
         var router = new Router()
         var server = createServer(router)
 
-        router.use(passThrough)
+        router.use(helloWorld)
 
-        router.on('layer', function (req, layer) {
+        router.on('layerstart', function (req, res, layer) {
           assert.equal('true', req.headers['x-layer'])
+          assert.equal(200, res.statusCode)
           assert(Layer.prototype.isPrototypeOf(layer))
           done()
         })
@@ -1042,88 +1010,56 @@ describe('Router', function () {
 
         var handlers = [passThrough, passThrough, passThrough]
         router.use(handlers)
+        var start = 0
+        var end = 0
 
-        var cb = after(handlers.length, done)
-
-        router.on('layer', function (layer, req) {
-          cb()
+        router.on('layerstart', function () {
+          start++
+        })
+        router.on('layerend', function () {
+          end++
+          if (end === handlers.length) {
+            assert.equal(start, end)
+            done()
+          }
         })
 
         request(server).get('/').end()
       })
 
-      it('should not be emitted beyond the layer which sends a response', function (done) {
-        var router = new Router()
-        var server = createServer(router)
+      it('should bubble events on mounted routers', function () {
+        var router1 = new Router()
+        var router2 = new Router()
+        var server = createServer(router1)
+        router2.use(passThrough, passThrough)
+        router1.use(router2)
+        var start1 = 0
+        var start2 = 0
+        var end1 = 0
+        var end2 = 0
 
-        var handlers = [helloWorld, passThrough, passThrough, passThrough]
-        router.use(handlers)
-
-        var cb = after(1, done)
-
-        router.on('layer', function (layer, req) {
-          cb()
+        router2.on('layerstart', function () {
+          start2++
         })
-
-        request(server).get('/').end()
-      })
-
-    })
-
-    describe('"handleend"', function () {
-      it('should pass the request object', function (done) {
-        var router = new Router()
-        var server = createServer(router)
-
-        router.use(passThrough)
-
-        router.on('handleend', function (req) {
-          assert.equal('true', req.headers['x-handleend'])
-          done()
+        router1.on('layerend', function () {
+          end2++
         })
-
-        request(server).get('/').set({'x-handleend': 'true'}).end()
-      })
-
-      it('should be emitted at the end of handling the router stack', function (done) {
-        var router = new Router()
-        var server = createServer(router)
-
-        var handlers = [passThrough, passThrough, passThrough]
-        router.use(handlers)
-
-        var counter = 0
-        router.on('layer', function (layer, req) {
-          counter++
+        router1.on('layerstart', function () {
+          start1++
         })
-        router.on('handleend', function (req) {
-          assert.equal(handlers.length, counter)
-          done()
-        })
-
-        request(server).get('/').end()
-      })
-
-      it('should be emitted when a response is sent by any of the middleware/handlers', function (done) {
-        var router = new Router()
-        var server = createServer(router)
-
-        var handlers = [helloWorld, passThrough, passThrough, passThrough]
-        router.use(handlers)
-
-        var counter = 0
-        router.on('layer', function (layer, req) {
-          counter++
-        })
-        router.on('handleend', function (req) {
-          assert.equal(1, counter)
-          done()
+        router1.on('layerend', function () {
+          end1++
+          if (end1 === 3) {
+            assert.equal(start1, 3)
+            assert.equal(start2, 2)
+            assert.equal(end2, 2)
+            done()
+          }
         })
 
         request(server).get('/').end()
       })
     })
-
   })
 })
 
