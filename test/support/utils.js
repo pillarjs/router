@@ -2,6 +2,7 @@
 var assert = require('assert')
 var finalhandler = require('finalhandler')
 var http = require('http')
+var methods = require('methods')
 var request = require('supertest')
 
 exports.assert = assert
@@ -28,7 +29,13 @@ function createServer(router) {
 
 function rawrequest(server) {
   var _headers = {}
+  var _method
   var _path
+  var _test = {}
+
+  methods.forEach(function (method) {
+    _test[method] = go.bind(null, method)
+  })
 
   function expect(status, body, callback) {
     if (arguments.length === 2) {
@@ -36,13 +43,23 @@ function rawrequest(server) {
       return this
     }
 
-    server.listen(function(){
+    var _server
+
+    if (!server.address()) {
+      _server = server.listen(0, onListening)
+      return
+    }
+
+    onListening.call(server)
+
+    function onListening () {
       var addr = this.address()
       var hostname = addr.family === 'IPv6' ? '::1' : '127.0.0.1'
       var port = addr.port
 
-      var req = http.get({
+      var req = http.request({
         host: hostname,
+        method: _method,
         path: _path,
         port: port
       })
@@ -65,14 +82,19 @@ function rawrequest(server) {
             err = e
           }
 
-          server.close()
+          if (_server) {
+            _server.close()
+          }
+
           callback(err)
         })
       })
-    })
+      req.end()
+    }
   }
 
-  function get(path) {
+  function go (method, path) {
+    _method = method
     _path = path
 
     return {
@@ -80,15 +102,13 @@ function rawrequest(server) {
     }
   }
 
-  return {
-    get: get
-  }
+  return _test
 }
 
 function shouldHitHandle(num) {
   var header = 'x-fn-' + String(num)
   return function (res) {
-    assert.equal(res.headers[header], 'hit')
+    assert.equal(res.headers[header], 'hit', 'should hit handle ' + num)
   }
 }
 

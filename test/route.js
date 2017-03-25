@@ -8,6 +8,8 @@ var assert = utils.assert
 var createHitHandle = utils.createHitHandle
 var createServer = utils.createServer
 var request = utils.request
+var shouldHitHandle = utils.shouldHitHandle
+var shouldNotHitHandle = utils.shouldNotHitHandle
 
 describe('Router', function () {
   describe('.route(path)', function () {
@@ -48,7 +50,8 @@ describe('Router', function () {
       route.post(createHitHandle(1))
       route.all(createHitHandle(2))
       route.get(createHitHandle(3))
-      route.all(saw)
+
+      router.use(saw)
 
       request(server)
       .get('/foo')
@@ -69,13 +72,18 @@ describe('Router', function () {
     })
 
     it('should not error on empty route', function (done) {
+      var cb = after(2, done)
       var router = new Router()
       var route = router.route('/foo')
       var server = createServer(router)
 
       request(server)
       .get('/foo')
-      .expect(404, done)
+      .expect(404, cb)
+
+      request(server)
+      .head('/foo')
+      .expect(404, cb)
     })
 
     it('should not invoke singular error route', function (done) {
@@ -329,6 +337,136 @@ describe('Router', function () {
       })
     })
 
+    describe('next("route")', function () {
+      it('should invoke next handler', function (done) {
+        var router = new Router()
+        var route = router.route('/foo')
+        var server = createServer(router)
+
+        route.get(function handle (req, res, next) {
+          res.setHeader('x-next', 'route')
+          next('route')
+        })
+
+        router.use(saw)
+
+        request(server)
+        .get('/foo')
+        .expect('x-next', 'route')
+        .expect(200, 'saw GET /foo', done)
+      })
+
+      it('should invoke next route', function (done) {
+        var router = new Router()
+        var route = router.route('/foo')
+        var server = createServer(router)
+
+        route.get(function handle (req, res, next) {
+          res.setHeader('x-next', 'route')
+          next('route')
+        })
+
+        router.route('/foo').all(saw)
+
+        request(server)
+        .get('/foo')
+        .expect('x-next', 'route')
+        .expect(200, 'saw GET /foo', done)
+      })
+
+      it('should skip next handlers in route', function (done) {
+        var router = new Router()
+        var route = router.route('/foo')
+        var server = createServer(router)
+
+        route.all(createHitHandle(1))
+        route.get(function goNext (req, res, next) {
+          res.setHeader('x-next', 'route')
+          next('route')
+        })
+        route.all(createHitHandle(2))
+
+        router.use(saw)
+
+        request(server)
+        .get('/foo')
+        .expect(shouldHitHandle(1))
+        .expect('x-next', 'route')
+        .expect(shouldNotHitHandle(2))
+        .expect(200, 'saw GET /foo', done)
+      })
+
+      it('should not invoke error handlers', function (done) {
+        var router = new Router()
+        var route = router.route('/foo')
+        var server = createServer(router)
+
+        route.all(function goNext (req, res, next) {
+          res.setHeader('x-next', 'route')
+          next('route')
+        })
+
+        route.all(function handleError(err, req, res, next) {
+          res.statusCode = 500
+          res.end('caught: ' + err.message)
+        })
+
+        request(server)
+        .get('/foo')
+        .expect('x-next', 'route')
+        .expect(404, done)
+      })
+    })
+
+    describe('next("router")', function () {
+      it('should exit the router', function (done) {
+        var router = new Router()
+        var route = router.route('/foo')
+        var server = createServer(router)
+
+        function handle (req, res, next) {
+          res.setHeader('x-next', 'router')
+          next('router')
+        }
+
+        route.get(handle, createHitHandle(1))
+
+        router.use(saw)
+
+        request(server)
+        .get('/foo')
+        .expect('x-next', 'router')
+        .expect(shouldNotHitHandle(1))
+        .expect(404, done)
+      })
+
+      it('should not invoke error handlers', function (done) {
+        var router = new Router()
+        var route = router.route('/foo')
+        var server = createServer(router)
+
+        route.all(function goNext (req, res, next) {
+          res.setHeader('x-next', 'router')
+          next('router')
+        })
+
+        route.all(function handleError (err, req, res, next) {
+          res.statusCode = 500
+          res.end('caught: ' + err.message)
+        })
+
+        router.use(function handleError (err, req, res, next) {
+          res.statusCode = 500
+          res.end('caught: ' + err.message)
+        })
+
+        request(server)
+        .get('/foo')
+        .expect('x-next', 'router')
+        .expect(404, done)
+      })
+    })
+
     describe('path', function () {
       describe('using ":name"', function () {
         it('should name a capture group', function (done) {
@@ -425,6 +563,18 @@ describe('Router', function () {
           request(server)
           .get('/foo/bar/baz')
           .expect(200, {'0': '/foo/bar/baz'}, done)
+        })
+
+        it('should decode the capture', function (done) {
+          var router = new Router()
+          var route = router.route('*')
+          var server = createServer(router)
+
+          route.all(sendParams)
+
+          request(server)
+          .get('/foo/%20/baz')
+          .expect(200, {'0': '/foo/ /baz'}, done)
         })
 
         it('should capture everything with pre- and post-fixes', function (done) {

@@ -210,6 +210,12 @@ Router.prototype.handle = function handle(req, res, callback) {
       removed = ''
     }
 
+    // signal to exit router
+    if (layerError === 'router') {
+      defer(done, null)
+      return
+    }
+
     // no more matching layers
     if (idx >= stack.length) {
       defer(done, layerError)
@@ -306,16 +312,16 @@ Router.prototype.handle = function handle(req, res, callback) {
   }
 
   function trim_prefix(layer, layerError, layerPath, path, _next) {
-    var c = path[layerPath.length]
-
-    if (c && c !== '/') {
-      _next(layerError)
-      return
-    }
-
-     // Trim off the part of the url that matches the route
-     // middleware (.use stuff) needs to have the path stripped
     if (layerPath.length !== 0) {
+      // Validate path breaks on a path separator
+      var c = path[layerPath.length]
+      if (c && c !== '/') {
+        next(layerError)
+        return
+      }
+
+      // Trim off the part of the url that matches the route
+      // middleware (.use stuff) needs to have the path stripped
       debug('trim prefix (%s) from url %s', layerPath, req.url)
       removed = layerPath
       req.url = protohost + req.url.substr(protohost.length + removed.length)
@@ -380,11 +386,6 @@ Router.prototype.process_params = function process_params(layer, called, req, re
 
     paramIndex = 0
     key = keys[i++]
-
-    if (!key) {
-      return done()
-    }
-
     name = key.name
     paramVal = req.params[name]
     paramCallbacks = params[name]
@@ -488,7 +489,7 @@ Router.prototype.use = function use(handler) {
     }
 
     // add the middleware
-    debug('use %s %s', path, fn.name || '<anonymous>')
+    debug('use %o %s', path, fn.name || '<anonymous>')
 
     // If fn looks like another router instance,
     // bubble the layerstart and layerend events
@@ -594,7 +595,7 @@ function getPathname(req) {
  */
 
 function getProtohost(url) {
-  if (url.length === 0 || url[0] === '/') {
+  if (typeof url !== 'string' || url.length === 0 || url[0] === '/') {
     return undefined
   }
 
@@ -685,7 +686,7 @@ function restore(fn, obj) {
     vals[i] = obj[props[i]]
   }
 
-  return function(err){
+  return function(){
     // restore vals
     for (var i = 0; i < props.length; i++) {
       obj[props[i]] = vals[i]

@@ -2,7 +2,6 @@
 var Router = require('..')
 var utils = require('./support/utils')
 
-var assert = utils.assert
 var createServer = utils.createServer
 var rawrequest = utils.rawrequest
 

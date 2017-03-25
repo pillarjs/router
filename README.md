@@ -53,8 +53,8 @@ not handling requests.
 
 ### router.use([path], ...middleware)
 
-Use the given middleware function for all http methods on the given `path`,
-defaulting to the root path.
+Use the given [middleware function](#middleware) for all http methods on the
+given `path`, defaulting to the root path.
 
 `router` does not automatically see `use` as a handler. As such, it will not
 consider it one for handling `OPTIONS` requests.
@@ -74,13 +74,16 @@ router.use(function (req, res, next) {
 })
 ```
 
+[Middleware](#middleware) can themselves use `next('router')` at any time to
+exit the current router instance completely, invoking the top-level callback.
+
 ### router\[method](path, ...[middleware], handler)
 
 The [http methods](https://github.com/jshttp/methods/blob/master/index.js) provide
 the routing functionality in `router`.
 
-These are functions which you can directly call on the router to register a new
-`handler` for the `method` at a specified `path`.
+Method middleware and handlers follow usual [middleware](#middleware) behavior,
+except they will only be called when the method and path match the request.
 
 ```js
 // handle a `GET` request
@@ -90,10 +93,13 @@ router.get('/', function (req, res) {
 })
 ```
 
-Additional middleware may be given before the handler. These middleware behave
-exactly as normal with one exception: they may invoke `next('route')`.
-Calling `next('route')` bypasses the remaining middleware and handler for this
-route, passing the request on to the next route.
+[Middleware](#middleware) given before the handler have one additional trick,
+they may invoke `next('route')`. Calling `next('route')` bypasses the remaining
+middleware and the handler mounted for this route, passing the request to the
+next route suitable for handling this request.
+
+Route handlers and middleware can themselves use `next('router')` at any time
+to exit the current router instance completely, invoking the top-level callback.
 
 ### router.param(name, param_middleware)
 
@@ -174,6 +180,37 @@ router.route('/')
   res.end('Hello World!')
 })
 ```
+
+## Middleware
+
+Middleware (and method handlers) are functions that follow specific function
+parameters and have defined behavior when used with `router`. The most common
+format is with three parameters - "req", "res" and "next".
+
+- `req`  - This is a [HTTP incoming message](https://nodejs.org/api/http.html#http_http_incomingmessage) instance.
+- `res`  - This is a [HTTP server response](https://nodejs.org/api/http.html#http_class_http_serverresponse) instance.
+- `next` - Calling this function that tells `router` to proceed to the next matching middleware or method handler. It accepts an error as the first argument.
+
+Middleware and method handlers can also be defined with four arguments. When
+the function has four parameters defined, the first argument is an error and
+subsequent arguments remain, becoming - "err", "req", "res", "next". These
+functions are "error handling middleware", and can be used for handling
+errors that occurred in previous handlers (E.g. from calling `next(err)`).
+This is most used when you want to define arbitrary rendering of errors.
+
+```js
+router.get('/error_route', function (req, res, next) {
+  return next(new Error('Bad Request'))
+})
+
+router.use(function (err, req, res, next) {
+  res.end(err.message) //=> "Bad Request"
+})
+```
+
+Error handling middleware will **only** be invoked when an error was given. As
+long as the error is in the pipeline, normal middleware and handlers will be
+bypassed - only error handling middleware will be invoked with an error.
 
 ## Examples
 

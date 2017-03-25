@@ -1,3 +1,30 @@
+1.3.0 / 2017-02-25
+==================
+
+  * Add `next("router")` to exit from router
+  * Fix case where `router.use` skipped requests routes did not
+  * Use `%o` in path debug to tell types apart
+  * deps: setprototypeof@1.0.3
+  * perf: add fast match path for `*` route
+
+1.2.0 / 2017-02-17
+==================
+
+  * Skip routing when `req.url` is not set
+  * deps: debug@2.6.1
+    - Allow colors in workers
+    - Deprecated `DEBUG_FD` environment variable set to `3` or higher
+    - Fix error when running under React Native
+    - Use same color for same namespace
+    - deps: ms@0.7.2
+
+1.1.5 / 2017-01-28
+==================
+
+  * deps: array-flatten@2.1.1
+  * deps: setprototypeof@1.0.2
+    - Fix using fallback even when native method exists
+
 1.1.4 / 2016-01-21
 ==================
 
