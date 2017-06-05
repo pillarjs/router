@@ -189,7 +189,7 @@ Router.prototype.handle = function handle(req, res, callback) {
   next()
 
   function next(err) {
-    var layerError = err === 'route'
+    var layerError = err === 'route' || err === 'router'
       ? null
       : err
 
@@ -213,7 +213,7 @@ Router.prototype.handle = function handle(req, res, callback) {
     }
 
     // no more matching layers
-    if (idx >= stack.length) {
+    if (err === 'router' || idx >= stack.length) {
       defer(done, layerError)
       return
     }

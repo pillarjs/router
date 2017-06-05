@@ -101,6 +101,8 @@ next route suitable for handling this request.
 Route handlers and middleware can themselves use `next('router')` at any time
 to exit the current router instance completely, invoking the top-level callback.
 
+Route handlers and middleware can use `next('router')` (yes, that's "router" with an "r") to quick exit the current router instance and continue traversing routes of subsequent routers in the stack.
+
 ### router.param(name, param_middleware)
 
 Maps the specified path parameter `name` to a specialized param-capturing middleware.
