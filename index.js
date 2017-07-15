@@ -49,7 +49,7 @@ module.exports.Route = Route
  * Initialize a new `Router` with the given `options`.
  *
  * @param {object} options
- * @return {Router} which is an callable function
+ * @return {Router} which is a callable function
  * @public
  */
 
