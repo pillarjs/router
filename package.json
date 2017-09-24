@@ -15,7 +15,7 @@
     "parseurl": "~1.3.2",
     "path-to-regexp": "0.1.7",
     "setprototypeof": "1.1.0",
-    "utils-merge": "1.0.0"
+    "utils-merge": "1.0.1"
   },
   "devDependencies": {
     "after": "0.8.2",
