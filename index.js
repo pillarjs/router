@@ -13,6 +13,7 @@
  */
 
 var debug = require('debug')('router')
+var deprecate = require('depd')('router')
 var flatten = require('array-flatten')
 var Layer = require('./lib/layer')
 var methods = require('methods')
@@ -20,6 +21,7 @@ var mixin = require('utils-merge')
 var parseUrl = require('parseurl')
 var Route = require('./lib/route')
 var setPrototypeOf = require('setprototypeof')
+var mwStack = require('mwstack')
 
 /**
  * Module variables.
@@ -39,6 +41,18 @@ module.exports = Router
  */
 
 module.exports.Route = Route
+
+/**
+ * Expose `Stack`.
+ */
+
+module.exports.Stack = mwStack.Stack
+
+/**
+ * Expose `FlatStack`.
+ */
+
+module.exports.FlatStack = mwStack.FlatStack
 
 /**
  * Initialize a new `Router` with the given `options`.
@@ -66,7 +80,7 @@ function Router(options) {
   router.mergeParams = opts.mergeParams
   router.params = {}
   router.strict = opts.strict
-  router.stack = []
+  router.stack = new mwStack.Stack()
 
   return router
 }
@@ -439,52 +453,29 @@ Router.prototype.process_params = function process_params(layer, called, req, re
  * @public
  */
 
-Router.prototype.use = function use(handler) {
-  var offset = 0
-  var path = '/'
+Router.prototype.use = function use() {
+  var args = processUseArgs(arguments)
+  this.stack = this.stack.concat(createLayers(args[0], args[1], {
+    caseSensitive: this.caseSensitive
+  }))
 
-  // default path to '/'
-  // disambiguate router.use([handler])
-  if (typeof handler !== 'function') {
-    var arg = handler
+  return this
+}
 
-    while (Array.isArray(arg) && arg.length !== 0) {
-      arg = arg[0]
-    }
+/**
+ * Use the given error handling middleware function
+ *
+ * See .use for usage
+ *
+ * @public
+ */
 
-    // first arg is the path
-    if (typeof arg !== 'function') {
-      offset = 1
-      path = handler
-    }
-  }
-
-  var callbacks = flatten(slice.call(arguments, offset))
-
-  if (callbacks.length === 0) {
-    throw new TypeError('argument handler is required')
-  }
-
-  for (var i = 0; i < callbacks.length; i++) {
-    var fn = callbacks[i]
-
-    if (typeof fn !== 'function') {
-      throw new TypeError('argument handler must be a function')
-    }
-
-    // add the middleware
-    debug('use %o %s', path, fn.name || '<anonymous>')
-
-    var layer = new Layer(path, {
-      sensitive: this.caseSensitive,
-      strict: false,
-      end: false
-    }, fn)
-
-    layer.route = undefined
-
-    this.stack.push(layer)
-  }
+Router.prototype.error = function error (handler) {
+  var args = processUseArgs(arguments)
+  this.stack = this.stack.concat(createLayers(args[0], args[1], {
+    caseSensitive: this.caseSensitive,
+    error: true
+  }))
 
   return this
 }
@@ -529,6 +520,77 @@ methods.concat('all').forEach(function(method){
     return this
   }
 })
+
+/**
+ * Process args for a call to use or error
+ *
+ * @param {array} args
+ * @private
+ */
+
+function processUseArgs (args) {
+  var offset = 0
+  var path = '/'
+
+  // default path to '/'
+  // disambiguate router.use([handler])
+  if (typeof args[0] !== 'function') {
+    var arg = args[0]
+
+    while (Array.isArray(arg) && arg.length !== 0) {
+      arg = arg[0]
+    }
+
+    // first arg is the path
+    if (typeof arg !== 'function') {
+      offset = 1
+      path = args[0]
+    }
+  }
+
+  return [path, flatten(slice.call(args, offset))]
+}
+
+/**
+ * Create layers for a call to use or error
+ *
+ * @param {string} path
+ * @param {array} callbacks
+ * @param {object} opts
+ * @private
+ */
+
+function createLayers (path, callbacks, opts) {
+  if (callbacks.length === 0) {
+    throw new TypeError('argument handler is required')
+  }
+
+  return callbacks.map(function createLayers (fn) {
+    if (typeof fn !== 'function') {
+      throw new TypeError('argument handler must be a function')
+    }
+
+    if ((!opts.error && !mwStack.isError(fn)) && fn.length === 4) {
+      // not a standard error handler
+      deprecate('registering error handlers with .use is deprecated, use .error or Stack.error instead')
+      opts.error = true
+    }
+
+    // add the middleware
+    debug('use %o %s', path, fn.name || '<anonymous>')
+
+    var layer = new Layer(path, {
+      sensitive: opts.caseSensitive,
+      error: opts.error || mwStack.isError(fn),
+      strict: false,
+      end: false
+    }, fn)
+
+    layer.route = undefined
+
+    return layer
+  })
+}
 
 /**
  * Generate a callback that will make an OPTIONS response.

@@ -93,7 +93,7 @@ describe('Router', function () {
       var route = router.route('/foo')
       var server = createServer(router)
 
-      route.all(function handleError(err, req, res, next) {
+      route.error(function handleError(err, req, res, next) {
         throw new Error('boom!')
       })
 
@@ -284,7 +284,7 @@ describe('Router', function () {
 
         route.all(helloWorld)
 
-        route.all(function handleError(err, req, res, next) {
+        route.error(function handleError(err, req, res, next) {
           res.statusCode = 500
           res.end('caught: ' + err.message)
         })
@@ -305,7 +305,7 @@ describe('Router', function () {
 
         route.all(helloWorld)
 
-        route.all(function handleError(err, req, res, next) {
+        route.error(function handleError(err, req, res, next) {
           res.statusCode = 500
           res.end('caught: ' + err.message)
         })
@@ -324,11 +324,11 @@ describe('Router', function () {
           throw new Error('boom!')
         })
 
-        route.all(function handleError(err, req, res, next) {
+        route.error(function handleError(err, req, res, next) {
           throw new Error('oh, no!')
         })
 
-        route.all(function handleError(err, req, res, next) {
+        route.error(function handleError(err, req, res, next) {
           res.statusCode = 500
           res.end('caught: ' + err.message)
         })
@@ -408,7 +408,7 @@ describe('Router', function () {
           next('route')
         })
 
-        route.all(function handleError(err, req, res, next) {
+        route.error(function handleError(err, req, res, next) {
           res.statusCode = 500
           res.end('caught: ' + err.message)
         })
@@ -452,12 +452,12 @@ describe('Router', function () {
           next('router')
         })
 
-        route.all(function handleError (err, req, res, next) {
+        route.error(function handleError (err, req, res, next) {
           res.statusCode = 500
           res.end('caught: ' + err.message)
         })
 
-        router.use(function handleError (err, req, res, next) {
+        router.error(function handleError (err, req, res, next) {
           res.statusCode = 500
           res.end('caught: ' + err.message)
         })
@@ -481,7 +481,7 @@ describe('Router', function () {
 
         route.all(helloWorld)
 
-        route.all(function handleError (err, req, res, next) {
+        route.error(function handleError (err, req, res, next) {
           res.statusCode = 500
           res.end('caught: ' + err.message)
         })
@@ -502,7 +502,7 @@ describe('Router', function () {
 
         route.all(helloWorld)
 
-        route.all(function handleError (err, req, res, next) {
+        route.error(function handleError (err, req, res, next) {
           res.statusCode = 500
           res.end('caught: ' + err.message)
         })
@@ -541,11 +541,11 @@ describe('Router', function () {
             return Promise.reject(new Error('boom!'))
           })
 
-          route.all(function handleError (err, req, res, next) {
+          route.error(function handleError (err, req, res, next) {
             return Promise.reject(new Error('caught: ' + err.message))
           })
 
-          route.all(function handleError (err, req, res, next) {
+          route.error(function handleError (err, req, res, next) {
             res.statusCode = 500
             res.end('caught again: ' + err.message)
           })
@@ -564,11 +564,11 @@ describe('Router', function () {
             return Promise.reject(new Error('boom!'))
           })
 
-          route.all(function handleError (err, req, res, next) {
+          route.error(function handleError (err, req, res, next) {
             return Promise.reject()
           })
 
-          route.all(function handleError (err, req, res, next) {
+          route.error(function handleError (err, req, res, next) {
             res.statusCode = 500
             res.end('caught again: ' + err.message)
           })
@@ -587,7 +587,7 @@ describe('Router', function () {
             return Promise.reject(new Error('boom!'))
           })
 
-          route.all(function handleError (err, req, res, next) {
+          route.error(function handleError (err, req, res, next) {
             res.statusCode = 500
             res.end('caught: ' + err.message)
             return Promise.resolve('foo')
