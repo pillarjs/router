@@ -382,6 +382,64 @@ router.route('/pet/:id')
 server.listen(8080)
 ```
 
+## Migrating to 2.x from 1.x
+
+The main change is the update to `path-to-regexp@2.0.0`, which has a few breaking changes:
+
+#### No longer a direct conversion to a RegExp with sugar on top.
+
+It's a path matcher with named and unnamed matching groups.  It's unlikely you previously abused this feature,
+it's rare and you could always use a RegExp instead. An example of this would be:
+
+```javascript
+// Used to work
+router.get('/\\d+')
+
+// Now requires matching group
+router.get('/(\\d+)')
+```
+
+#### All matching RegExp special characters can be used in a matching group.
+
+Other RegExp features are not supported - no nested matching groups, non-capturing groups or look aheads
+There is really only one common change is needing replacing any routes with `*` to `(.*)`.  Some examples:
+
+- `/:user(*)` becomes `/:user(.*)`
+- `/:user/*` becomes `/:user/(.*)`
+- `/foo/*/bar` becomes `/foo/(.*)/bar`
+
+#### Parameters have suffixes that augment meaning - `*`, `+` and `?`. E.g. `/:user*`
+
+Needs more info.
+
+#### Named params with regex no longer define positionally.
+
+One other small change (hopefully low impact), is that named parameters with regular expressions no longer result in positional
+values in the `params` object.  An example is:
+
+```javascript
+router.get('/:foo(.*)')
+
+// old GET /bar
+console.log(req.params) // {0: 'bar', 'foo': 'bar'}
+
+// new GET /bar
+console.log(req.params) // {'foo': 'bar'}
+```
+
+#### Partial matching, prefer escaping delimiter
+
+The update to `path-to-regexp@3` includes a change to how partial matches are handled,
+now you should escape the delimiter before a partial match segment.  For example:
+
+```javascript
+// old
+router.get('/user(s)?/:user/:op')
+
+// new
+router.get('\\/user(s)?/:user/:op')
+```
+
 ## License
 
 [MIT](LICENSE)

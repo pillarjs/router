@@ -645,7 +645,7 @@ describe('Router', function () {
         it('should work following a partial capture group', function (done) {
           var cb = after(2, done)
           var router = new Router()
-          var route = router.route('/user(s)?/:user/:op')
+          var route = router.route('\\/user(s)?/:user/:op')
           var server = createServer(router)
 
           route.all(sendParams)
@@ -716,7 +716,7 @@ describe('Router', function () {
 
         it('should capture everything with pre- and post-fixes', function (done) {
           var router = new Router()
-          var route = router.route('/foo/*/bar')
+          var route = router.route('/foo/(.*)/bar')
           var server = createServer(router)
 
           route.all(sendParams)
@@ -728,7 +728,7 @@ describe('Router', function () {
 
         it('should capture greedly', function (done) {
           var router = new Router()
-          var route = router.route('/foo/*/bar')
+          var route = router.route('/foo/(.*)/bar')
           var server = createServer(router)
 
           route.all(sendParams)
@@ -740,7 +740,7 @@ describe('Router', function () {
 
         it('should be an optional capture', function (done) {
           var router = new Router()
-          var route = router.route('/foo*')
+          var route = router.route('/foo(.*)')
           var server = createServer(router)
 
           route.all(sendParams)
@@ -753,7 +753,7 @@ describe('Router', function () {
         it('should require preceeding /', function (done) {
           var cb = after(2, done)
           var router = new Router()
-          var route = router.route('/foo/*')
+          var route = router.route('/foo/(.*)')
           var server = createServer(router)
 
           route.all(sendParams)
@@ -770,23 +770,23 @@ describe('Router', function () {
         it('should work in a named parameter', function (done) {
           var cb = after(2, done)
           var router = new Router()
-          var route = router.route('/:foo(*)')
+          var route = router.route('/:foo(.*)')
           var server = createServer(router)
 
           route.all(sendParams)
 
           request(server)
           .get('/bar')
-          .expect(200, {'0': 'bar', 'foo': 'bar'}, cb)
+          .expect(200, {'foo': 'bar'}, cb)
 
           request(server)
           .get('/fizz/buzz')
-          .expect(200, {'0': 'fizz/buzz', 'foo': 'fizz/buzz'}, cb)
+          .expect(200, {'foo': 'fizz/buzz'}, cb)
         })
 
         it('should work before a named parameter', function (done) {
           var router = new Router()
-          var route = router.route('/*/user/:id')
+          var route = router.route('/(.*)/user/:id')
           var server = createServer(router)
 
           route.all(sendParams)
@@ -799,7 +799,7 @@ describe('Router', function () {
         it('should work within arrays', function (done) {
           var cb = after(3, done)
           var router = new Router()
-          var route = router.route(['/user/:id', '/foo/*', '/:action'])
+          var route = router.route(['/user/:id', '/foo/(.*)', '/:action'])
           var server = createServer(router)
 
           route.all(sendParams)

@@ -137,7 +137,7 @@ describe('req.params', function () {
           })
         })
 
-        router.get('/*', hitParams(1))
+        router.get('/(.*)', hitParams(1))
 
         request(server)
         .get('/buzz')
@@ -156,7 +156,7 @@ describe('req.params', function () {
           })
         })
 
-        router.get('/*', hitParams(1))
+        router.get('/(.*)', hitParams(1))
 
         request(server)
         .get('/bar')
