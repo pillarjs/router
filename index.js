@@ -28,11 +28,6 @@ var setPrototypeOf = require('setprototypeof')
 
 var slice = Array.prototype.slice
 
-/* istanbul ignore next */
-var defer = typeof setImmediate === 'function'
-  ? setImmediate
-  : function(fn){ process.nextTick(fn.bind.apply(fn, arguments)) }
-
 /**
  * Expose `Router`.
  */
@@ -208,13 +203,13 @@ Router.prototype.handle = function handle(req, res, callback) {
 
     // signal to exit router
     if (layerError === 'router') {
-      defer(done, null)
+      setImmediate(done, null)
       return
     }
 
     // no more matching layers
     if (idx >= stack.length) {
-      defer(done, layerError)
+      setImmediate(done, layerError)
       return
     }
 
