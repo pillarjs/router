@@ -115,7 +115,7 @@ describe('Router', function () {
 
       request(server)
       .get('/user/%bob')
-      .expect(400, done)
+      .expect(400, /URIError: Failed to decode param/, done)
     })
 
     it('should only invoke fn when necessary', function (done) {
