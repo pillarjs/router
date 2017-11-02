@@ -54,11 +54,10 @@ function rawrequest(server) {
 
     function onListening () {
       var addr = this.address()
-      var hostname = addr.family === 'IPv6' ? '::1' : '127.0.0.1'
       var port = addr.port
 
       var req = http.request({
-        host: hostname,
+        host: '127.0.0.1',
         method: _method,
         path: _path,
         port: port
