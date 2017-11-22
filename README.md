@@ -336,6 +336,47 @@ curl http://127.0.0.1:8080/such_path
 > such_path
 ```
 
+### Example of advanced `.route()` usage
+
+This example shows how to implement routes where there is a custom
+handler to execute when the path matched, but no methods matched.
+Without any special handling, this would be treated as just a
+generic non-match by `router` (which typically results in a 404),
+but with a custom handler, a `405 Method Not Allowed` can be sent.
+
+```js
+var http = require('http')
+var finalhandler = require('finalhandler')
+var Router = require('router')
+
+// create the router and server
+var router = new Router()
+var server = http.createServer(function onRequest(req, res) {
+  router(req, res, finalhandler(req, res))
+})
+
+// register a route and add all methods
+router.route('/pet/:id')
+  .get(function (req, res) {
+    // this is GET /pet/:id
+    res.setHeader('Content-Type', 'application/json')
+    res.end(JSON.stringify({ name: 'tobi' }))
+  })
+  .delete(function (req, res) {
+    // this is DELETE /pet/:id
+    res.end()
+  })
+  .all(function (req, res) {
+    // this is called for all other methods not
+    // defined above for /pet/:id
+    res.statusCode = 405
+    res.end()
+  })
+
+// make our http server listen to connections
+server.listen(8080)
+```
+
 ## License
 
 [MIT](LICENSE)
