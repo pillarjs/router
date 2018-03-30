@@ -124,6 +124,92 @@ describe('Router', function () {
       .expect(404, cb)
     })
 
+    it('should support promise as route handler', function (done) {
+      if (!global.Promise) {
+        return done();
+      }
+
+      var router = new Router()
+      var server = createServer(router)
+
+      router.all('/:thing', function (req, res) {
+        var promise = new Promise(function (resolve, reject) {
+          setTimeout(function () {
+            resolve()
+          }, 100);
+        });
+
+        promise
+          .then(function () {
+            saw(req, res)
+          })
+
+        return promise
+      })
+
+      router.use(function (err, req, res, next) {
+        res.sendStatus(500)
+      })
+
+      request(server)
+        .get('/foo')
+        .expect(200, 'saw GET /foo', done)
+    })
+
+    it('should support catch rejected promise', function (done) {
+      if (!global.Promise) {
+        return done();
+      }
+
+      var router = new Router()
+      var server = createServer(router)
+
+      router.all('/:thing', function (req, res) {
+        var promise = new Promise(function (resolve, reject) {
+          setTimeout(function () {
+            reject();
+          }, 100);
+        });
+
+        return promise
+      })
+
+      router.use(function (err, req, res, next) {
+        res.sendStatus(500)
+      })
+
+      request(server)
+        .get('/foo')
+        .expect(500, done)
+    })
+
+    it('should support catch rejected promise with error', function (done) {
+      if (!global.Promise) {
+        return done();
+      }
+
+      var router = new Router()
+      var server = createServer(router)
+
+      router.all('/:thing', function (req, res) {
+        var promise = new Promise(function (resolve, reject) {
+          setTimeout(function () {
+            reject(new Error('async request failed'));
+          }, 100);
+        });
+
+        return promise
+      })
+
+      router.use(function (err, req, res, next) {
+        res.sendStatus(500)
+      })
+
+      request(server)
+        .get('/foo')
+        .expect(500, done)
+    })
+
     it('should not stack overflow with many registered routes', function (done) {
       var router = new Router()
       var server = createServer(router)
