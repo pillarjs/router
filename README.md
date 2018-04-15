@@ -332,6 +332,71 @@ curl http://127.0.0.1:8080/such_path
 > such_path
 ```
 
+## Events
+
+The router emits two events - `layerstart`, and `layerend` - as it processes requests.
+
+### 1. `layerstart`
+
+This event is emitted when the router matches a layer, and starts the middleware stack
+
+Example:
+
+```js
+router.on('layerstart', function (req) {
+  req.layerStartTime = Date.now()
+})
+```
+
+### 2. `layerend`
+
+This event is emitted when a route layer finishes calling middleware functions
+
+Example:
+
+```js
+router.on('layerend', function (req, res, layer) {
+  console.log('The layer ' + layer.path + ' took ' + (Date.now() - req.layerStartTime) + 'ms')
+})
+```
+
+Here is a complete example of using router events in an Express 5 app.
+
+```js
+var express = require('express')
+var onFinished = require('on-finished')
+var app = express()
+
+app.use(function (req, res, next) {
+  req.id = Math.random().toString(36).slice(2)
+  req.layerCounter = 0
+  req.totalTime = 0
+  onFinished(res, function logLayerStats (err) {
+    console.log('Request ' + req.id + ':')
+    console.log('  Request Errored: ' + !!err)
+    console.log('  Layers run: ' + req.layerCounter)
+    console.log('  Avg Time: ' + req.totalTime / req.layerCounter)
+  })
+
+  next()
+})
+
+app.get('/', function (req, res) {
+  res.send('HELLO')
+})
+
+app.router.on('layerstart', function (req, res, layer) {
+  req.layerStartTime = Date.now()
+})
+
+app.router.on('layerend', function (req, res, layer) {
+  req.layerCounter++;
+  req.totalTime += Date.now() - req.layerStartTime;
+})
+
+app.listen(3000)
+```
+
 ## License
 
 [MIT](LICENSE)

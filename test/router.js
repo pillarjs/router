@@ -3,6 +3,7 @@ var after = require('after')
 var methods = require('methods')
 var Router = require('..')
 var utils = require('./support/utils')
+var Layer = require('../lib/layer.js')
 
 var assert = utils.assert
 var createHitHandle = utils.createHitHandle
@@ -1129,7 +1130,88 @@ describe('Router', function () {
       .expect(200, 'saw GET /bar', done)
     })
   })
+
+  describe('events', function () {
+
+    describe('"layer"', function () {
+      it('should pass the request and response objects and the matched layer', function (done) {
+        var router = new Router()
+        var server = createServer(router)
+
+        router.use(helloWorld)
+
+        router.on('layerstart', function (req, res, layer) {
+          assert.equal('true', req.headers['x-layer'])
+          assert.equal(200, res.statusCode)
+          assert(Layer.prototype.isPrototypeOf(layer))
+          done()
+        })
+
+        request(server).get('/').set({'x-layer': 'true'}).end()
+      })
+
+      it('should be emitted for each layer of the router stack', function (done) {
+        var router = new Router()
+        var server = createServer(router)
+
+        var handlers = [passThrough, passThrough, passThrough]
+        router.use(handlers)
+        var start = 0
+        var end = 0
+
+        router.on('layerstart', function () {
+          start++
+        })
+        router.on('layerend', function () {
+          end++
+          if (end === handlers.length) {
+            assert.equal(start, end)
+            done()
+          }
+        })
+
+        request(server).get('/').end()
+      })
+
+      it('should bubble events on mounted routers', function () {
+        var router1 = new Router()
+        var router2 = new Router()
+        var server = createServer(router1)
+        router2.use(passThrough, passThrough)
+        router1.use(router2)
+        var start1 = 0
+        var start2 = 0
+        var end1 = 0
+        var end2 = 0
+
+        router2.on('layerstart', function () {
+          start2++
+        })
+        router1.on('layerend', function () {
+          end2++
+        })
+        router1.on('layerstart', function () {
+          start1++
+        })
+        router1.on('layerend', function () {
+          end1++
+          if (end1 === 3) {
+            assert.equal(start1, 3)
+            assert.equal(start2, 2)
+            assert.equal(end2, 2)
+            done()
+          }
+        })
+
+        request(server).get('/').end()
+      })
+    })
+  })
 })
+
+function passThrough(req, res, next) {
+  next()
+}
 
 function helloWorld(req, res) {
   res.statusCode = 200

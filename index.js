@@ -13,6 +13,7 @@
  */
 
 var debug = require('debug')('router')
+var EventEmitter = require('events').EventEmitter
 var flatten = require('array-flatten')
 var Layer = require('./lib/layer')
 var methods = require('methods')
@@ -63,6 +64,9 @@ function Router(options) {
   function router(req, res, next) {
     router.handle(req, res, next)
   }
+
+  // make Router an EventEmitter
+  mixin(this, EventEmitter.prototype, false)
 
   // inherit from the correct prototype
   setPrototypeOf(router, this)
@@ -275,6 +279,13 @@ Router.prototype.handle = function handle(req, res, callback) {
       return done(layerError)
     }
 
+     // trigger the "layer found" event
+    self.emit('layerstart', req, res, layer)
+    var _next = function (err) {
+      self.emit('layerend', req, res, layer)
+      next(err)
+    }
+
     // store route for dispatch on change
     if (route) {
       req.route = route
@@ -289,18 +300,18 @@ Router.prototype.handle = function handle(req, res, callback) {
     // this should be done for the layer
     self.process_params(layer, paramcalled, req, res, function (err) {
       if (err) {
-        return next(layerError || err)
+        return _next(layerError || err)
       }
 
       if (route) {
         return layer.handle_request(req, res, next)
       }
 
-      trim_prefix(layer, layerError, layerPath, path)
+      trim_prefix(layer, layerError, layerPath, path, _next)
     })
   }
 
-  function trim_prefix(layer, layerError, layerPath, path) {
+  function trim_prefix(layer, layerError, layerPath, path, _next) {
     if (layerPath.length !== 0) {
       // Validate path breaks on a path separator
       var c = path[layerPath.length]
@@ -330,9 +341,9 @@ Router.prototype.handle = function handle(req, res, callback) {
     debug('%s %s : %s', layer.name, layerPath, req.originalUrl)
 
     if (layerError) {
-      layer.handle_error(layerError, req, res, next)
+      layer.handle_error(layerError, req, res, _next)
     } else {
-      layer.handle_request(req, res, next)
+      layer.handle_request(req, res, _next)
     }
   }
 }
@@ -479,6 +490,14 @@ Router.prototype.use = function use(handler) {
 
     // add the middleware
     debug('use %o %s', path, fn.name || '<anonymous>')
+
+    // If fn looks like another router instance,
+    // bubble the layerstart and layerend events
+    // up the tree
+    if (typeof fn.use === 'function' && typeof fn.emit === 'function') {
+      this.on('layerstart', fn.emit.bind(fn, 'layerstart'))
+      this.on('layerend', fn.emit.bind(fn, 'layerend'))
+    }
 
     var layer = new Layer(path, {
       sensitive: this.caseSensitive,
