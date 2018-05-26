@@ -1,3 +1,8 @@
+unreleased
+==========
+
+  * Fix JSDoc for `Router` constructor
+
 1.3.2 / 2017-09-24
 ==================
 
