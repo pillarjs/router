@@ -28,9 +28,9 @@ router.get('/', function (req, res) {
 })
 
 //with async
-async function getHelloWorld()=>{
-    await new Promise(resolve => setTimeout(resolve, 1000));  //wait 1 second
-    return 'Hello Async World';
+async function getHelloWorld(){
+  await new Promise(resolve => setTimeout(resolve, 1000));  //wait 1 second
+  return 'Hello Async World';
 }
 
 router.get('/', async function (req, res) {

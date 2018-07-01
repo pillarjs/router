@@ -3,5 +3,8 @@
     "eol-last": "error",
     "indent": ["error", 2, { "SwitchCase": 1 }],
     "no-trailing-spaces": "error"
+  },
+  "parserOptions": {
+    "ecmaVersion": 2017
   }
 }
