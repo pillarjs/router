@@ -34,7 +34,7 @@ async function getHelloWorld()=>{
 }
 
 router.get('/', async function (req, res) {
-  const response= await getHelloWorld();
+  var response= await getHelloWorld();
   res.end(response)
 })
 
