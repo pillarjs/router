@@ -272,15 +272,22 @@ describe('Router', function () {
 
     describe('error handling', function () {
 
-      it('should handle errors from next(err)', function (done) {
+      it('should handle errors from Promise null rejection', function (done) {
         var router = new Router()
         var route = router.route('/foo')
         var server = createServer(router)
 
-        route.all(function (req, res){
-          return new Promise(function (fulfill, reject){
-            reject(null)
-          })
+        route.all(function (req, res) {
+          var handler = function () {};
+          var catchFunction = function (errorHandler) {
+            handler = errorHandler;
+          };
+          setTimeout(function () {
+            handler(null)
+          }, 1)
+          return {
+            catch: catchFunction
+          }
         })
 
         route.all(helloWorld)
