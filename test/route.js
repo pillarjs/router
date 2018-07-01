@@ -271,6 +271,30 @@ describe('Router', function () {
     })
 
     describe('error handling', function () {
+
+      it('should handle errors from next(err)', function (done) {
+        var router = new Router()
+        var route = router.route('/foo')
+        var server = createServer(router)
+
+        route.all(function (req, res){
+          return new Promise(function (fulfill, reject){
+            reject(null)
+          })
+        })
+
+        route.all(helloWorld)
+
+        route.all(function handleError(err, req, res, next) {
+          res.statusCode = 500
+          res.end('caught: ' + err.message)
+        })
+
+        request(server)
+          .get('/foo')
+          .expect(500, 'caught: Bad promise rejection : null', done)
+      })
+
       it('should handle errors from next(err)', function (done) {
         var router = new Router()
         var route = router.route('/foo')
