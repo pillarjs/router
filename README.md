@@ -31,6 +31,17 @@ router.get('/', function (req, res) {
   res.end('Hello World!')
 })
 
+//with async
+const getHelloWorld = async () => {
+  await new Promise(resolve => setTimeout(resolve, 1000));  //wait 1 second
+  return 'Hello Async World';
+}
+
+router.get('/', async (req, res) => {
+  var response = await getHelloWorld();
+  res.end(response)
+})
+
 var server = http.createServer(function(req, res) {
   router(req, res, finalhandler(req, res))
 })
