@@ -255,7 +255,7 @@ Router.prototype.handle = function handle(req, res, callback) {
         continue
       }
 
-      var method = req.method;
+      var method = req.method
       var has_method = route._handles_method(method)
 
       // build up automatic options response
@@ -562,9 +562,9 @@ function generateOptionsResponder(res, methods) {
 
 function getPathname(req) {
   try {
-    return parseUrl(req).pathname;
+    return parseUrl(req).pathname
   } catch (err) {
-    return undefined;
+    return undefined
   }
 }
 
@@ -601,9 +601,9 @@ function getProtohost(url) {
 
 function matchLayer(layer, path) {
   try {
-    return layer.match(path);
+    return layer.match(path)
   } catch (err) {
-    return err;
+    return err
   }
 }
 
