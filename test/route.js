@@ -10,6 +10,7 @@ var createServer = utils.createServer
 var request = utils.request
 var shouldHitHandle = utils.shouldHitHandle
 var shouldNotHitHandle = utils.shouldNotHitHandle
+var asyncFunctionsSupported = utils.asyncFunctionsSupported
 
 describe('Router', function () {
   describe('.route(path)', function () {
@@ -335,6 +336,59 @@ describe('Router', function () {
         .get('/foo')
         .expect(500, 'caught: oh, no!', done)
       })
+
+      if (asyncFunctionsSupported()) {
+
+        it('should handle errors thrown', function (done) {
+          var router = new Router()
+          var route = router.route('/foo')
+          var server = createServer(router)
+
+          route.all(new Function([],
+            "return async function createError(req, res, next) { throw new Error('boom!') }"
+          )())
+
+          route.all(helloWorld)
+
+          route.all(function handleError(err, req, res, next) {
+            res.statusCode = 500
+            res.end('caught: ' + err.message)
+          })
+
+          request(server)
+            .get('/foo')
+            .expect(500, 'caught: boom!', done)
+        })
+
+        it('should handle errors thrown in error handlers', function (done) {
+          var router = new Router()
+          var route = router.route('/foo')
+          var server = createServer(router)
+
+          route.all(function createError(req, res, next) {
+            throw new Error('boom!')
+          })
+
+          route.all(new Function([],
+            "return async function handleError(err, req, res, next) { throw new Error('oh, no!') }"
+          )())
+
+          route.all(function handleError(err, req, res, next) {
+            res.statusCode = 500
+            res.end('caught: ' + err.message)
+          })
+
+          request(server)
+            .get('/foo')
+            .expect(500, 'caught: oh, no!', done)
+        })
+
+
+
+      }
+
+
+
     })
 
     describe('next("route")', function () {

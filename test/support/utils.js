@@ -12,6 +12,7 @@ exports.rawrequest = rawrequest
 exports.request = request
 exports.shouldHitHandle = shouldHitHandle
 exports.shouldNotHitHandle = shouldNotHitHandle
+exports.asyncFunctionsSupported = asyncFunctionsSupported
 
 function createHitHandle(num) {
   var name = 'x-fn-' + String(num)
@@ -118,5 +119,14 @@ function shouldNotHitHandle(num) {
 function shouldNotHaveHeader(header) {
   return function (res) {
     assert.ok(!(header.toLowerCase() in res.headers), 'should not have header ' + header)
+  }
+}
+
+function asyncFunctionsSupported() {
+  try {
+    new Function([],"return async function(){}");
+    return true
+  } catch(e) {
+    return false
   }
 }
