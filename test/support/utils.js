@@ -124,7 +124,7 @@ function shouldNotHaveHeader(header) {
 
 function asyncFunctionsSupported() {
   try {
-    new Function([],"return async function(){}");
+    new Function([],"return async function(){}")
     return true
   } catch(e) {
     return false
