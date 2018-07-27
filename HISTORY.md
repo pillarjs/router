@@ -1,5 +1,5 @@
-2.x
-===
+2.0.0-alpha.1 / 2018-07-27
+==========================
 
   * Add basic support for returned, rejected Promises
     - Rejected Promises from middleware functions `next(error)`
