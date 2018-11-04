@@ -230,7 +230,7 @@ Router.prototype.handle = function handle(req, res, callback) {
     var match
     var route
     //flag indicating route has same http method as request method
-    var has_method
+    var has_method=true;
 
     while (match !== true && idx < stack.length) {
       layer = stack[idx++]
@@ -268,7 +268,7 @@ Router.prototype.handle = function handle(req, res, callback) {
       }
 
       // don't even bother matching route
-      if (!has_method && method !== 'HEAD') {
+      if (!has_method) {
         match = false
         continue
       }

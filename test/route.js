@@ -20,6 +20,7 @@ describe('Router', function () {
     })
 
     it('should respond to multiple methods', function (done) {
+
       var cb = after(3, done)
       var router = new Router()
       var route = router.route('/foo')
@@ -38,7 +39,7 @@ describe('Router', function () {
 
       request(server)
       .put('/foo')
-      .expect(404, cb)
+      .expect(405, cb)
     })
 
     it('should stack', function (done) {
@@ -79,11 +80,11 @@ describe('Router', function () {
 
       request(server)
       .get('/foo')
-      .expect(404, cb)
+      .expect(405, cb)
 
       request(server)
       .head('/foo')
-      .expect(404, cb)
+      .expect(405, cb)
     })
 
     it('should not invoke singular error route', function (done) {
