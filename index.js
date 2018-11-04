@@ -268,7 +268,7 @@ Router.prototype.handle = function handle(req, res, callback) {
       }
 
       // don't even bother matching route
-      if (!has_method && method !== 'HEAD') {
+      if (!has_method) {
         match = false
         continue
       }
