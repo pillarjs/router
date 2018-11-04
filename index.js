@@ -262,7 +262,6 @@ Router.prototype.handle = function handle(req, res, callback) {
 
       // build up automatic options response
       if (!has_method && method === 'OPTIONS' && methods) {
-      //skip options cause it get all methods supported 
         has_method = true
         methods.push.apply(methods, route._methods())
       }
