@@ -38,7 +38,7 @@ describe('Router', function () {
 
       request(server)
       .put('/foo')
-      .expect(404, cb)
+      .expect(405, cb)
     })
 
     it('should stack', function (done) {
@@ -80,6 +80,10 @@ describe('Router', function () {
       request(server)
       .get('/foo')
       .expect(404, cb)
+
+      request(server)
+        .options('/foo')
+        .expect(404, cb)
 
       request(server)
       .head('/foo')

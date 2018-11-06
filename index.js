@@ -229,6 +229,9 @@ Router.prototype.handle = function handle(req, res, callback) {
     var layer
     var match
     var route
+    // flag indicating route has same http method as request method
+    var has_method = true
+    var routeoptions=[]
 
     while (match !== true && idx < stack.length) {
       layer = stack[idx++]
@@ -256,15 +259,18 @@ Router.prototype.handle = function handle(req, res, callback) {
       }
 
       var method = req.method
-      var has_method = route._handles_method(method)
+      routeoptions = route._methods()
+      has_method = route._handles_method(method)
+
 
       // build up automatic options response
       if (!has_method && method === 'OPTIONS' && methods) {
-        methods.push.apply(methods, route._methods())
+        has_method=true
+        methods.push.apply(methods, routeoptions)
       }
 
       // don't even bother matching route
-      if (!has_method && method !== 'HEAD') {
+      if (!has_method) {
         match = false
         continue
       }
@@ -272,6 +278,11 @@ Router.prototype.handle = function handle(req, res, callback) {
 
     // no match
     if (match !== true) {
+      // In case not matching between request and route methods send 405 not allowed error
+      if (!has_method && routeoptions.length) {
+        layerError = { statusCode: 405, stack: "Method Not Allowed" }
+      }
+
       return done(layerError)
     }
 
