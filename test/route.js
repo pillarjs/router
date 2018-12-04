@@ -512,18 +512,17 @@ describe('Router', function () {
         .expect(500, 'caught: Rejected promise', done)
       })
 
-      it('should ignore resolved promise', function (done) {
+      it('should treat a resolved promise like calling next', function (done) {
         var router = new Router()
         var route = router.route('/foo')
         var server = createServer(router)
 
         route.all(function createError (req, res, next) {
-          saw(req, res)
           return Promise.resolve('foo')
         })
 
-        route.all(function () {
-          done(new Error('Unexpected route invoke'))
+        route.all(function (req, res) {
+          saw(req, res)
         })
 
         request(server)
@@ -578,7 +577,7 @@ describe('Router', function () {
           .expect(500, 'caught again: Rejected promise', done)
         })
 
-        it('should ignore resolved promise', function (done) {
+        it('should treat a resolved promise like calling next', function (done) {
           var router = new Router()
           var route = router.route('/foo')
           var server = createServer(router)
@@ -587,14 +586,15 @@ describe('Router', function () {
             return Promise.reject(new Error('boom!'))
           })
 
+          var seen = false
           route.all(function handleError (err, req, res, next) {
-            res.statusCode = 500
-            res.end('caught: ' + err.message)
+            seen = err
             return Promise.resolve('foo')
           })
 
-          route.all(function () {
-            done(new Error('Unexpected route invoke'))
+          route.all(function (req, res) {
+            res.statusCode = 500
+            res.end('caught: ' + seen.message)
           })
 
           request(server)

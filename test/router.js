@@ -723,17 +723,16 @@ describe('Router', function () {
         .expect(200, 'saw Error: Rejected promise', done)
       })
 
-      it('should ignore resolved promise', function (done) {
+      it('should treat a resolved promise like calling next', function (done) {
         var router = new Router()
         var server = createServer(router)
 
-        router.use(function createError (req, res, next) {
-          saw(req, res)
+        router.use(function (req, res, next) {
           return Promise.resolve('foo')
         })
 
-        router.use(function () {
-          done(new Error('Unexpected middleware invoke'))
+        router.use(function (req, res) {
+          saw(req, res)
         })
 
         request(server)
@@ -780,7 +779,7 @@ describe('Router', function () {
           .expect(200, 'saw Error: caught: Rejected promise', done)
         })
 
-        it('should ignore resolved promise', function (done) {
+        it('should treat a resolved promise like calling next', function (done) {
           var router = new Router()
           var server = createServer(router)
 
@@ -788,13 +787,14 @@ describe('Router', function () {
             return Promise.reject(new Error('boom!'))
           })
 
+          var seen = false
           router.use(function handleError (err, req, res, next) {
-            sawError(err, req, res, next)
-            return Promise.resolve('foo')
+            seen = err
+            return Promise.resolve()
           })
 
-          router.use(function () {
-            done(new Error('Unexpected middleware invoke'))
+          router.use(function (req, res, next) {
+            sawError(seen, req, res, next)
           })
 
           request(server)
