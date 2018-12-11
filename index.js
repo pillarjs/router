@@ -259,14 +259,14 @@ Router.prototype.handle = function handle(req, res, callback) {
       }
 
       var method = req.method
-      routeOptions = route._methods()
+      var isUseCall = !route._methods().length
       hasMethod = route._handles_method(method)
 
 
       // build up automatic options response
       if (!hasMethod && method === 'OPTIONS' && methods) {
         hasMethod=true
-        methods.push.apply(methods, routeOptions)
+        methods.push.apply(methods, route._methods())
       }
 
       // don't even bother matching route
@@ -279,8 +279,10 @@ Router.prototype.handle = function handle(req, res, callback) {
     // no match
     if (match !== true) {
       // In case not matching between request and route methods send 405 not allowed error
-      if (!has_method && routeOptions.length) {
-        layerError = { ...layerError, statusCode: 405, stack: "Method Not Allowed" }
+      if (!hasMethod && !isUseCall) {
+        layerError=new Error("Method Not Allowed")
+        layerError.statusCode = 405
+        layerError.stack = "Method Not Allowed"
       }
 
       return done(layerError)
