@@ -1,6 +1,5 @@
 language: node_js
 node_js:
-  - "0.10"
   - "0.12"
   - "1.8"
   - "2.5"
@@ -28,5 +27,6 @@ script:
   # Run test script, then lint depending on eslint install
   - "npm run-script test-travis"
   - "test   -z $(npm -ps ls eslint) || npm run-script lint"
+  - "npm run-script test-types"
 after_script:
   - "test -d .nyc_output && npm install coveralls@2 && nyc report --reporter=text-lcov | coveralls"
