@@ -18,21 +18,25 @@
     "utils-merge": "1.0.1"
   },
   "devDependencies": {
+    "@types/node": "^10.0.0",
     "after": "0.8.2",
     "eslint": "3.19.0",
     "eslint-plugin-markdown": "1.0.0-beta.6",
     "finalhandler": "1.1.1",
     "mocha": "3.5.3",
     "nyc": "10.3.2",
-    "supertest": "1.2.0"
+    "supertest": "1.2.0",
+    "typescript": "^2.9.2"
   },
   "files": [
     "lib/",
     "LICENSE",
     "HISTORY.md",
     "README.md",
-    "index.js"
+    "index.js",
+    "index.d.ts"
   ],
+  "types": "index.d.ts",
   "engines": {
     "node": ">= 0.10"
   },
@@ -40,6 +44,7 @@
     "lint": "eslint --plugin markdown --ext js,md .",
     "test": "mocha --reporter spec --bail --check-leaks test/",
     "test-cov": "nyc --reporter=text npm test",
-    "test-travis": "nyc --reporter=html --reporter=text npm test"
+    "test-travis": "nyc --reporter=html --reporter=text npm test",
+    "test-types": "tsc --project tsconfig.json --noEmit"
   }
 }
