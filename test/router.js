@@ -127,6 +127,9 @@ describe('Router', function () {
     })
 
     it('should not stack overflow with many registered routes', function (done) {
+      // This test might take longer on slow machines.
+      this.timeout(4000)
+
       var router = new Router()
       var server = createServer(router)
 
