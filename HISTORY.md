@@ -2,6 +2,7 @@ unreleased
 ==========
 
   * deps: array-flatten@2.1.2
+  * deps: parseurl@~1.3.3
   * deps: setprototypeof@1.1.1
 
 1.3.3 / 2018-07-06
