@@ -1,5 +1,6 @@
 
 var after = require('after')
+var Buffer = require('safe-buffer').Buffer
 var methods = require('methods')
 var Router = require('..')
 var utils = require('./support/utils')
@@ -8,7 +9,9 @@ var assert = utils.assert
 var createHitHandle = utils.createHitHandle
 var createServer = utils.createServer
 var request = utils.request
+var shouldHaveBody = utils.shouldHaveBody
 var shouldHitHandle = utils.shouldHitHandle
+var shouldNotHaveBody = utils.shouldNotHaveBody
 var shouldNotHitHandle = utils.shouldNotHitHandle
 
 describe('Router', function () {
@@ -191,8 +194,8 @@ describe('Router', function () {
       }
 
       var body = method !== 'head'
-        ? 'hello, world'
-        : ''
+        ? shouldHaveBody(Buffer.from('hello, world'))
+        : shouldNotHaveBody()
 
       describe('.' + method + '(...fn)', function () {
         it('should respond to a ' + method.toUpperCase() + ' request', function (done) {
@@ -203,8 +206,10 @@ describe('Router', function () {
           route[method](helloWorld)
 
           request(server)
-          [method]('/')
-          .expect(200, body, done)
+            [method]('/')
+            .expect(200)
+            .expect(body)
+            .end(done)
         })
 
         it('should reject no arguments', function () {
@@ -233,10 +238,12 @@ describe('Router', function () {
           route[method](createHitHandle(1), createHitHandle(2), helloWorld)
 
           request(server)
-          [method]('/foo')
-          .expect('x-fn-1', 'hit')
-          .expect('x-fn-2', 'hit')
-          .expect(200, body, done)
+            [method]('/foo')
+            .expect(200)
+            .expect('x-fn-1', 'hit')
+            .expect('x-fn-2', 'hit')
+            .expect(body)
+            .end(done)
         })
 
         it('should accept single array of handlers', function (done) {
@@ -246,11 +253,12 @@ describe('Router', function () {
 
           route[method]([createHitHandle(1), createHitHandle(2), helloWorld])
 
-          request(server)
-          [method]('/foo')
-          .expect('x-fn-1', 'hit')
-          .expect('x-fn-2', 'hit')
-          .expect(200, body, done)
+          request(server)[method]('/foo')
+            .expect(200)
+            .expect('x-fn-1', 'hit')
+            .expect('x-fn-2', 'hit')
+            .expect(body)
+            .end(done)
         })
 
         it('should accept nested arrays of handlers', function (done) {
@@ -261,11 +269,13 @@ describe('Router', function () {
           route[method]([[createHitHandle(1), createHitHandle(2)], createHitHandle(3)], helloWorld)
 
           request(server)
-          [method]('/foo')
-          .expect('x-fn-1', 'hit')
-          .expect('x-fn-2', 'hit')
-          .expect('x-fn-3', 'hit')
-          .expect(200, body, done)
+            [method]('/foo')
+            .expect(200)
+            .expect('x-fn-1', 'hit')
+            .expect('x-fn-2', 'hit')
+            .expect('x-fn-3', 'hit')
+            .expect(body)
+            .end(done)
         })
       })
     })

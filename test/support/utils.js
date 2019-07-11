@@ -1,5 +1,6 @@
 
 var assert = require('assert')
+var Buffer = require('safe-buffer').Buffer
 var finalhandler = require('finalhandler')
 var http = require('http')
 var methods = require('methods')
@@ -10,6 +11,8 @@ exports.createHitHandle = createHitHandle
 exports.createServer = createServer
 exports.rawrequest = rawrequest
 exports.request = request
+exports.shouldHaveBody = shouldHaveBody
+exports.shouldNotHaveBody = shouldNotHaveBody
 exports.shouldHitHandle = shouldHitHandle
 exports.shouldNotHitHandle = shouldNotHitHandle
 
@@ -104,10 +107,26 @@ function rawrequest(server) {
   return _test
 }
 
+function shouldHaveBody (buf) {
+  return function (res) {
+    var body = !Buffer.isBuffer(res.body)
+      ? Buffer.from(res.text)
+      : res.body
+    assert.ok(body, 'response has body')
+    assert.strictEqual(body.toString('hex'), buf.toString('hex'))
+  }
+}
+
 function shouldHitHandle(num) {
   var header = 'x-fn-' + String(num)
   return function (res) {
     assert.equal(res.headers[header], 'hit', 'should hit handle ' + num)
+  }
+}
+
+function shouldNotHaveBody () {
+  return function (res) {
+    assert.ok(res.text === '' || res.text === undefined)
   }
 }
 

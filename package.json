@@ -24,7 +24,8 @@
     "finalhandler": "1.1.2",
     "istanbul": "0.4.5",
     "mocha": "6.1.4",
-    "supertest": "1.1.0"
+    "safe-buffer": "5.2.0",
+    "supertest": "3.4.2"
   },
   "files": [
     "lib/",

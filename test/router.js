@@ -1,5 +1,6 @@
 
 var after = require('after')
+var Buffer = require('safe-buffer').Buffer
 var methods = require('methods')
 var Router = require('..')
 var utils = require('./support/utils')
@@ -9,7 +10,9 @@ var createHitHandle = utils.createHitHandle
 var createServer = utils.createServer
 var rawrequest = utils.rawrequest
 var request = utils.request
+var shouldHaveBody = utils.shouldHaveBody
 var shouldHitHandle = utils.shouldHitHandle
+var shouldNotHaveBody = utils.shouldNotHaveBody
 var shouldNotHitHandle = utils.shouldNotHitHandle
 
 describe('Router', function () {
@@ -51,12 +54,14 @@ describe('Router', function () {
         }
 
         var body = method !== 'head'
-          ? 'hello, world'
-          : ''
+          ? shouldHaveBody(Buffer.from('hello, world'))
+          : shouldNotHaveBody()
 
         request(server)
-        [method]('/')
-        .expect(200, body, cb)
+          [method]('/')
+          .expect(200)
+          .expect(body)
+          .end(cb)
       })
     })
 
@@ -259,8 +264,8 @@ describe('Router', function () {
     }
 
     var body = method !== 'head'
-      ? 'hello, world'
-      : ''
+      ? shouldHaveBody(Buffer.from('hello, world'))
+      : shouldNotHaveBody()
 
     describe('.' + method + '(path, ...fn)', function () {
       it('should be chainable', function () {
@@ -275,8 +280,10 @@ describe('Router', function () {
         router[method]('/', helloWorld)
 
         request(server)
-        [method]('/')
-        .expect(200, body, done)
+          [method]('/')
+          .expect(200)
+          .expect(body)
+          .end(done)
       })
 
       it('should reject invalid fn', function () {
@@ -292,19 +299,24 @@ describe('Router', function () {
         router[method](['/foo', '/bar'], createHitHandle(1), helloWorld)
 
         request(server)
-        [method]('/')
-        .expect(shouldNotHitHandle(1))
-        .expect(404, cb)
+          [method]('/')
+          .expect(404)
+          .expect(shouldNotHitHandle(1))
+          .end(cb)
 
         request(server)
-        [method]('/foo')
-        .expect(shouldHitHandle(1))
-        .expect(200, body, cb)
+          [method]('/foo')
+          .expect(200)
+          .expect(shouldHitHandle(1))
+          .expect(body)
+          .end(cb)
 
         request(server)
-        [method]('/bar')
-        .expect(shouldHitHandle(1))
-        .expect(200, body, cb)
+          [method]('/bar')
+          .expect(200)
+          .expect(shouldHitHandle(1))
+          .expect(body)
+          .end(cb)
       })
 
       it('should support regexp path', function (done) {
@@ -315,19 +327,24 @@ describe('Router', function () {
         router[method](/^\/[a-z]oo$/, createHitHandle(1), helloWorld)
 
         request(server)
-        [method]('/')
-        .expect(shouldNotHitHandle(1))
-        .expect(404, cb)
+          [method]('/')
+          .expect(404)
+          .expect(shouldNotHitHandle(1))
+          .end(cb)
 
         request(server)
-        [method]('/foo')
-        .expect(shouldHitHandle(1))
-        .expect(200, body, cb)
+          [method]('/foo')
+          .expect(200)
+          .expect(shouldHitHandle(1))
+          .expect(body)
+          .end(cb)
 
         request(server)
-        [method]('/zoo')
-        .expect(shouldHitHandle(1))
-        .expect(200, body, cb)
+          [method]('/zoo')
+          .expect(200)
+          .expect(shouldHitHandle(1))
+          .expect(body)
+          .end(cb)
       })
 
       it('should support parameterized path', function (done) {
@@ -338,24 +355,30 @@ describe('Router', function () {
         router[method]('/:thing', createHitHandle(1), helloWorld)
 
         request(server)
-        [method]('/')
-        .expect(shouldNotHitHandle(1))
-        .expect(404, cb)
+          [method]('/')
+          .expect(404)
+          .expect(shouldNotHitHandle(1))
+          .end(cb)
 
         request(server)
-        [method]('/foo')
-        .expect(shouldHitHandle(1))
-        .expect(200, body, cb)
+          [method]('/foo')
+          .expect(200)
+          .expect(shouldHitHandle(1))
+          .expect(body)
+          .end(cb)
 
         request(server)
-        [method]('/bar')
-        .expect(shouldHitHandle(1))
-        .expect(200, body, cb)
+          [method]('/bar')
+          .expect(200)
+          .expect(shouldHitHandle(1))
+          .expect(body)
+          .end(cb)
 
         request(server)
-        [method]('/foo/bar')
-        .expect(shouldNotHitHandle(1))
-        .expect(404, cb)
+          [method]('/foo/bar')
+          .expect(404)
+          .expect(shouldNotHitHandle(1))
+          .end(cb)
       })
 
       it('should accept multiple arguments', function (done) {
@@ -365,10 +388,12 @@ describe('Router', function () {
         router[method]('/', createHitHandle(1), createHitHandle(2), helloWorld)
 
         request(server)
-        [method]('/')
-        .expect(shouldHitHandle(1))
-        .expect(shouldHitHandle(2))
-        .expect(200, body, done)
+          [method]('/')
+          .expect(200)
+          .expect(shouldHitHandle(1))
+          .expect(shouldHitHandle(2))
+          .expect(body)
+          .end(done)
       })
 
       describe('req.baseUrl', function () {
