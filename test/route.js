@@ -38,7 +38,29 @@ describe('Router', function () {
 
       request(server)
       .put('/foo')
-      .expect(404, cb)
+      .expect(405, cb)
+    })
+
+    it('should respond with 405 in case not allowed', function (done) {
+      var cb = after(2, done)
+      var router = new Router()
+      var route = router.route('/foo')
+      var server = createServer(router)
+
+      route.get(saw)
+      route.post(saw)
+
+      request(server)
+      .put('/foo')
+      .expect(405, cb)
+
+      router.use(function(req, res, next) {
+        next()
+      })
+
+      request(server)
+      .put('/foo')
+      .expect(405, cb)
     })
 
     it('should stack', function (done) {
@@ -80,6 +102,10 @@ describe('Router', function () {
       request(server)
       .get('/foo')
       .expect(404, cb)
+
+      request(server)
+        .options('/foo')
+        .expect(404, cb)
 
       request(server)
       .head('/foo')
