@@ -3,6 +3,7 @@ unreleased
 
   * deps: mocha@7.0.0
   * deps: supertest@4.0.2
+  * deps: nyc@15.0.0
 
 2.0.0-alpha.1 / 2018-07-27
 ==========================

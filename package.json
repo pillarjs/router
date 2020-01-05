@@ -23,7 +23,7 @@
     "eslint-plugin-markdown": "1.0.0-beta.6",
     "finalhandler": "1.1.1",
     "mocha": "7.0.0",
-    "nyc": "10.3.2",
+    "nyc": "15.0.0",
     "supertest": "4.0.2"
   },
   "files": [
