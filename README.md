@@ -175,14 +175,14 @@ rather than responding.
 
 ```js
 router.route('/')
-.all(function (req, res, next) {
-  next()
-})
-.all(check_something)
-.get(function (req, res) {
-  res.setHeader('Content-Type', 'text/plain; charset=utf-8')
-  res.end('Hello World!')
-})
+  .all(function (req, res, next) {
+    next()
+  })
+  .all(check_something)
+  .get(function (req, res) {
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8')
+    res.end('Hello World!')
+  })
 ```
 
 ## Middleware

@@ -13,10 +13,10 @@ describe('HEAD', function () {
     router.get('/users', sethit(1), saw)
 
     request(server)
-    .head('/users')
-    .expect('Content-Type', 'text/plain')
-    .expect('x-fn-1', 'hit')
-    .expect(200, done)
+      .head('/users')
+      .expect('Content-Type', 'text/plain')
+      .expect('x-fn-1', 'hit')
+      .expect(200, done)
   })
 
   it('should invoke head if prior to get', function (done) {
@@ -27,10 +27,10 @@ describe('HEAD', function () {
     router.get('/users', sethit(2), saw)
 
     request(server)
-    .head('/users')
-    .expect('Content-Type', 'text/plain')
-    .expect('x-fn-1', 'hit')
-    .expect(200, done)
+      .head('/users')
+      .expect('Content-Type', 'text/plain')
+      .expect('x-fn-1', 'hit')
+      .expect(200, done)
   })
 })
 

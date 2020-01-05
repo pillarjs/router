@@ -16,9 +16,9 @@ describe('OPTIONS', function () {
     router.put('/users', saw)
 
     request(server)
-    .options('/users')
-    .expect('Allow', 'GET, HEAD, POST, PUT')
-    .expect(200, 'GET, HEAD, POST, PUT', done)
+      .options('/users')
+      .expect('Allow', 'GET, HEAD, POST, PUT')
+      .expect(200, 'GET, HEAD, POST, PUT', done)
   })
 
   it('should not contain methods multiple times', function (done) {
@@ -31,9 +31,9 @@ describe('OPTIONS', function () {
     router.get('/users', saw)
 
     request(server)
-    .options('/users')
-    .expect('GET, HEAD, PUT')
-    .expect('Allow', 'GET, HEAD, PUT', done)
+      .options('/users')
+      .expect('GET, HEAD, PUT')
+      .expect('Allow', 'GET, HEAD, PUT', done)
   })
 
   it('should not include "all" routes', function (done) {
@@ -46,10 +46,10 @@ describe('OPTIONS', function () {
     router.all('/users', sethit(1))
 
     request(server)
-    .options('/users')
-    .expect('x-fn-1', 'hit')
-    .expect('Allow', 'GET, HEAD, PUT')
-    .expect(200, 'GET, HEAD, PUT', done)
+      .options('/users')
+      .expect('x-fn-1', 'hit')
+      .expect('Allow', 'GET, HEAD, PUT')
+      .expect(200, 'GET, HEAD, PUT', done)
   })
 
   it('should not respond if no matching path', function (done) {
@@ -59,8 +59,8 @@ describe('OPTIONS', function () {
     router.get('/users', saw)
 
     request(server)
-    .options('/')
-    .expect(404, done)
+      .options('/')
+      .expect(404, done)
   })
 
   it('should do nothing with explicit options route', function (done) {
@@ -71,8 +71,8 @@ describe('OPTIONS', function () {
     router.options('/users', saw)
 
     request(server)
-    .options('/users')
-    .expect(200, 'saw OPTIONS /users', done)
+      .options('/users')
+      .expect(200, 'saw OPTIONS /users', done)
   })
 
   describe('when error occurs in respone handler', function () {
@@ -88,8 +88,8 @@ describe('OPTIONS', function () {
       router.get('/users', saw)
 
       request(server)
-      .options('/users')
-      .expect(200, 'true', done)
+        .options('/users')
+        .expect(200, 'true', done)
     })
   })
 })

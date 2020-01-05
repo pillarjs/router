@@ -13,8 +13,8 @@ describe('FQDN url', function () {
     router.use(saw)
 
     rawrequest(server)
-    .get('http://example.com/foo')
-    .expect(200, 'saw GET http://example.com/foo', done)
+      .get('http://example.com/foo')
+      .expect(200, 'saw GET http://example.com/foo', done)
   })
 
   it('should strip/restore FQDN req.url', function (done) {
@@ -25,9 +25,9 @@ describe('FQDN url', function () {
     router.use(saw)
 
     rawrequest(server)
-    .get('http://example.com/blog/post/1')
-    .expect('x-saw-1', 'GET http://example.com/post/1')
-    .expect(200, 'saw GET http://example.com/blog/post/1', done)
+      .get('http://example.com/blog/post/1')
+      .expect('x-saw-1', 'GET http://example.com/post/1')
+      .expect(200, 'saw GET http://example.com/blog/post/1', done)
   })
 
   it('should ignore FQDN in search', function (done) {
@@ -38,9 +38,9 @@ describe('FQDN url', function () {
     router.use(saw)
 
     rawrequest(server)
-    .get('/proxy?url=http://example.com/blog/post/1')
-    .expect('x-saw-1', 'GET /?url=http://example.com/blog/post/1')
-    .expect(200, 'saw GET /proxy?url=http://example.com/blog/post/1', done)
+      .get('/proxy?url=http://example.com/blog/post/1')
+      .expect('x-saw-1', 'GET /?url=http://example.com/blog/post/1')
+      .expect(200, 'saw GET /proxy?url=http://example.com/blog/post/1', done)
   })
 
   it('should ignore FQDN in path', function (done) {
@@ -51,9 +51,9 @@ describe('FQDN url', function () {
     router.use(saw)
 
     rawrequest(server)
-    .get('/proxy/http://example.com/blog/post/1')
-    .expect('x-saw-1', 'GET /http://example.com/blog/post/1')
-    .expect(200, 'saw GET /proxy/http://example.com/blog/post/1', done)
+      .get('/proxy/http://example.com/blog/post/1')
+      .expect('x-saw-1', 'GET /http://example.com/blog/post/1')
+      .expect(200, 'saw GET /proxy/http://example.com/blog/post/1', done)
   })
 })
 

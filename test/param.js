@@ -48,12 +48,12 @@ describe('Router', function () {
       })
 
       request(server)
-      .get('/user/2')
-      .expect(200, 'get user 2', cb)
+        .get('/user/2')
+        .expect(200, 'get user 2', cb)
 
       request(server)
-      .get('/user/bob')
-      .expect(200, 'get user NaN', cb)
+        .get('/user/bob')
+        .expect(200, 'get user NaN', cb)
     })
 
     it('should allow chaining', function (done) {
@@ -76,8 +76,8 @@ describe('Router', function () {
       })
 
       request(server)
-      .get('/user/2')
-      .expect(200, 'get user 2 (2)', done)
+        .get('/user/2')
+        .expect(200, 'get user 2 (2)', done)
     })
 
     it('should automatically decode path value', function (done) {
@@ -95,8 +95,8 @@ describe('Router', function () {
       })
 
       request(server)
-      .get('/user/%22bob%2Frobert%22')
-      .expect('get user "bob/robert"', done)
+        .get('/user/%22bob%2Frobert%22')
+        .expect('get user "bob/robert"', done)
     })
 
     it('should 400 on invalid path value', function (done) {
@@ -114,8 +114,8 @@ describe('Router', function () {
       })
 
       request(server)
-      .get('/user/%bob')
-      .expect(400, /URIError: Failed to decode param/, done)
+        .get('/user/%bob')
+        .expect(400, /URIError: Failed to decode param/, done)
     })
 
     it('should only invoke fn when necessary', function (done) {
@@ -136,13 +136,13 @@ describe('Router', function () {
       router.put('/user/:id', saw)
 
       request(server)
-      .get('/user/bob')
-      .expect(500, /Error: boom/, cb)
+        .get('/user/bob')
+        .expect(500, /Error: boom/, cb)
 
       request(server)
-      .put('/user/bob')
-      .expect('x-id', 'bob')
-      .expect(200, 'saw PUT /user/bob', cb)
+        .put('/user/bob')
+        .expect('x-id', 'bob')
+        .expect(200, 'saw PUT /user/bob', cb)
     })
 
     it('should only invoke fn once per request', function (done) {
@@ -163,8 +163,8 @@ describe('Router', function () {
       })
 
       request(server)
-      .get('/user/bob')
-      .expect('get user bob 1 times', done)
+        .get('/user/bob')
+        .expect('get user bob 1 times', done)
     })
 
     it('should keep changes to req.params value', function (done) {
@@ -187,8 +187,8 @@ describe('Router', function () {
       })
 
       request(server)
-      .get('/user/01')
-      .expect('get user 1 1 times', done)
+        .get('/user/01')
+        .expect('get user 1 1 times', done)
     })
 
     it('should invoke fn if path value differs', function (done) {
@@ -210,8 +210,8 @@ describe('Router', function () {
       })
 
       request(server)
-      .get('/user/bob')
-      .expect('get user bob 2 times: user, bob', done)
+        .get('/user/bob')
+        .expect('get user bob 2 times: user, bob', done)
     })
 
     it('should catch exception in fn', function (done) {
@@ -228,8 +228,8 @@ describe('Router', function () {
       })
 
       request(server)
-      .get('/user/bob')
-      .expect(500, /Error: boom/, done)
+        .get('/user/bob')
+        .expect(500, /Error: boom/, done)
     })
 
     it('should catch exception in chained fn', function (done) {
@@ -250,8 +250,8 @@ describe('Router', function () {
       })
 
       request(server)
-      .get('/user/bob')
-      .expect(500, /Error: boom/, done)
+        .get('/user/bob')
+        .expect(500, /Error: boom/, done)
     })
 
     describe('next("route")', function () {
@@ -283,16 +283,16 @@ describe('Router', function () {
         })
 
         request(server)
-        .get('/user/2')
-        .expect(200, 'get user 2', cb)
+          .get('/user/2')
+          .expect(200, 'get user 2', cb)
 
         request(server)
-        .get('/user/bob')
-        .expect(404, cb)
+          .get('/user/bob')
+          .expect(404, cb)
 
         request(server)
-        .get('/user/new')
-        .expect(400, 'cannot get a new user', cb)
+          .get('/user/new')
+          .expect(400, 'cannot get a new user', cb)
       })
 
       it('should invoke fn if path value differs', function (done) {
@@ -314,10 +314,10 @@ describe('Router', function () {
         })
 
         request(server)
-        .get('/user/bob')
-        .expect(shouldNotHitHandle(1))
-        .expect(shouldHitHandle(2))
-        .expect('get user bob 2 times: user, bob', done)
+          .get('/user/bob')
+          .expect(shouldNotHitHandle(1))
+          .expect(shouldHitHandle(2))
+          .expect('get user bob 2 times: user, bob', done)
       })
     })
   })
