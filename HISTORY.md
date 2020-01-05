@@ -3,6 +3,17 @@
 
   * deps: array-flatten@3.0.0
   * deps: parseurl@~1.3.3
+  * deps: path-to-regexp@3.2.0
+    - Add new `?`, `*`, and `+` parameter modifiers
+    - Matching group expressions are only RegExp syntax.
+      `(*)` is no longer valid and must be written as `(.*)`, for example.
+    - Named matching groups no longer available by position in `req.params`.
+      `/:foo(.*)` only captures as `req.params.foo` and not available as
+      `req.parmas[0]`.
+    - Regular expressions can only be used in a matching group.
+      `/\\d+` is no longer valid and must be written as `/(\\d+)`.
+    - Special `*` path segment behavior removed.
+      `/foo/*/bar` will match a literal `*` as the middle segment.
   * deps: setprototypeof@1.2.0
 
 2.0.0-alpha.1 / 2018-07-27

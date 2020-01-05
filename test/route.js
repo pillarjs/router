@@ -655,18 +655,18 @@ describe('Router', function () {
         it('should work following a partial capture group', function (done) {
           var cb = after(2, done)
           var router = new Router()
-          var route = router.route('/user(s)?/:user/:op')
+          var route = router.route('/user(s?)/:user/:op')
           var server = createServer(router)
 
           route.all(sendParams)
 
           request(server)
             .get('/user/tj/edit')
-            .expect(200, {'user': 'tj', 'op': 'edit'}, cb)
+            .expect(200, { 0: '', user: 'tj', op: 'edit' }, cb)
 
           request(server)
             .get('/users/tj/edit')
-            .expect(200, {'0': 's', 'user': 'tj', 'op': 'edit'}, cb)
+            .expect(200, { 0: 's', user: 'tj', op: 'edit' }, cb)
         })
 
         it('should work inside literal paranthesis', function (done) {
@@ -699,132 +699,127 @@ describe('Router', function () {
         })
       })
 
-      describe('using "*"', function () {
-        it('should capture everything', function (done) {
-          var router = new Router()
-          var route = router.route('*')
-          var server = createServer(router)
-
-          route.all(sendParams)
-
-          request(server)
-            .get('/foo/bar/baz')
-            .expect(200, {'0': '/foo/bar/baz'}, done)
-        })
-
-        it('should decode the capture', function (done) {
-          var router = new Router()
-          var route = router.route('*')
-          var server = createServer(router)
-
-          route.all(sendParams)
-
-          request(server)
-            .get('/foo/%20/baz')
-            .expect(200, {'0': '/foo/ /baz'}, done)
-        })
-
-        it('should capture everything with pre- and post-fixes', function (done) {
-          var router = new Router()
-          var route = router.route('/foo/*/bar')
-          var server = createServer(router)
-
-          route.all(sendParams)
-
-          request(server)
-            .get('/foo/1/2/3/bar')
-            .expect(200, {'0': '1/2/3'}, done)
-        })
-
-        it('should capture greedly', function (done) {
-          var router = new Router()
-          var route = router.route('/foo/*/bar')
-          var server = createServer(router)
-
-          route.all(sendParams)
-
-          request(server)
-            .get('/foo/bar/bar/bar')
-            .expect(200, {'0': 'bar/bar'}, done)
-        })
-
-        it('should be an optional capture', function (done) {
-          var router = new Router()
-          var route = router.route('/foo*')
-          var server = createServer(router)
-
-          route.all(sendParams)
-
-          request(server)
-            .get('/foo')
-            .expect(200, {'0': ''}, done)
-        })
-
-        it('should require preceeding /', function (done) {
+      describe('using ":name?"', function () {
+        it('should name an optional parameter', function (done) {
           var cb = after(2, done)
           var router = new Router()
-          var route = router.route('/foo/*')
-          var server = createServer(router)
-
-          route.all(sendParams)
-
-          request(server)
-            .get('/foo')
-            .expect(404, cb)
-
-          request(server)
-            .get('/foo/')
-            .expect(200, cb)
-        })
-
-        it('should work in a named parameter', function (done) {
-          var cb = after(2, done)
-          var router = new Router()
-          var route = router.route('/:foo(*)')
+          var route = router.route('/:foo?')
           var server = createServer(router)
 
           route.all(sendParams)
 
           request(server)
             .get('/bar')
-            .expect(200, {'0': 'bar', 'foo': 'bar'}, cb)
+            .expect(200, { foo: 'bar' }, cb)
+
+          request(server)
+            .get('/')
+            .expect(200, {}, cb)
+        })
+
+        it('should work in any segment', function (done) {
+          var cb = after(2, done)
+          var router = new Router()
+          var route = router.route('/user/:foo?/delete')
+          var server = createServer(router)
+
+          route.all(sendParams)
+
+          request(server)
+            .get('/user/bar/delete')
+            .expect(200, { foo: 'bar' }, cb)
+
+          request(server)
+            .get('/user/delete')
+            .expect(200, {}, cb)
+        })
+      })
+
+      describe('using ":name*"', function () {
+        it('should name a zero-or-more repeated parameter', function (done) {
+          var cb = after(3, done)
+          var router = new Router()
+          var route = router.route('/:foo*')
+          var server = createServer(router)
+
+          route.all(sendParams)
+
+          request(server)
+            .get('/')
+            .expect(200, {}, cb)
+
+          request(server)
+            .get('/bar')
+            .expect(200, { foo: 'bar' }, cb)
 
           request(server)
             .get('/fizz/buzz')
-            .expect(200, {'0': 'fizz/buzz', 'foo': 'fizz/buzz'}, cb)
+            .expect(200, { foo: 'fizz/buzz' }, cb)
         })
 
-        it('should work before a named parameter', function (done) {
-          var router = new Router()
-          var route = router.route('/*/user/:id')
-          var server = createServer(router)
-
-          route.all(sendParams)
-
-          request(server)
-            .get('/poke/user/42')
-            .expect(200, {'0': 'poke', 'id': '42'}, done)
-        })
-
-        it('should work within arrays', function (done) {
+        it('should work in any segment', function (done) {
           var cb = after(3, done)
           var router = new Router()
-          var route = router.route(['/user/:id', '/foo/*', '/:action'])
+          var route = router.route('/user/:foo*/delete')
           var server = createServer(router)
 
           route.all(sendParams)
 
           request(server)
-            .get('/user/42')
-            .expect(200, {'id': '42'}, cb)
+            .get('/user/delete')
+            .expect(200, {}, cb)
 
           request(server)
-            .get('/foo/bar')
-            .expect(200, {'0': 'bar'}, cb)
+            .get('/user/bar/delete')
+            .expect(200, { foo: 'bar' }, cb)
 
           request(server)
-            .get('/poke')
-            .expect(200, {'action': 'poke'}, cb)
+            .get('/user/fizz/buzz/delete')
+            .expect(200, { foo: 'fizz/buzz' }, cb)
+        })
+      })
+
+      describe('using ":name+"', function () {
+        it('should name a one-or-more repeated parameter', function (done) {
+          var cb = after(3, done)
+          var router = new Router()
+          var route = router.route('/:foo+')
+          var server = createServer(router)
+
+          route.all(sendParams)
+
+          request(server)
+            .get('/')
+            .expect(404, cb)
+
+          request(server)
+            .get('/bar')
+            .expect(200, { foo: 'bar' }, cb)
+
+          request(server)
+            .get('/fizz/buzz')
+            .expect(200, { foo: 'fizz/buzz' }, cb)
+        })
+
+        it('should work in any segment', function (done) {
+          var cb = after(3, done)
+          var router = new Router()
+          var route = router.route('/user/:foo+/delete')
+          var server = createServer(router)
+
+          route.all(sendParams)
+
+          request(server)
+            .get('/user/delete')
+            .expect(404, cb)
+
+          request(server)
+            .get('/user/bar/delete')
+            .expect(200, { foo: 'bar' }, cb)
+
+          request(server)
+            .get('/user/fizz/buzz/delete')
+            .expect(200, { foo: 'fizz/buzz' }, cb)
         })
       })
     })
