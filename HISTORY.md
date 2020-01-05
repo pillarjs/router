@@ -7,6 +7,7 @@ unreleased
   * deps: setprototypeof@1.2.0
   * deps: path-to-regexp@3.0.0
   * deps: eslint@6.8.0
+  * deps: eslint-plugin-markdown@1.0.1
 
 2.0.0-alpha.1 / 2018-07-27
 ==========================
