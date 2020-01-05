@@ -24,7 +24,7 @@
     "finalhandler": "1.1.1",
     "mocha": "7.0.0",
     "nyc": "10.3.2",
-    "supertest": "1.2.0"
+    "supertest": "4.0.2"
   },
   "files": [
     "lib/",

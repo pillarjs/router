@@ -194,7 +194,7 @@ describe('Router', function () {
 
       var body = method !== 'head'
         ? 'hello, world'
-        : ''
+        : undefined
 
       describe('.' + method + '(...fn)', function () {
         it('should respond to a ' + method.toUpperCase() + ' request', function (done) {

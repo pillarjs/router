@@ -54,7 +54,7 @@ describe('Router', function () {
 
         var body = method !== 'head'
           ? 'hello, world'
-          : ''
+          : undefined
 
         request(server)
         [method]('/')
@@ -262,7 +262,7 @@ describe('Router', function () {
 
     var body = method !== 'head'
       ? 'hello, world'
-      : ''
+      : undefined
 
     describe('.' + method + '(path, ...fn)', function () {
       it('should be chainable', function () {
