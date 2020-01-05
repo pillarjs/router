@@ -546,7 +546,7 @@ describe('Router', function () {
       var router = new Router()
       var server = createServer(router)
 
-      router.use(function handleError(err, req, res, next) {
+      router.error(function handleError(err, req, res, next) {
         throw new Error('boom!')
       })
 
@@ -564,7 +564,7 @@ describe('Router', function () {
           next(new Error('boom!'))
         })
 
-        router.use(sawError)
+        router.error(sawError)
 
         request(server)
           .get('/')
@@ -579,7 +579,7 @@ describe('Router', function () {
           throw new Error('boom!')
         })
 
-        router.use(sawError)
+        router.error(sawError)
 
         request(server)
           .get('/')
@@ -590,7 +590,7 @@ describe('Router', function () {
         var router = new Router()
         var server = createServer(router)
 
-        router.use(sawError)
+        router.error(sawError)
 
         router.use(function handle(req, res, next) {
           throw new Error('boom!')
@@ -599,6 +599,24 @@ describe('Router', function () {
         request(server)
           .get('/')
           .expect(500, done)
+      })
+
+      it('should support error functions mixed with non-error functions in a Stack', function (done) {
+        var router = new Router()
+        var server = createServer(router)
+
+        var stack = new Router.Stack()
+        stack.use(createHitHandle(1))
+        stack.error(sawError)
+        stack.use(function (req, res, next) {
+          throw new Error('boom!')
+        })
+        router.use(stack)
+
+        request(server)
+        .get('/')
+        .expect(shouldHitHandle(1))
+        .expect(500, done)
       })
     })
 
@@ -648,7 +666,7 @@ describe('Router', function () {
           next('route')
         })
 
-        router.use(sawError)
+        router.error(sawError)
 
         request(server)
           .get('/')
@@ -686,7 +704,7 @@ describe('Router', function () {
           next('route')
         })
 
-        router.use(sawError)
+        router.error(sawError)
 
         request(server)
           .get('/')
@@ -704,7 +722,7 @@ describe('Router', function () {
           return Promise.reject(new Error('boom!'))
         })
 
-        router.use(sawError)
+        router.error(sawError)
 
         request(server)
           .get('/')
@@ -719,7 +737,7 @@ describe('Router', function () {
           return Promise.reject()
         })
 
-        router.use(sawError)
+        router.error(sawError)
 
         request(server)
           .get('/')
@@ -753,11 +771,11 @@ describe('Router', function () {
             return Promise.reject(new Error('boom!'))
           })
 
-          router.use(function handleError (err, req, res, next) {
+          router.error(function handleError (err, req, res, next) {
             return Promise.reject(new Error('caught: ' + err.message))
           })
 
-          router.use(sawError)
+          router.error(sawError)
 
           request(server)
             .get('/')
@@ -772,11 +790,11 @@ describe('Router', function () {
             return Promise.reject()
           })
 
-          router.use(function handleError (err, req, res, next) {
+          router.error(function handleError (err, req, res, next) {
             return Promise.reject(new Error('caught: ' + err.message))
           })
 
-          router.use(sawError)
+          router.error(sawError)
 
           request(server)
             .get('/')
@@ -791,7 +809,7 @@ describe('Router', function () {
             return Promise.reject(new Error('boom!'))
           })
 
-          router.use(function handleError (err, req, res, next) {
+          router.error(function handleError (err, req, res, next) {
             sawError(err, req, res, next)
             return Promise.resolve('foo')
           })

@@ -8,6 +8,10 @@ unreleased
   * deps: path-to-regexp@3.0.0
   * deps: eslint@6.8.0
   * deps: eslint-plugin-markdown@1.0.1
+  * Deprecate arity based error middleware
+    - Added `.error` instead of 4 argument functions
+    - Added deprecation warning when relying on arity based inference
+    - Added Stack & FlatStack
 
 2.0.0-alpha.1 / 2018-07-27
 ==========================

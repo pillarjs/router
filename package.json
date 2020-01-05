@@ -11,7 +11,9 @@
   "dependencies": {
     "array-flatten": "2.1.1",
     "debug": "3.1.0",
+    "depd": "1.1.1",
     "methods": "~1.1.2",
+    "mwstack": "0.0.2",
     "parseurl": "~1.3.2",
     "path-to-regexp": "^3.0.0",
     "setprototypeof": "1.2.0",

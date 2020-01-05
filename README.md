@@ -200,12 +200,35 @@ is returned from the function, the router will attach an `onRejected` callback
 using `.then`. If the promise is rejected, `next` will be called with the
 rejected value, or an error if the value is falsy.
 
+### Error Middleware
+
+Error middleware are special functions which take an `error` argument as the first
+argument instead of the `request`.  You can add error middleware by calling `.error()`.
+These can be used for handling errors that occurred in previous handlers
+(E.g. from calling `next(err)`). This is most used when you want to define shared
+handling or rendering of errors.
+
+```js
+router.get('/error_route', (req, res, next) => {
+  next(new Error('Bad Request'))
+})
+
+router.error((err, req, res) => {
+  res.end(err.message) //=> "Bad Request"
+})
+```
+
+Error handling middleware will **only** be invoked when an error was given. As
+long as the error is in the pipeline, normal middleware and handlers will be
+bypassed - only error handling middleware will be invoked with an error.
+
+**Deprecated behavior:**
+
+*Deprecated in `router@2.0.0`*
+
 Middleware and method handlers can also be defined with four arguments. When
 the function has four parameters defined, the first argument is an error and
-subsequent arguments remain, becoming - "err", "req", "res", "next". These
-functions are "error handling middleware", and can be used for handling
-errors that occurred in previous handlers (E.g. from calling `next(err)`).
-This is most used when you want to define arbitrary rendering of errors.
+subsequent arguments remain, becoming - "err", "req", "res", "next".
 
 ```js
 router.get('/error_route', function (req, res, next) {
@@ -216,10 +239,6 @@ router.use(function (err, req, res, next) {
   res.end(err.message) //=> "Bad Request"
 })
 ```
-
-Error handling middleware will **only** be invoked when an error was given. As
-long as the error is in the pipeline, normal middleware and handlers will be
-bypassed - only error handling middleware will be invoked with an error.
 
 ## Examples
 
@@ -384,7 +403,41 @@ server.listen(8080)
 
 ## Migrating to 2.x from 1.x
 
-The main change is the update to `path-to-regexp@2.0.0`, which has a few breaking changes:
+#### Deprecation of arity based error middleware
+
+In previous versions of `router`, the arity of a function was used to determine
+if a middleware was a normal middleware or an error handling middleware.  In `router@2.0`
+this behavior still works, but is deprecated.  The new api is as follows:
+
+```javascript
+router.error(...errorMiddleware)
+
+// Create a reusable stack of mw
+const mw = new Router.Stack()
+
+// Register normal middleware
+mw.use(() => {}, () => {})
+
+// Add an error middleware
+mw.error((err, req, res) => {
+  // notice no more `next` required!
+  res.statusCode = 500
+  res.end(err.message)
+})
+
+// to explicitly opt back into the old behavior you can use `stack.infer`
+mw.infer((req, res) => {
+  next(new Error())
+}, (err, req, res, next) => {
+  // This sill be inferred from the arity like Express did in the past
+  // Notice that in this example all four arguments are required even
+  // if you never call next
+})
+```
+
+### Update `path-to-regexp` to `3.x`
+
+The update to `path-to-regexp@3.0.0` has a few breaking changes:
 
 #### No longer a direct conversion to a RegExp with sugar on top.
 
