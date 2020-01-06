@@ -1246,6 +1246,203 @@ describe('Router', function () {
         .expect(200, 'saw GET /bar', done)
     })
   })
+
+  describe('req.matchedRoutes', function () {
+    it('should be set if there is a match', function (done) {
+      var router = new Router()
+      var server = createServer(router)
+      var matchedRoutes
+
+      router.get('/foo', function (req, res, next) {
+        matchedRoutes = req.matchedRoutes
+        next()
+      })
+      router.use(saw)
+
+      request(server)
+        .get('/foo')
+        .expect(200, 'saw GET /foo', function (err, res) {
+          assert.deepEqual(matchedRoutes, ['/foo'])
+          done(err)
+        })
+    })
+
+    it('should be undefined if there is not a match', function (done) {
+      var router = new Router()
+      var server = createServer(router)
+      var matchedRoutes
+
+      router.use(function (req, res, next) {
+        matchedRoutes = req.matchedRoutes
+        next()
+      })
+
+      request(server)
+        .get('/foo')
+        .expect(404, function (err, res) {
+          assert.strictEqual(matchedRoutes, undefined)
+          done(err)
+        })
+    })
+
+    it('should work with sub-routers', function (done) {
+      var router = new Router()
+      var fooRouter = new Router()
+      var server = createServer(router)
+      var matchedFooRoutes
+      var matchedBarRoutes
+
+      router.use('/foo', function (req, res, next) {
+        matchedFooRoutes = req.matchedRoutes
+        next()
+      }, fooRouter)
+      fooRouter.get('/bar', function (req, res, next) {
+        matchedBarRoutes = req.matchedRoutes
+        next()
+      })
+      router.use(saw)
+
+      request(server)
+        .get('/foo/bar')
+        .expect(200, 'saw GET /foo/bar', function (err, res) {
+          assert.deepEqual(matchedFooRoutes, ['/foo'])
+          assert.deepEqual(matchedBarRoutes, ['/foo', '/bar'])
+          done(err)
+        })
+    })
+
+    it('should be undefined if sub-router did not match', function (done) {
+      var router = new Router()
+      var fooRouter = new Router()
+      var server = createServer(router)
+      var matchedRoutes
+
+      router.use('/foo', fooRouter)
+      fooRouter.get('/bar', function (req, res, next) {
+        matchedRoutes = req.matchedRoutes
+        next()
+      })
+      router.use(saw)
+
+      request(server)
+        .get('/foo/baz')
+        .expect(200, 'saw GET /foo/baz', function (err, res) {
+          assert.strictEqual(matchedRoutes, undefined)
+          done(err)
+        })
+    })
+
+    it('should work with regexp-defined routes', function (done) {
+      var router = new Router()
+      var server = createServer(router)
+      var matchedRoutes
+      var regexp = /fo+/
+
+      router.get(regexp, function (req, res, next) {
+        matchedRoutes = req.matchedRoutes
+        next()
+      })
+      router.use(saw)
+
+      request(server)
+        .get('/foo')
+        .expect(200, 'saw GET /foo', function (err, res) {
+          assert.deepEqual(matchedRoutes, [regexp])
+          done(err)
+        })
+    })
+
+    it('should support routes defined with arrays of paths', function (done) {
+      var router = new Router()
+      var server = createServer(router)
+      var matchedRoutes
+
+      router.get(['/foo', '/bar/:id'], function (req, res, next) {
+        matchedRoutes = req.matchedRoutes
+        next()
+      })
+      router.use(saw)
+
+      request(server)
+        .get('/foo')
+        .expect(200, 'saw GET /foo', function (err, res) {
+          if (err) {
+            return done(err)
+          }
+          assert.deepEqual(matchedRoutes, ['/foo'])
+
+          request(server)
+            .get('/bar/1')
+            .expect(200, 'saw GET /bar/1', function (err, res) {
+              if (err) {
+                return done(err)
+              }
+              assert.deepEqual(matchedRoutes, ['/bar/:id'])
+              done()
+            })
+        })
+    })
+
+    it('should support routes defined with nested arrays of paths', function (done) {
+      var router = new Router()
+      var server = createServer(router)
+      var matchedRoutes
+
+      router.get([['/foo', ['/bar/:id']]], function (req, res, next) {
+        matchedRoutes = req.matchedRoutes
+        next()
+      })
+      router.use(saw)
+
+      request(server)
+        .get('/foo')
+        .expect(200, 'saw GET /foo', function (err, res) {
+          if (err) {
+            return done(err)
+          }
+          assert.deepEqual(matchedRoutes, ['/foo'])
+
+          request(server)
+            .get('/bar/1')
+            .expect(200, 'saw GET /bar/1', function (err, res) {
+              if (err) {
+                return done(err)
+              }
+              assert.deepEqual(matchedRoutes, ['/bar/:id'])
+              done()
+            })
+        })
+    })
+
+    it('should support sibling routes at same path', function (done) {
+      var router = new Router()
+      var server = createServer(router)
+      var matchedRoutes1
+      var matchedRoutes2
+
+      router.get('/foo', function (req, res, next) {
+        matchedRoutes1 = req.matchedRoutes
+        next()
+      })
+      router.get('/foo', function (req, res, next) {
+        matchedRoutes2 = req.matchedRoutes
+        next()
+      })
+      router.use(saw)
+
+      request(server)
+        .get('/foo')
+        .expect(200, 'saw GET /foo', function (err, res) {
+          if (err) {
+            return done(err)
+          }
+          assert.deepEqual(matchedRoutes1, ['/foo'])
+          assert.deepEqual(matchedRoutes2, ['/foo'])
+
+          done()
+        })
+    })
+  })
 })
 
 function helloWorld(req, res) {

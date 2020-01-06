@@ -166,7 +166,8 @@ Router.prototype.handle = function handle(req, res, callback) {
   // manage inter-router variables
   var parentParams = req.params
   var parentUrl = req.baseUrl || ''
-  var done = restore(callback, req, 'baseUrl', 'next', 'params')
+  var parentMatchedRoutes = req.matchedRoutes
+  var done = restore(callback, req, 'baseUrl', 'next', 'params', 'matchedRoutes')
 
   // setup next layer
   req.next = next
@@ -199,6 +200,7 @@ Router.prototype.handle = function handle(req, res, callback) {
       req.baseUrl = parentUrl
       req.url = protohost + removed + req.url.substr(protohost.length)
       removed = ''
+      req.matchedRoutes = parentMatchedRoutes
     }
 
     // signal to exit router
@@ -287,6 +289,11 @@ Router.prototype.handle = function handle(req, res, callback) {
         return next(layerError || err)
       }
 
+      if (layer.path) {
+        req.matchedRoutes = req.matchedRoutes || []
+        req.matchedRoutes.push(layer.matchedPath.path)
+      }
+
       if (route) {
         return layer.handle_request(req, res, next)
       }
@@ -342,7 +349,7 @@ Router.prototype.process_params = function process_params(layer, called, req, re
   var params = this.params
 
   // captured parameters from the layer, keys and values
-  var keys = layer.keys
+  var keys = layer.matchedPath && layer.matchedPath.keys
 
   // fast track
   if (!keys || keys.length === 0) {
