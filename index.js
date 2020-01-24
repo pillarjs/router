@@ -13,7 +13,7 @@
  */
 
 var debug = require('debug')('router')
-var flatten = require('array-flatten')
+var flatten = require('array-flatten').flatten
 var Layer = require('./lib/layer')
 var methods = require('methods')
 var mixin = require('utils-merge')

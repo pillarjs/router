@@ -1,7 +1,7 @@
 unreleased
 ==========
 
-  * deps: array-flatten@2.1.2
+  * deps: array-flatten@3.0.0
   * deps: parseurl@~1.3.3
   * deps: setprototypeof@1.2.0
 
