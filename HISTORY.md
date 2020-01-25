@@ -1,3 +1,10 @@
+2.x
+===
+
+  * deps: array-flatten@3.0.0
+  * deps: parseurl@~1.3.3
+  * deps: setprototypeof@1.2.0
+
 2.0.0-alpha.1 / 2018-07-27
 ==========================
 
@@ -10,6 +17,13 @@
     - Change non-TTY date format
     - Remove `DEBUG_FD` environment variable support
     - Support 256 namespace colors
+
+1.3.4 / 2020-01-24
+==================
+
+  * deps: array-flatten@3.0.0
+  * deps: parseurl@~1.3.3
+  * deps: setprototypeof@1.2.0
 
 1.3.3 / 2018-07-06
 ==================

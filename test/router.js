@@ -1,5 +1,6 @@
 
 var after = require('after')
+var Buffer = require('safe-buffer').Buffer
 var methods = require('methods')
 var Router = require('..')
 var utils = require('./support/utils')
@@ -9,7 +10,9 @@ var createHitHandle = utils.createHitHandle
 var createServer = utils.createServer
 var rawrequest = utils.rawrequest
 var request = utils.request
+var shouldHaveBody = utils.shouldHaveBody
 var shouldHitHandle = utils.shouldHitHandle
+var shouldNotHaveBody = utils.shouldNotHaveBody
 var shouldNotHitHandle = utils.shouldNotHitHandle
 
 var describePromises = global.Promise ? describe : describe.skip
@@ -53,12 +56,14 @@ describe('Router', function () {
         }
 
         var body = method !== 'head'
-          ? 'hello, world'
-          : ''
+          ? shouldHaveBody(Buffer.from('hello, world'))
+          : shouldNotHaveBody()
 
         request(server)
-        [method]('/')
-        .expect(200, body, cb)
+          [method]('/')
+          .expect(200)
+          .expect(body)
+          .end(cb)
       })
     })
 
@@ -70,16 +75,16 @@ describe('Router', function () {
       router.all(['/foo', '/bar'], saw)
 
       request(server)
-      .get('/')
-      .expect(404, cb)
+        .get('/')
+        .expect(404, cb)
 
       request(server)
-      .get('/foo')
-      .expect(200, 'saw GET /foo', cb)
+        .get('/foo')
+        .expect(200, 'saw GET /foo', cb)
 
       request(server)
-      .get('/bar')
-      .expect(200, 'saw GET /bar', cb)
+        .get('/bar')
+        .expect(200, 'saw GET /bar', cb)
     })
 
     it('should support regexp path', function (done) {
@@ -90,16 +95,16 @@ describe('Router', function () {
       router.all(/^\/[a-z]oo$/, saw)
 
       request(server)
-      .get('/')
-      .expect(404, cb)
+        .get('/')
+        .expect(404, cb)
 
       request(server)
-      .get('/foo')
-      .expect(200, 'saw GET /foo', cb)
+        .get('/foo')
+        .expect(200, 'saw GET /foo', cb)
 
       request(server)
-      .get('/zoo')
-      .expect(200, 'saw GET /zoo', cb)
+        .get('/zoo')
+        .expect(200, 'saw GET /zoo', cb)
     })
 
     it('should support parameterized path', function (done) {
@@ -110,23 +115,25 @@ describe('Router', function () {
       router.all('/:thing', saw)
 
       request(server)
-      .get('/')
-      .expect(404, cb)
+        .get('/')
+        .expect(404, cb)
 
       request(server)
-      .get('/foo')
-      .expect(200, 'saw GET /foo', cb)
+        .get('/foo')
+        .expect(200, 'saw GET /foo', cb)
 
       request(server)
-      .get('/bar')
-      .expect(200, 'saw GET /bar', cb)
+        .get('/bar')
+        .expect(200, 'saw GET /bar', cb)
 
       request(server)
-      .get('/foo/bar')
-      .expect(404, cb)
+        .get('/foo/bar')
+        .expect(404, cb)
     })
 
     it('should not stack overflow with many registered routes', function (done) {
+      this.timeout(5000) // long-running test
+
       var router = new Router()
       var server = createServer(router)
 
@@ -137,8 +144,8 @@ describe('Router', function () {
       router.get('/', helloWorld)
 
       request(server)
-      .get('/')
-      .expect(200, 'hello, world', done)
+        .get('/')
+        .expect(200, 'hello, world', done)
     })
 
     describe('with "caseSensitive" option', function () {
@@ -150,16 +157,16 @@ describe('Router', function () {
         router.all('/foo/bar', saw)
 
         request(server)
-        .get('/foo/bar')
-        .expect(200, 'saw GET /foo/bar', cb)
+          .get('/foo/bar')
+          .expect(200, 'saw GET /foo/bar', cb)
 
         request(server)
-        .get('/FOO/bar')
-        .expect(200, 'saw GET /FOO/bar', cb)
+          .get('/FOO/bar')
+          .expect(200, 'saw GET /FOO/bar', cb)
 
         request(server)
-        .get('/FOO/BAR')
-        .expect(200, 'saw GET /FOO/BAR', cb)
+          .get('/FOO/BAR')
+          .expect(200, 'saw GET /FOO/BAR', cb)
       })
 
       it('should not match paths case-sensitively when false', function (done) {
@@ -170,16 +177,16 @@ describe('Router', function () {
         router.all('/foo/bar', saw)
 
         request(server)
-        .get('/foo/bar')
-        .expect(200, 'saw GET /foo/bar', cb)
+          .get('/foo/bar')
+          .expect(200, 'saw GET /foo/bar', cb)
 
         request(server)
-        .get('/FOO/bar')
-        .expect(200, 'saw GET /FOO/bar', cb)
+          .get('/FOO/bar')
+          .expect(200, 'saw GET /FOO/bar', cb)
 
         request(server)
-        .get('/FOO/BAR')
-        .expect(200, 'saw GET /FOO/BAR', cb)
+          .get('/FOO/BAR')
+          .expect(200, 'saw GET /FOO/BAR', cb)
       })
 
       it('should match paths case-sensitively when true', function (done) {
@@ -190,16 +197,16 @@ describe('Router', function () {
         router.all('/foo/bar', saw)
 
         request(server)
-        .get('/foo/bar')
-        .expect(200, 'saw GET /foo/bar', cb)
+          .get('/foo/bar')
+          .expect(200, 'saw GET /foo/bar', cb)
 
         request(server)
-        .get('/FOO/bar')
-        .expect(404, cb)
+          .get('/FOO/bar')
+          .expect(404, cb)
 
         request(server)
-        .get('/FOO/BAR')
-        .expect(404, cb)
+          .get('/FOO/BAR')
+          .expect(404, cb)
       })
     })
 
@@ -212,12 +219,12 @@ describe('Router', function () {
         router.all('/foo', saw)
 
         request(server)
-        .get('/foo')
-        .expect(200, 'saw GET /foo', cb)
+          .get('/foo')
+          .expect(200, 'saw GET /foo', cb)
 
         request(server)
-        .get('/foo/')
-        .expect(200, 'saw GET /foo/', cb)
+          .get('/foo/')
+          .expect(200, 'saw GET /foo/', cb)
       })
 
       it('should accept optional trailing slashes when false', function (done) {
@@ -228,12 +235,12 @@ describe('Router', function () {
         router.all('/foo', saw)
 
         request(server)
-        .get('/foo')
-        .expect(200, 'saw GET /foo', cb)
+          .get('/foo')
+          .expect(200, 'saw GET /foo', cb)
 
         request(server)
-        .get('/foo/')
-        .expect(200, 'saw GET /foo/', cb)
+          .get('/foo/')
+          .expect(200, 'saw GET /foo/', cb)
       })
 
       it('should not accept optional trailing slashes when true', function (done) {
@@ -244,12 +251,12 @@ describe('Router', function () {
         router.all('/foo', saw)
 
         request(server)
-        .get('/foo')
-        .expect(200, 'saw GET /foo', cb)
+          .get('/foo')
+          .expect(200, 'saw GET /foo', cb)
 
         request(server)
-        .get('/foo/')
-        .expect(404, cb)
+          .get('/foo/')
+          .expect(404, cb)
       })
     })
   })
@@ -261,8 +268,8 @@ describe('Router', function () {
     }
 
     var body = method !== 'head'
-      ? 'hello, world'
-      : ''
+      ? shouldHaveBody(Buffer.from('hello, world'))
+      : shouldNotHaveBody()
 
     describe('.' + method + '(path, ...fn)', function () {
       it('should be chainable', function () {
@@ -277,8 +284,10 @@ describe('Router', function () {
         router[method]('/', helloWorld)
 
         request(server)
-        [method]('/')
-        .expect(200, body, done)
+          [method]('/')
+          .expect(200)
+          .expect(body)
+          .end(done)
       })
 
       it('should reject invalid fn', function () {
@@ -294,19 +303,24 @@ describe('Router', function () {
         router[method](['/foo', '/bar'], createHitHandle(1), helloWorld)
 
         request(server)
-        [method]('/')
-        .expect(shouldNotHitHandle(1))
-        .expect(404, cb)
+          [method]('/')
+          .expect(404)
+          .expect(shouldNotHitHandle(1))
+          .end(cb)
 
         request(server)
-        [method]('/foo')
-        .expect(shouldHitHandle(1))
-        .expect(200, body, cb)
+          [method]('/foo')
+          .expect(200)
+          .expect(shouldHitHandle(1))
+          .expect(body)
+          .end(cb)
 
         request(server)
-        [method]('/bar')
-        .expect(shouldHitHandle(1))
-        .expect(200, body, cb)
+          [method]('/bar')
+          .expect(200)
+          .expect(shouldHitHandle(1))
+          .expect(body)
+          .end(cb)
       })
 
       it('should support regexp path', function (done) {
@@ -317,19 +331,24 @@ describe('Router', function () {
         router[method](/^\/[a-z]oo$/, createHitHandle(1), helloWorld)
 
         request(server)
-        [method]('/')
-        .expect(shouldNotHitHandle(1))
-        .expect(404, cb)
+          [method]('/')
+          .expect(404)
+          .expect(shouldNotHitHandle(1))
+          .end(cb)
 
         request(server)
-        [method]('/foo')
-        .expect(shouldHitHandle(1))
-        .expect(200, body, cb)
+          [method]('/foo')
+          .expect(200)
+          .expect(shouldHitHandle(1))
+          .expect(body)
+          .end(cb)
 
         request(server)
-        [method]('/zoo')
-        .expect(shouldHitHandle(1))
-        .expect(200, body, cb)
+          [method]('/zoo')
+          .expect(200)
+          .expect(shouldHitHandle(1))
+          .expect(body)
+          .end(cb)
       })
 
       it('should support parameterized path', function (done) {
@@ -340,24 +359,30 @@ describe('Router', function () {
         router[method]('/:thing', createHitHandle(1), helloWorld)
 
         request(server)
-        [method]('/')
-        .expect(shouldNotHitHandle(1))
-        .expect(404, cb)
+          [method]('/')
+          .expect(404)
+          .expect(shouldNotHitHandle(1))
+          .end(cb)
 
         request(server)
-        [method]('/foo')
-        .expect(shouldHitHandle(1))
-        .expect(200, body, cb)
+          [method]('/foo')
+          .expect(200)
+          .expect(shouldHitHandle(1))
+          .expect(body)
+          .end(cb)
 
         request(server)
-        [method]('/bar')
-        .expect(shouldHitHandle(1))
-        .expect(200, body, cb)
+          [method]('/bar')
+          .expect(200)
+          .expect(shouldHitHandle(1))
+          .expect(body)
+          .end(cb)
 
         request(server)
-        [method]('/foo/bar')
-        .expect(shouldNotHitHandle(1))
-        .expect(404, cb)
+          [method]('/foo/bar')
+          .expect(404)
+          .expect(shouldNotHitHandle(1))
+          .end(cb)
       })
 
       it('should accept multiple arguments', function (done) {
@@ -367,10 +392,12 @@ describe('Router', function () {
         router[method]('/', createHitHandle(1), createHitHandle(2), helloWorld)
 
         request(server)
-        [method]('/')
-        .expect(shouldHitHandle(1))
-        .expect(shouldHitHandle(2))
-        .expect(200, body, done)
+          [method]('/')
+          .expect(200)
+          .expect(shouldHitHandle(1))
+          .expect(shouldHitHandle(2))
+          .expect(body)
+          .end(done)
       })
 
       describe('req.baseUrl', function () {
@@ -384,9 +411,9 @@ describe('Router', function () {
           })
 
           request(server)
-          [method]('/foo')
-          .expect('x-url-base', '""')
-          .expect(200, done)
+            [method]('/foo')
+            .expect('x-url-base', '""')
+            .expect(200, done)
         })
       })
 
@@ -401,9 +428,9 @@ describe('Router', function () {
           })
 
           request(server)
-          [method]('/foo')
-          .expect('x-is-route', 'true')
-          .expect(200, done)
+            [method]('/foo')
+            .expect('x-is-route', 'true')
+            .expect(200, done)
         })
 
         it('should be the matched route', function (done) {
@@ -416,9 +443,9 @@ describe('Router', function () {
           })
 
           request(server)
-          [method]('/foo')
-          .expect('x-is-route', 'true')
-          .expect(200, done)
+            [method]('/foo')
+            .expect('x-is-route', 'true')
+            .expect(200, done)
         })
       })
     })
@@ -456,20 +483,20 @@ describe('Router', function () {
       router.use(saw)
 
       request(server)
-      .get('/')
-      .expect(200, 'saw GET /', cb)
+        .get('/')
+        .expect(200, 'saw GET /', cb)
 
       request(server)
-      .put('/')
-      .expect(200, 'saw PUT /', cb)
+        .put('/')
+        .expect(200, 'saw PUT /', cb)
 
       request(server)
-      .post('/foo')
-      .expect(200, 'saw POST /foo', cb)
+        .post('/foo')
+        .expect(200, 'saw POST /foo', cb)
 
       rawrequest(server)
-      .options('*')
-      .expect(200, 'saw OPTIONS *', cb)
+        .options('*')
+        .expect(200, 'saw OPTIONS *', cb)
     })
 
     it('should not invoke for blank URLs', function (done) {
@@ -482,8 +509,8 @@ describe('Router', function () {
       router.use(saw)
 
       request(server)
-      .get('/')
-      .expect(404, done)
+        .get('/')
+        .expect(404, done)
     })
 
     it('should support another router', function (done) {
@@ -495,8 +522,8 @@ describe('Router', function () {
       router.use(inner)
 
       request(server)
-      .get('/')
-      .expect(200, 'saw GET /', done)
+        .get('/')
+        .expect(200, 'saw GET /', done)
     })
 
     it('should accept multiple arguments', function (done) {
@@ -506,10 +533,10 @@ describe('Router', function () {
       router.use(createHitHandle(1), createHitHandle(2), helloWorld)
 
       request(server)
-      .get('/')
-      .expect(shouldHitHandle(1))
-      .expect(shouldHitHandle(2))
-      .expect(200, 'hello, world', done)
+        .get('/')
+        .expect(shouldHitHandle(1))
+        .expect(shouldHitHandle(2))
+        .expect(200, 'hello, world', done)
     })
 
     it('should accept single array of middleware', function (done) {
@@ -519,10 +546,10 @@ describe('Router', function () {
       router.use([createHitHandle(1), createHitHandle(2), helloWorld])
 
       request(server)
-      .get('/')
-      .expect(shouldHitHandle(1))
-      .expect(shouldHitHandle(2))
-      .expect(200, 'hello, world', done)
+        .get('/')
+        .expect(shouldHitHandle(1))
+        .expect(shouldHitHandle(2))
+        .expect(200, 'hello, world', done)
     })
 
     it('should accept nested arrays of middleware', function (done) {
@@ -532,11 +559,11 @@ describe('Router', function () {
       router.use([[createHitHandle(1), createHitHandle(2)], createHitHandle(3)], helloWorld)
 
       request(server)
-      .get('/')
-      .expect(shouldHitHandle(1))
-      .expect(shouldHitHandle(2))
-      .expect(shouldHitHandle(3))
-      .expect(200, 'hello, world', done)
+        .get('/')
+        .expect(shouldHitHandle(1))
+        .expect(shouldHitHandle(2))
+        .expect(shouldHitHandle(3))
+        .expect(200, 'hello, world', done)
     })
 
     it('should not invoke singular error function', function (done) {
@@ -548,8 +575,8 @@ describe('Router', function () {
       })
 
       request(server)
-      .get('/')
-      .expect(404, done)
+        .get('/')
+        .expect(404, done)
     })
 
     describe('error handling', function () {
@@ -564,8 +591,8 @@ describe('Router', function () {
         router.use(sawError)
 
         request(server)
-        .get('/')
-        .expect(200, 'saw Error: boom!', done)
+          .get('/')
+          .expect(200, 'saw Error: boom!', done)
       })
 
       it('should invoke error function after throw err', function (done) {
@@ -579,8 +606,8 @@ describe('Router', function () {
         router.use(sawError)
 
         request(server)
-        .get('/')
-        .expect(200, 'saw Error: boom!', done)
+          .get('/')
+          .expect(200, 'saw Error: boom!', done)
       })
 
       it('should not invoke error functions above function', function (done) {
@@ -594,8 +621,8 @@ describe('Router', function () {
         })
 
         request(server)
-        .get('/')
-        .expect(500, done)
+          .get('/')
+          .expect(500, done)
       })
     })
 
@@ -612,9 +639,9 @@ describe('Router', function () {
         router.use(saw)
 
         request(server)
-        .get('/')
-        .expect('x-next', 'route')
-        .expect(200, 'saw GET /', done)
+          .get('/')
+          .expect('x-next', 'route')
+          .expect(200, 'saw GET /', done)
       })
 
       it('should invoke next function', function (done) {
@@ -629,11 +656,11 @@ describe('Router', function () {
         router.use(createHitHandle(1), goNext, createHitHandle(2), saw)
 
         request(server)
-        .get('/')
-        .expect(shouldHitHandle(1))
-        .expect('x-next', 'route')
-        .expect(shouldHitHandle(2))
-        .expect(200, 'saw GET /', done)
+          .get('/')
+          .expect(shouldHitHandle(1))
+          .expect('x-next', 'route')
+          .expect(shouldHitHandle(2))
+          .expect(200, 'saw GET /', done)
       })
 
       it('should not invoke error handlers', function (done) {
@@ -648,9 +675,9 @@ describe('Router', function () {
         router.use(sawError)
 
         request(server)
-        .get('/')
-        .expect('x-next', 'route')
-        .expect(404, done)
+          .get('/')
+          .expect('x-next', 'route')
+          .expect(404, done)
       })
     })
 
@@ -668,10 +695,10 @@ describe('Router', function () {
         router.use(saw)
 
         request(server)
-        .get('/')
-        .expect('x-next', 'router')
-        .expect(shouldNotHitHandle(1))
-        .expect(404, done)
+          .get('/')
+          .expect('x-next', 'router')
+          .expect(shouldNotHitHandle(1))
+          .expect(404, done)
       })
 
       it('should not invoke error handlers', function (done) {
@@ -686,9 +713,9 @@ describe('Router', function () {
         router.use(sawError)
 
         request(server)
-        .get('/')
-        .expect('x-next', 'router')
-        .expect(404, done)
+          .get('/')
+          .expect('x-next', 'router')
+          .expect(404, done)
       })
     })
 
@@ -704,8 +731,8 @@ describe('Router', function () {
         router.use(sawError)
 
         request(server)
-        .get('/')
-        .expect(200, 'saw Error: boom!', done)
+          .get('/')
+          .expect(200, 'saw Error: boom!', done)
       })
 
       it('should pass rejected promise without value', function (done) {
@@ -719,8 +746,8 @@ describe('Router', function () {
         router.use(sawError)
 
         request(server)
-        .get('/')
-        .expect(200, 'saw Error: Rejected promise', done)
+          .get('/')
+          .expect(200, 'saw Error: Rejected promise', done)
       })
 
       it('should ignore resolved promise', function (done) {
@@ -737,8 +764,8 @@ describe('Router', function () {
         })
 
         request(server)
-        .get('/foo')
-        .expect(200, 'saw GET /foo', done)
+          .get('/foo')
+          .expect(200, 'saw GET /foo', done)
       })
 
       describe('error handling', function () {
@@ -757,8 +784,8 @@ describe('Router', function () {
           router.use(sawError)
 
           request(server)
-          .get('/')
-          .expect(200, 'saw Error: caught: boom!', done)
+            .get('/')
+            .expect(200, 'saw Error: caught: boom!', done)
         })
 
         it('should pass rejected promise without value', function (done) {
@@ -776,8 +803,8 @@ describe('Router', function () {
           router.use(sawError)
 
           request(server)
-          .get('/')
-          .expect(200, 'saw Error: caught: Rejected promise', done)
+            .get('/')
+            .expect(200, 'saw Error: caught: Rejected promise', done)
         })
 
         it('should ignore resolved promise', function (done) {
@@ -798,8 +825,8 @@ describe('Router', function () {
           })
 
           request(server)
-          .get('/foo')
-          .expect(200, 'saw Error: boom!', done)
+            .get('/foo')
+            .expect(200, 'saw Error: boom!', done)
         })
       })
     })
@@ -812,8 +839,8 @@ describe('Router', function () {
         router.use(sawBase)
 
         request(server)
-        .get('/foo/bar')
-        .expect(200, 'saw ', done)
+          .get('/foo/bar')
+          .expect(200, 'saw ', done)
       })
     })
   })
@@ -832,16 +859,16 @@ describe('Router', function () {
       router.use('/foo', saw)
 
       request(server)
-      .get('/')
-      .expect(404, cb)
+        .get('/')
+        .expect(404, cb)
 
       request(server)
-      .post('/foo')
-      .expect(200, 'saw POST /', cb)
+        .post('/foo')
+        .expect(200, 'saw POST /', cb)
 
       request(server)
-      .post('/foo/bar')
-      .expect(200, 'saw POST /bar', cb)
+        .post('/foo/bar')
+        .expect(200, 'saw POST /bar', cb)
     })
 
     it('should match if path has trailing slash', function (done) {
@@ -852,16 +879,16 @@ describe('Router', function () {
       router.use('/foo/', saw)
 
       request(server)
-      .get('/')
-      .expect(404, cb)
+        .get('/')
+        .expect(404, cb)
 
       request(server)
-      .post('/foo')
-      .expect(200, 'saw POST /', cb)
+        .post('/foo')
+        .expect(200, 'saw POST /', cb)
 
       request(server)
-      .post('/foo/bar')
-      .expect(200, 'saw POST /bar', cb)
+        .post('/foo/bar')
+        .expect(200, 'saw POST /bar', cb)
     })
 
     it('should support array of paths', function (done) {
@@ -872,16 +899,16 @@ describe('Router', function () {
       router.use(['/foo/', '/bar'], saw)
 
       request(server)
-      .get('/')
-      .expect(404, cb)
+        .get('/')
+        .expect(404, cb)
 
       request(server)
-      .get('/foo')
-      .expect(200, 'saw GET /', cb)
+        .get('/foo')
+        .expect(200, 'saw GET /', cb)
 
       request(server)
-      .get('/bar')
-      .expect(200, 'saw GET /', cb)
+        .get('/bar')
+        .expect(200, 'saw GET /', cb)
     })
 
     it('should support regexp path', function (done) {
@@ -892,24 +919,24 @@ describe('Router', function () {
       router.use(/^\/[a-z]oo/, saw)
 
       request(server)
-      .get('/')
-      .expect(404, cb)
+        .get('/')
+        .expect(404, cb)
 
       request(server)
-      .get('/foo')
-      .expect(200, 'saw GET /', cb)
+        .get('/foo')
+        .expect(200, 'saw GET /', cb)
 
       request(server)
-      .get('/fooo')
-      .expect(404, cb)
+        .get('/fooo')
+        .expect(404, cb)
 
       request(server)
-      .get('/zoo/bear')
-      .expect(200, 'saw GET /bear', cb)
+        .get('/zoo/bear')
+        .expect(200, 'saw GET /bear', cb)
 
       request(server)
-      .get('/get/zoo')
-      .expect(404, cb)
+        .get('/get/zoo')
+        .expect(404, cb)
     })
 
     it('should support parameterized path', function (done) {
@@ -920,20 +947,20 @@ describe('Router', function () {
       router.use('/:thing', saw)
 
       request(server)
-      .get('/')
-      .expect(404, cb)
+        .get('/')
+        .expect(404, cb)
 
       request(server)
-      .get('/foo')
-      .expect(200, 'saw GET /', cb)
+        .get('/foo')
+        .expect(200, 'saw GET /', cb)
 
       request(server)
-      .get('/bar')
-      .expect(200, 'saw GET /', cb)
+        .get('/bar')
+        .expect(200, 'saw GET /', cb)
 
       request(server)
-      .get('/foo/bar')
-      .expect(200, 'saw GET /bar', cb)
+        .get('/foo/bar')
+        .expect(200, 'saw GET /bar', cb)
     })
 
     it('should accept multiple arguments', function (done) {
@@ -943,10 +970,10 @@ describe('Router', function () {
       router.use('/foo', createHitHandle(1), createHitHandle(2), helloWorld)
 
       request(server)
-      .get('/foo')
-      .expect(shouldHitHandle(1))
-      .expect(shouldHitHandle(2))
-      .expect(200, 'hello, world', done)
+        .get('/foo')
+        .expect(shouldHitHandle(1))
+        .expect(shouldHitHandle(2))
+        .expect(200, 'hello, world', done)
     })
 
     describe('with "caseSensitive" option', function () {
@@ -958,16 +985,16 @@ describe('Router', function () {
         router.use('/foo', saw)
 
         request(server)
-        .get('/foo/bar')
-        .expect(200, 'saw GET /bar', cb)
+          .get('/foo/bar')
+          .expect(200, 'saw GET /bar', cb)
 
         request(server)
-        .get('/FOO/bar')
-        .expect(200, 'saw GET /bar', cb)
+          .get('/FOO/bar')
+          .expect(200, 'saw GET /bar', cb)
 
         request(server)
-        .get('/FOO/BAR')
-        .expect(200, 'saw GET /BAR', cb)
+          .get('/FOO/BAR')
+          .expect(200, 'saw GET /BAR', cb)
       })
 
       it('should not match paths case-sensitively when false', function (done) {
@@ -978,16 +1005,16 @@ describe('Router', function () {
         router.use('/foo', saw)
 
         request(server)
-        .get('/foo/bar')
-        .expect(200, 'saw GET /bar', cb)
+          .get('/foo/bar')
+          .expect(200, 'saw GET /bar', cb)
 
         request(server)
-        .get('/FOO/bar')
-        .expect(200, 'saw GET /bar', cb)
+          .get('/FOO/bar')
+          .expect(200, 'saw GET /bar', cb)
 
         request(server)
-        .get('/FOO/BAR')
-        .expect(200, 'saw GET /BAR', cb)
+          .get('/FOO/BAR')
+          .expect(200, 'saw GET /BAR', cb)
       })
 
       it('should match paths case-sensitively when true', function (done) {
@@ -998,16 +1025,16 @@ describe('Router', function () {
         router.use('/foo', saw)
 
         request(server)
-        .get('/foo/bar')
-        .expect(200, 'saw GET /bar', cb)
+          .get('/foo/bar')
+          .expect(200, 'saw GET /bar', cb)
 
         request(server)
-        .get('/FOO/bar')
-        .expect(404, cb)
+          .get('/FOO/bar')
+          .expect(404, cb)
 
         request(server)
-        .get('/FOO/BAR')
-        .expect(404, cb)
+          .get('/FOO/BAR')
+          .expect(404, cb)
       })
     })
 
@@ -1020,12 +1047,12 @@ describe('Router', function () {
         router.use('/foo', saw)
 
         request(server)
-        .get('/foo')
-        .expect(200, 'saw GET /', cb)
+          .get('/foo')
+          .expect(200, 'saw GET /', cb)
 
         request(server)
-        .get('/foo/')
-        .expect(200, 'saw GET /', cb)
+          .get('/foo/')
+          .expect(200, 'saw GET /', cb)
       })
 
       it('should accept optional trailing slashes when false', function (done) {
@@ -1036,12 +1063,12 @@ describe('Router', function () {
         router.use('/foo', saw)
 
         request(server)
-        .get('/foo')
-        .expect(200, 'saw GET /', cb)
+          .get('/foo')
+          .expect(200, 'saw GET /', cb)
 
         request(server)
-        .get('/foo/')
-        .expect(200, 'saw GET /', cb)
+          .get('/foo/')
+          .expect(200, 'saw GET /', cb)
       })
 
       it('should accept optional trailing slashes when true', function (done) {
@@ -1052,12 +1079,12 @@ describe('Router', function () {
         router.use('/foo', saw)
 
         request(server)
-        .get('/foo')
-        .expect(200, 'saw GET /', cb)
+          .get('/foo')
+          .expect(200, 'saw GET /', cb)
 
         request(server)
-        .get('/foo/')
-        .expect(200, 'saw GET /', cb)
+          .get('/foo/')
+          .expect(200, 'saw GET /', cb)
       })
     })
 
@@ -1074,9 +1101,9 @@ describe('Router', function () {
         router.use('/foo', saw)
 
         request(server)
-        .get('/foo')
-        .expect('x-next', 'route')
-        .expect(200, 'saw GET /', done)
+          .get('/foo')
+          .expect('x-next', 'route')
+          .expect(200, 'saw GET /', done)
       })
 
       it('should invoke next function', function (done) {
@@ -1091,11 +1118,11 @@ describe('Router', function () {
         router.use('/foo', createHitHandle(1), goNext, createHitHandle(2), saw)
 
         request(server)
-        .get('/foo')
-        .expect(shouldHitHandle(1))
-        .expect('x-next', 'route')
-        .expect(shouldHitHandle(2))
-        .expect(200, 'saw GET /', done)
+          .get('/foo')
+          .expect(shouldHitHandle(1))
+          .expect('x-next', 'route')
+          .expect(shouldHitHandle(2))
+          .expect(200, 'saw GET /', done)
       })
     })
 
@@ -1107,8 +1134,8 @@ describe('Router', function () {
         router.use('/foo', sawBase)
 
         request(server)
-        .get('/foo/bar')
-        .expect(200, 'saw /foo', done)
+          .get('/foo/bar')
+          .expect(200, 'saw /foo', done)
       })
 
       it('should contain the stripped path for multiple levels', function (done) {
@@ -1120,8 +1147,8 @@ describe('Router', function () {
         router2.use('/bar', sawBase)
 
         request(server)
-        .get('/foo/bar/baz')
-        .expect(200, 'saw /foo/bar', done)
+          .get('/foo/bar/baz')
+          .expect(200, 'saw /foo/bar', done)
       })
 
       it('should be altered correctly', function(done){
@@ -1146,13 +1173,13 @@ describe('Router', function () {
         router.use(helloWorld)
 
         request(server)
-        .get('/foo/bar/baz/zed')
-        .expect('x-saw-base-1', '/foo/bar/baz')
-        .expect('x-saw-base-2', '/foo')
-        .expect('x-saw-base-3', '/foo/bar')
-        .expect('x-saw-base-4', '')
-        .expect('x-saw-base-5', '')
-        .expect(200, done)
+          .get('/foo/bar/baz/zed')
+          .expect('x-saw-base-1', '/foo/bar/baz')
+          .expect('x-saw-base-2', '/foo')
+          .expect('x-saw-base-3', '/foo/bar')
+          .expect('x-saw-base-4', '')
+          .expect('x-saw-base-5', '')
+          .expect(200, done)
       })
     })
 
@@ -1164,8 +1191,8 @@ describe('Router', function () {
         router.use('/foo', saw)
 
         request(server)
-        .get('/foo/bar')
-        .expect(200, 'saw GET /bar', done)
+          .get('/foo/bar')
+          .expect(200, 'saw GET /bar', done)
       })
 
       it('should restore req.url after stripping', function (done) {
@@ -1176,9 +1203,9 @@ describe('Router', function () {
         router.use(saw)
 
         request(server)
-        .get('/foo/bar')
-        .expect('x-saw-1', 'GET /bar')
-        .expect(200, 'saw GET /foo/bar', done)
+          .get('/foo/bar')
+          .expect('x-saw-1', 'GET /bar')
+          .expect(200, 'saw GET /foo/bar', done)
       })
 
       it('should strip/restore with trailing stash', function (done) {
@@ -1189,9 +1216,9 @@ describe('Router', function () {
         router.use(saw)
 
         request(server)
-        .get('/foo/')
-        .expect('x-saw-1', 'GET /')
-        .expect(200, 'saw GET /foo/', done)
+          .get('/foo/')
+          .expect('x-saw-1', 'GET /')
+          .expect(200, 'saw GET /foo/', done)
       })
     })
   })
@@ -1212,12 +1239,12 @@ describe('Router', function () {
       router.use(saw)
 
       request(server)
-      .post('/foo')
-      .expect(shouldNotHitHandle(1))
-      .expect(shouldHitHandle(2))
-      .expect(shouldNotHitHandle(3))
-      .expect(shouldHitHandle(4))
-      .expect(200, 'saw PUT /foo', done)
+        .post('/foo')
+        .expect(shouldNotHitHandle(1))
+        .expect(shouldHitHandle(2))
+        .expect(shouldNotHitHandle(3))
+        .expect(shouldHitHandle(4))
+        .expect(200, 'saw PUT /foo', done)
     })
 
     it('should support altering req.url', function (done) {
@@ -1235,12 +1262,12 @@ describe('Router', function () {
       router.use(saw)
 
       request(server)
-      .get('/foo')
-      .expect(shouldNotHitHandle(1))
-      .expect(shouldHitHandle(2))
-      .expect(shouldNotHitHandle(3))
-      .expect(shouldHitHandle(4))
-      .expect(200, 'saw GET /bar', done)
+        .get('/foo')
+        .expect(shouldNotHitHandle(1))
+        .expect(shouldHitHandle(2))
+        .expect(shouldNotHitHandle(3))
+        .expect(shouldHitHandle(4))
+        .expect(200, 'saw GET /bar', done)
     })
   })
 })

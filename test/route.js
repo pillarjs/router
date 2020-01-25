@@ -1,5 +1,6 @@
 
 var after = require('after')
+var Buffer = require('safe-buffer').Buffer
 var methods = require('methods')
 var Router = require('..')
 var utils = require('./support/utils')
@@ -8,7 +9,9 @@ var assert = utils.assert
 var createHitHandle = utils.createHitHandle
 var createServer = utils.createServer
 var request = utils.request
+var shouldHaveBody = utils.shouldHaveBody
 var shouldHitHandle = utils.shouldHitHandle
+var shouldNotHaveBody = utils.shouldNotHaveBody
 var shouldNotHitHandle = utils.shouldNotHitHandle
 
 var describePromises = global.Promise ? describe : describe.skip
@@ -31,16 +34,16 @@ describe('Router', function () {
       route.post(saw)
 
       request(server)
-      .get('/foo')
-      .expect(200, 'saw GET /foo', cb)
+        .get('/foo')
+        .expect(200, 'saw GET /foo', cb)
 
       request(server)
-      .post('/foo')
-      .expect(200, 'saw POST /foo', cb)
+        .post('/foo')
+        .expect(200, 'saw POST /foo', cb)
 
       request(server)
-      .put('/foo')
-      .expect(404, cb)
+        .put('/foo')
+        .expect(404, cb)
     })
 
     it('should stack', function (done) {
@@ -56,21 +59,21 @@ describe('Router', function () {
       router.use(saw)
 
       request(server)
-      .get('/foo')
-      .expect('x-fn-2', 'hit')
-      .expect('x-fn-3', 'hit')
-      .expect(200, 'saw GET /foo', cb)
+        .get('/foo')
+        .expect('x-fn-2', 'hit')
+        .expect('x-fn-3', 'hit')
+        .expect(200, 'saw GET /foo', cb)
 
       request(server)
-      .post('/foo')
-      .expect('x-fn-1', 'hit')
-      .expect('x-fn-2', 'hit')
-      .expect(200, 'saw POST /foo', cb)
+        .post('/foo')
+        .expect('x-fn-1', 'hit')
+        .expect('x-fn-2', 'hit')
+        .expect(200, 'saw POST /foo', cb)
 
       request(server)
-      .put('/foo')
-      .expect('x-fn-2', 'hit')
-      .expect(200, 'saw PUT /foo', cb)
+        .put('/foo')
+        .expect('x-fn-2', 'hit')
+        .expect(200, 'saw PUT /foo', cb)
     })
 
     it('should not error on empty route', function (done) {
@@ -80,12 +83,12 @@ describe('Router', function () {
       var server = createServer(router)
 
       request(server)
-      .get('/foo')
-      .expect(404, cb)
+        .get('/foo')
+        .expect(404, cb)
 
       request(server)
-      .head('/foo')
-      .expect(404, cb)
+        .head('/foo')
+        .expect(404, cb)
     })
 
     it('should not invoke singular error route', function (done) {
@@ -98,8 +101,8 @@ describe('Router', function () {
       })
 
       request(server)
-      .get('/foo')
-      .expect(404, done)
+        .get('/foo')
+        .expect(404, done)
     })
 
     describe('.all(...fn)', function () {
@@ -130,16 +133,16 @@ describe('Router', function () {
         route.all(saw)
 
         request(server)
-        .get('/foo')
-        .expect(200, 'saw GET /foo', cb)
+          .get('/foo')
+          .expect(200, 'saw GET /foo', cb)
 
         request(server)
-        .post('/foo')
-        .expect(200, 'saw POST /foo', cb)
+          .post('/foo')
+          .expect(200, 'saw POST /foo', cb)
 
         request(server)
-        .put('/foo')
-        .expect(200, 'saw PUT /foo', cb)
+          .put('/foo')
+          .expect(200, 'saw PUT /foo', cb)
       })
 
       it('should accept multiple arguments', function (done) {
@@ -150,10 +153,10 @@ describe('Router', function () {
         route.all(createHitHandle(1), createHitHandle(2), helloWorld)
 
         request(server)
-        .get('/foo')
-        .expect('x-fn-1', 'hit')
-        .expect('x-fn-2', 'hit')
-        .expect(200, 'hello, world', done)
+          .get('/foo')
+          .expect('x-fn-1', 'hit')
+          .expect('x-fn-2', 'hit')
+          .expect(200, 'hello, world', done)
       })
 
       it('should accept single array of handlers', function (done) {
@@ -164,10 +167,10 @@ describe('Router', function () {
         route.all([createHitHandle(1), createHitHandle(2), helloWorld])
 
         request(server)
-        .get('/foo')
-        .expect('x-fn-1', 'hit')
-        .expect('x-fn-2', 'hit')
-        .expect(200, 'hello, world', done)
+          .get('/foo')
+          .expect('x-fn-1', 'hit')
+          .expect('x-fn-2', 'hit')
+          .expect(200, 'hello, world', done)
       })
 
       it('should accept nested arrays of handlers', function (done) {
@@ -178,11 +181,11 @@ describe('Router', function () {
         route.all([[createHitHandle(1), createHitHandle(2)], createHitHandle(3)], helloWorld)
 
         request(server)
-        .get('/foo')
-        .expect('x-fn-1', 'hit')
-        .expect('x-fn-2', 'hit')
-        .expect('x-fn-3', 'hit')
-        .expect(200, 'hello, world', done)
+          .get('/foo')
+          .expect('x-fn-1', 'hit')
+          .expect('x-fn-2', 'hit')
+          .expect('x-fn-3', 'hit')
+          .expect(200, 'hello, world', done)
       })
     })
 
@@ -193,8 +196,8 @@ describe('Router', function () {
       }
 
       var body = method !== 'head'
-        ? 'hello, world'
-        : ''
+        ? shouldHaveBody(Buffer.from('hello, world'))
+        : shouldNotHaveBody()
 
       describe('.' + method + '(...fn)', function () {
         it('should respond to a ' + method.toUpperCase() + ' request', function (done) {
@@ -205,8 +208,10 @@ describe('Router', function () {
           route[method](helloWorld)
 
           request(server)
-          [method]('/')
-          .expect(200, body, done)
+            [method]('/')
+            .expect(200)
+            .expect(body)
+            .end(done)
         })
 
         it('should reject no arguments', function () {
@@ -235,10 +240,12 @@ describe('Router', function () {
           route[method](createHitHandle(1), createHitHandle(2), helloWorld)
 
           request(server)
-          [method]('/foo')
-          .expect('x-fn-1', 'hit')
-          .expect('x-fn-2', 'hit')
-          .expect(200, body, done)
+            [method]('/foo')
+            .expect(200)
+            .expect('x-fn-1', 'hit')
+            .expect('x-fn-2', 'hit')
+            .expect(body)
+            .end(done)
         })
 
         it('should accept single array of handlers', function (done) {
@@ -248,11 +255,12 @@ describe('Router', function () {
 
           route[method]([createHitHandle(1), createHitHandle(2), helloWorld])
 
-          request(server)
-          [method]('/foo')
-          .expect('x-fn-1', 'hit')
-          .expect('x-fn-2', 'hit')
-          .expect(200, body, done)
+          request(server)[method]('/foo')
+            .expect(200)
+            .expect('x-fn-1', 'hit')
+            .expect('x-fn-2', 'hit')
+            .expect(body)
+            .end(done)
         })
 
         it('should accept nested arrays of handlers', function (done) {
@@ -263,11 +271,13 @@ describe('Router', function () {
           route[method]([[createHitHandle(1), createHitHandle(2)], createHitHandle(3)], helloWorld)
 
           request(server)
-          [method]('/foo')
-          .expect('x-fn-1', 'hit')
-          .expect('x-fn-2', 'hit')
-          .expect('x-fn-3', 'hit')
-          .expect(200, body, done)
+            [method]('/foo')
+            .expect(200)
+            .expect('x-fn-1', 'hit')
+            .expect('x-fn-2', 'hit')
+            .expect('x-fn-3', 'hit')
+            .expect(body)
+            .end(done)
         })
       })
     })
@@ -290,8 +300,8 @@ describe('Router', function () {
         })
 
         request(server)
-        .get('/foo')
-        .expect(500, 'caught: boom!', done)
+          .get('/foo')
+          .expect(500, 'caught: boom!', done)
       })
 
       it('should handle errors thrown', function (done) {
@@ -311,8 +321,8 @@ describe('Router', function () {
         })
 
         request(server)
-        .get('/foo')
-        .expect(500, 'caught: boom!', done)
+          .get('/foo')
+          .expect(500, 'caught: boom!', done)
       })
 
       it('should handle errors thrown in error handlers', function (done) {
@@ -334,8 +344,8 @@ describe('Router', function () {
         })
 
         request(server)
-        .get('/foo')
-        .expect(500, 'caught: oh, no!', done)
+          .get('/foo')
+          .expect(500, 'caught: oh, no!', done)
       })
     })
 
@@ -353,9 +363,9 @@ describe('Router', function () {
         router.use(saw)
 
         request(server)
-        .get('/foo')
-        .expect('x-next', 'route')
-        .expect(200, 'saw GET /foo', done)
+          .get('/foo')
+          .expect('x-next', 'route')
+          .expect(200, 'saw GET /foo', done)
       })
 
       it('should invoke next route', function (done) {
@@ -371,9 +381,9 @@ describe('Router', function () {
         router.route('/foo').all(saw)
 
         request(server)
-        .get('/foo')
-        .expect('x-next', 'route')
-        .expect(200, 'saw GET /foo', done)
+          .get('/foo')
+          .expect('x-next', 'route')
+          .expect(200, 'saw GET /foo', done)
       })
 
       it('should skip next handlers in route', function (done) {
@@ -391,11 +401,11 @@ describe('Router', function () {
         router.use(saw)
 
         request(server)
-        .get('/foo')
-        .expect(shouldHitHandle(1))
-        .expect('x-next', 'route')
-        .expect(shouldNotHitHandle(2))
-        .expect(200, 'saw GET /foo', done)
+          .get('/foo')
+          .expect(shouldHitHandle(1))
+          .expect('x-next', 'route')
+          .expect(shouldNotHitHandle(2))
+          .expect(200, 'saw GET /foo', done)
       })
 
       it('should not invoke error handlers', function (done) {
@@ -414,9 +424,9 @@ describe('Router', function () {
         })
 
         request(server)
-        .get('/foo')
-        .expect('x-next', 'route')
-        .expect(404, done)
+          .get('/foo')
+          .expect('x-next', 'route')
+          .expect(404, done)
       })
     })
 
@@ -436,10 +446,10 @@ describe('Router', function () {
         router.use(saw)
 
         request(server)
-        .get('/foo')
-        .expect('x-next', 'router')
-        .expect(shouldNotHitHandle(1))
-        .expect(404, done)
+          .get('/foo')
+          .expect('x-next', 'router')
+          .expect(shouldNotHitHandle(1))
+          .expect(404, done)
       })
 
       it('should not invoke error handlers', function (done) {
@@ -463,9 +473,9 @@ describe('Router', function () {
         })
 
         request(server)
-        .get('/foo')
-        .expect('x-next', 'router')
-        .expect(404, done)
+          .get('/foo')
+          .expect('x-next', 'router')
+          .expect(404, done)
       })
     })
 
@@ -487,8 +497,8 @@ describe('Router', function () {
         })
 
         request(server)
-        .get('/foo')
-        .expect(500, 'caught: boom!', done)
+          .get('/foo')
+          .expect(500, 'caught: boom!', done)
       })
 
       it('should pass rejected promise without value', function (done) {
@@ -508,8 +518,8 @@ describe('Router', function () {
         })
 
         request(server)
-        .get('/foo')
-        .expect(500, 'caught: Rejected promise', done)
+          .get('/foo')
+          .expect(500, 'caught: Rejected promise', done)
       })
 
       it('should ignore resolved promise', function (done) {
@@ -527,8 +537,8 @@ describe('Router', function () {
         })
 
         request(server)
-        .get('/foo')
-        .expect(200, 'saw GET /foo', done)
+          .get('/foo')
+          .expect(200, 'saw GET /foo', done)
       })
 
       describe('error handling', function () {
@@ -551,8 +561,8 @@ describe('Router', function () {
           })
 
           request(server)
-          .get('/foo')
-          .expect(500, 'caught again: caught: boom!', done)
+            .get('/foo')
+            .expect(500, 'caught again: caught: boom!', done)
         })
 
         it('should pass rejected promise without value', function (done) {
@@ -574,8 +584,8 @@ describe('Router', function () {
           })
 
           request(server)
-          .get('/foo')
-          .expect(500, 'caught again: Rejected promise', done)
+            .get('/foo')
+            .expect(500, 'caught again: Rejected promise', done)
         })
 
         it('should ignore resolved promise', function (done) {
@@ -598,8 +608,8 @@ describe('Router', function () {
           })
 
           request(server)
-          .get('/foo')
-          .expect(500, 'caught: boom!', done)
+            .get('/foo')
+            .expect(500, 'caught: boom!', done)
         })
       })
     })
@@ -614,8 +624,8 @@ describe('Router', function () {
           route.all(sendParams)
 
           request(server)
-          .get('/bar')
-          .expect(200, {'foo': 'bar'}, done)
+            .get('/bar')
+            .expect(200, {'foo': 'bar'}, done)
         })
 
         it('should match single path segment', function (done) {
@@ -626,8 +636,8 @@ describe('Router', function () {
           route.all(sendParams)
 
           request(server)
-          .get('/bar/bar')
-          .expect(404, done)
+            .get('/bar/bar')
+            .expect(404, done)
         })
 
         it('should work multiple times', function (done) {
@@ -638,8 +648,8 @@ describe('Router', function () {
           route.all(sendParams)
 
           request(server)
-          .get('/fizz/buzz')
-          .expect(200, {'foo': 'fizz', 'bar': 'buzz'}, done)
+            .get('/fizz/buzz')
+            .expect(200, {'foo': 'fizz', 'bar': 'buzz'}, done)
         })
 
         it('should work following a partial capture group', function (done) {
@@ -651,12 +661,12 @@ describe('Router', function () {
           route.all(sendParams)
 
           request(server)
-          .get('/user/tj/edit')
-          .expect(200, {'user': 'tj', 'op': 'edit'}, cb)
+            .get('/user/tj/edit')
+            .expect(200, {'user': 'tj', 'op': 'edit'}, cb)
 
           request(server)
-          .get('/users/tj/edit')
-          .expect(200, {'0': 's', 'user': 'tj', 'op': 'edit'}, cb)
+            .get('/users/tj/edit')
+            .expect(200, {'0': 's', 'user': 'tj', 'op': 'edit'}, cb)
         })
 
         it('should work inside literal paranthesis', function (done) {
@@ -667,8 +677,8 @@ describe('Router', function () {
           route.all(sendParams)
 
           request(server)
-          .get('/tj(edit)')
-          .expect(200, {'user': 'tj', 'op': 'edit'}, done)
+            .get('/tj(edit)')
+            .expect(200, {'user': 'tj', 'op': 'edit'}, done)
         })
 
         it('should work within arrays', function (done) {
@@ -680,12 +690,12 @@ describe('Router', function () {
           route.all(sendParams)
 
           request(server)
-          .get('/user/tj/poke')
-          .expect(200, {'user': 'tj'}, cb)
+            .get('/user/tj/poke')
+            .expect(200, {'user': 'tj'}, cb)
 
           request(server)
-          .get('/user/tj/pokes')
-          .expect(200, {'user': 'tj'}, cb)
+            .get('/user/tj/pokes')
+            .expect(200, {'user': 'tj'}, cb)
         })
       })
 
@@ -698,8 +708,8 @@ describe('Router', function () {
           route.all(sendParams)
 
           request(server)
-          .get('/foo/bar/baz')
-          .expect(200, {'0': '/foo/bar/baz'}, done)
+            .get('/foo/bar/baz')
+            .expect(200, {'0': '/foo/bar/baz'}, done)
         })
 
         it('should decode the capture', function (done) {
@@ -710,8 +720,8 @@ describe('Router', function () {
           route.all(sendParams)
 
           request(server)
-          .get('/foo/%20/baz')
-          .expect(200, {'0': '/foo/ /baz'}, done)
+            .get('/foo/%20/baz')
+            .expect(200, {'0': '/foo/ /baz'}, done)
         })
 
         it('should capture everything with pre- and post-fixes', function (done) {
@@ -722,8 +732,8 @@ describe('Router', function () {
           route.all(sendParams)
 
           request(server)
-          .get('/foo/1/2/3/bar')
-          .expect(200, {'0': '1/2/3'}, done)
+            .get('/foo/1/2/3/bar')
+            .expect(200, {'0': '1/2/3'}, done)
         })
 
         it('should capture greedly', function (done) {
@@ -734,8 +744,8 @@ describe('Router', function () {
           route.all(sendParams)
 
           request(server)
-          .get('/foo/bar/bar/bar')
-          .expect(200, {'0': 'bar/bar'}, done)
+            .get('/foo/bar/bar/bar')
+            .expect(200, {'0': 'bar/bar'}, done)
         })
 
         it('should be an optional capture', function (done) {
@@ -746,8 +756,8 @@ describe('Router', function () {
           route.all(sendParams)
 
           request(server)
-          .get('/foo')
-          .expect(200, {'0': ''}, done)
+            .get('/foo')
+            .expect(200, {'0': ''}, done)
         })
 
         it('should require preceeding /', function (done) {
@@ -759,12 +769,12 @@ describe('Router', function () {
           route.all(sendParams)
 
           request(server)
-          .get('/foo')
-          .expect(404, cb)
+            .get('/foo')
+            .expect(404, cb)
 
           request(server)
-          .get('/foo/')
-          .expect(200, cb)
+            .get('/foo/')
+            .expect(200, cb)
         })
 
         it('should work in a named parameter', function (done) {
@@ -776,12 +786,12 @@ describe('Router', function () {
           route.all(sendParams)
 
           request(server)
-          .get('/bar')
-          .expect(200, {'0': 'bar', 'foo': 'bar'}, cb)
+            .get('/bar')
+            .expect(200, {'0': 'bar', 'foo': 'bar'}, cb)
 
           request(server)
-          .get('/fizz/buzz')
-          .expect(200, {'0': 'fizz/buzz', 'foo': 'fizz/buzz'}, cb)
+            .get('/fizz/buzz')
+            .expect(200, {'0': 'fizz/buzz', 'foo': 'fizz/buzz'}, cb)
         })
 
         it('should work before a named parameter', function (done) {
@@ -792,8 +802,8 @@ describe('Router', function () {
           route.all(sendParams)
 
           request(server)
-          .get('/poke/user/42')
-          .expect(200, {'0': 'poke', 'id': '42'}, done)
+            .get('/poke/user/42')
+            .expect(200, {'0': 'poke', 'id': '42'}, done)
         })
 
         it('should work within arrays', function (done) {
@@ -805,16 +815,16 @@ describe('Router', function () {
           route.all(sendParams)
 
           request(server)
-          .get('/user/42')
-          .expect(200, {'id': '42'}, cb)
+            .get('/user/42')
+            .expect(200, {'id': '42'}, cb)
 
           request(server)
-          .get('/foo/bar')
-          .expect(200, {'0': 'bar'}, cb)
+            .get('/foo/bar')
+            .expect(200, {'0': 'bar'}, cb)
 
           request(server)
-          .get('/poke')
-          .expect(200, {'action': 'poke'}, cb)
+            .get('/poke')
+            .expect(200, {'action': 'poke'}, cb)
         })
       })
     })

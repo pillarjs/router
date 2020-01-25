@@ -13,8 +13,8 @@ describe('req.params', function () {
     router.get('/', sawParams)
 
     request(server)
-    .get('/')
-    .expect(200, '{}', done)
+      .get('/')
+      .expect(200, '{}', done)
   })
 
   it('should not exist outside the router', function (done) {
@@ -29,9 +29,9 @@ describe('req.params', function () {
     router.get('/', hitParams(1))
 
     request(server)
-    .get('/')
-    .expect('x-params-1', '{}')
-    .expect(200, '', done)
+      .get('/')
+      .expect('x-params-1', '{}')
+      .expect(200, '', done)
   })
 
   it('should overwrite value outside the router', function (done) {
@@ -44,8 +44,8 @@ describe('req.params', function () {
     router.get('/', sawParams)
 
     request(server)
-    .get('/')
-    .expect(200, '{}', done)
+      .get('/')
+      .expect(200, '{}', done)
   })
 
   it('should restore previous value outside the router', function (done) {
@@ -62,9 +62,9 @@ describe('req.params', function () {
     router.get('/', hitParams(1))
 
     request(server)
-    .get('/')
-    .expect('x-params-1', '{}')
-    .expect(200, '{"foo":"bar"}', done)
+      .get('/')
+      .expect('x-params-1', '{}')
+      .expect(200, '{"foo":"bar"}', done)
   })
 
   describe('when "mergeParams: true"', function () {
@@ -82,9 +82,9 @@ describe('req.params', function () {
       router.get('/:fizz', hitParams(1))
 
       request(server)
-      .get('/buzz')
-      .expect('x-params-1', '{"foo":"bar","fizz":"buzz"}')
-      .expect(200, '{"foo":"bar"}', done)
+        .get('/buzz')
+        .expect('x-params-1', '{"foo":"bar","fizz":"buzz"}')
+        .expect(200, '{"foo":"bar"}', done)
     })
 
     it('should ignore non-object outsite object', function (done) {
@@ -101,9 +101,9 @@ describe('req.params', function () {
       router.get('/:fizz', hitParams(1))
 
       request(server)
-      .get('/buzz')
-      .expect('x-params-1', '{"fizz":"buzz"}')
-      .expect(200, '42', done)
+        .get('/buzz')
+        .expect('x-params-1', '{"fizz":"buzz"}')
+        .expect(200, '42', done)
     })
 
     it('should overwrite outside keys that are the same', function (done) {
@@ -120,9 +120,9 @@ describe('req.params', function () {
       router.get('/:foo', hitParams(1))
 
       request(server)
-      .get('/buzz')
-      .expect('x-params-1', '{"foo":"buzz"}')
-      .expect(200, '{"foo":"bar"}', done)
+        .get('/buzz')
+        .expect('x-params-1', '{"foo":"buzz"}')
+        .expect(200, '{"foo":"bar"}', done)
     })
 
     describe('with numeric properties in req.params', function () {
@@ -140,9 +140,9 @@ describe('req.params', function () {
         router.get('/*', hitParams(1))
 
         request(server)
-        .get('/buzz')
-        .expect('x-params-1', '{"0":"foo","1":"bar","2":"buzz"}')
-        .expect(200, '{"0":"foo","1":"bar"}', done)
+          .get('/buzz')
+          .expect('x-params-1', '{"0":"foo","1":"bar","2":"buzz"}')
+          .expect(200, '{"0":"foo","1":"bar"}', done)
       })
 
       it('should merge with same numeric properties', function (done) {
@@ -159,9 +159,9 @@ describe('req.params', function () {
         router.get('/*', hitParams(1))
 
         request(server)
-        .get('/bar')
-        .expect('x-params-1', '{"0":"foo","1":"bar"}')
-        .expect(200, '{"0":"foo"}', done)
+          .get('/bar')
+          .expect('x-params-1', '{"0":"foo","1":"bar"}')
+          .expect(200, '{"0":"foo"}', done)
       })
     })
   })
