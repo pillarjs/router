@@ -1,5 +1,5 @@
-unreleased
-==========
+1.3.4 / 2020-01-24
+==================
 
   * deps: array-flatten@3.0.0
   * deps: parseurl@~1.3.3
