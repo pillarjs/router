@@ -282,7 +282,7 @@ Router.prototype.handle = function handle(req, res, callback) {
     var layerPath = layer.path
 
     // this should be done for the layer
-    self.process_params(layer, paramcalled, req, res, function (err) {
+    processParams(self.params, layer, paramcalled, req, res, function (err) {
       if (err) {
         return next(layerError || err)
       }
@@ -330,98 +330,6 @@ Router.prototype.handle = function handle(req, res, callback) {
       layer.handle_request(req, res, next)
     }
   }
-}
-
-/**
- * Process any parameters for the layer.
- *
- * @private
- */
-
-Router.prototype.process_params = function process_params(layer, called, req, res, done) {
-  var params = this.params
-
-  // captured parameters from the layer, keys and values
-  var keys = layer.keys
-
-  // fast track
-  if (!keys || keys.length === 0) {
-    return done()
-  }
-
-  var i = 0
-  var name
-  var paramIndex = 0
-  var key
-  var paramVal
-  var paramCallbacks
-  var paramCalled
-
-  // process params in order
-  // param callbacks can be async
-  function param(err) {
-    if (err) {
-      return done(err)
-    }
-
-    if (i >= keys.length ) {
-      return done()
-    }
-
-    paramIndex = 0
-    key = keys[i++]
-    name = key.name
-    paramVal = req.params[name]
-    paramCallbacks = params[name]
-    paramCalled = called[name]
-
-    if (paramVal === undefined || !paramCallbacks) {
-      return param()
-    }
-
-    // param previously called with same value or error occurred
-    if (paramCalled && (paramCalled.match === paramVal
-      || (paramCalled.error && paramCalled.error !== 'route'))) {
-      // restore value
-      req.params[name] = paramCalled.value
-
-      // next param
-      return param(paramCalled.error)
-    }
-
-    called[name] = paramCalled = {
-      error: null,
-      match: paramVal,
-      value: paramVal
-    }
-
-    paramCallback()
-  }
-
-  // single param callbacks
-  function paramCallback(err) {
-    var fn = paramCallbacks[paramIndex++]
-
-    // store updated value
-    paramCalled.value = req.params[key.name]
-
-    if (err) {
-      // store error
-      paramCalled.error = err
-      param(err)
-      return
-    }
-
-    if (!fn) return param()
-
-    try {
-      fn(req, res, paramCallback, paramVal, key.name)
-    } catch (e) {
-      paramCallback(e)
-    }
-  }
-
-  param()
 }
 
 /**
@@ -645,6 +553,96 @@ function mergeParams(params, parent) {
   }
 
   return mixin(obj, params)
+}
+
+/**
+ * Process any parameters for the layer.
+ *
+ * @private
+ */
+
+function processParams (params, layer, called, req, res, done) {
+  // captured parameters from the layer, keys and values
+  var keys = layer.keys
+
+  // fast track
+  if (!keys || keys.length === 0) {
+    return done()
+  }
+
+  var i = 0
+  var name
+  var paramIndex = 0
+  var key
+  var paramVal
+  var paramCallbacks
+  var paramCalled
+
+  // process params in order
+  // param callbacks can be async
+  function param (err) {
+    if (err) {
+      return done(err)
+    }
+
+    if (i >= keys.length) {
+      return done()
+    }
+
+    paramIndex = 0
+    key = keys[i++]
+    name = key.name
+    paramVal = req.params[name]
+    paramCallbacks = params[name]
+    paramCalled = called[name]
+
+    if (paramVal === undefined || !paramCallbacks) {
+      return param()
+    }
+
+    // param previously called with same value or error occurred
+    if (paramCalled && (paramCalled.match === paramVal ||
+      (paramCalled.error && paramCalled.error !== 'route'))) {
+      // restore value
+      req.params[name] = paramCalled.value
+
+      // next param
+      return param(paramCalled.error)
+    }
+
+    called[name] = paramCalled = {
+      error: null,
+      match: paramVal,
+      value: paramVal
+    }
+
+    paramCallback()
+  }
+
+  // single param callbacks
+  function paramCallback (err) {
+    var fn = paramCallbacks[paramIndex++]
+
+    // store updated value
+    paramCalled.value = req.params[key.name]
+
+    if (err) {
+      // store error
+      paramCalled.error = err
+      param(err)
+      return
+    }
+
+    if (!fn) return param()
+
+    try {
+      fn(req, res, paramCallback, paramVal, key.name)
+    } catch (e) {
+      paramCallback(e)
+    }
+  }
+
+  param()
 }
 
 /**

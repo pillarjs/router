@@ -1,6 +1,7 @@
 2.x
 ===
 
+  * Internalize private `router.process_params` method
   * deps: array-flatten@3.0.0
   * deps: parseurl@~1.3.3
   * deps: path-to-regexp@3.2.0
