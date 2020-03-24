@@ -302,6 +302,12 @@ Router.prototype.handle = function handle(req, res, callback) {
 
   function trim_prefix(layer, layerError, layerPath, path) {
     if (layerPath.length !== 0) {
+      // Validate path is a prefix match
+      if (layerPath !== path.substr(0, layerPath.length)) {
+        next(layerError)
+        return
+      }
+
       // Validate path breaks on a path separator
       var c = path[layerPath.length]
       if (c && c !== '/') {

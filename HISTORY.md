@@ -1,3 +1,8 @@
+unreleased
+==========
+
+  * Fix incorrect middleware execution with unanchored `RegExp`s
+
 1.3.4 / 2020-01-24
 ==================
 
