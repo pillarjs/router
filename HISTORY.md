@@ -2,6 +2,7 @@ unreleased
 ==========
 
   * Fix incorrect middleware execution with unanchored `RegExp`s
+  * perf: use plain object for internal method map
 
 1.3.4 / 2020-01-24
 ==================
