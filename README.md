@@ -148,8 +148,8 @@ var api = router.route('/api/')
 
 ## Router.Route(path)
 
-Represents a single route as an instance that can be used can be used to handle
-http `methods` with it's own, optional middleware.
+Represents a single route as an instance that can be used to handle http
+`methods` with it's own, optional middleware.
 
 ### route\[method](handler)
 

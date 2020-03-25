@@ -1,6 +1,8 @@
 2.x
 ===
 
+This incorporates all changes after 1.3.3 up to 1.3.5.
+
   * Internalize private `router.process_params` method
   * deps: array-flatten@3.0.0
   * deps: parseurl@~1.3.3
@@ -29,6 +31,12 @@
     - Change non-TTY date format
     - Remove `DEBUG_FD` environment variable support
     - Support 256 namespace colors
+
+1.3.5 / 2020-03-24
+==================
+
+  * Fix incorrect middleware execution with unanchored `RegExp`s
+  * perf: use plain object for internal method map
 
 1.3.4 / 2020-01-24
 ==================

@@ -939,6 +939,23 @@ describe('Router', function () {
         .expect(404, cb)
     })
 
+    it('should ensure regexp matches path prefix', function (done) {
+      var router = new Router()
+      var server = createServer(router)
+
+      router.use(/\/api.*/, createHitHandle(1))
+      router.use(/api/, createHitHandle(2))
+      router.use(/\/test/, createHitHandle(3))
+      router.use(helloWorld)
+
+      request(server)
+        .get('/test/api/1234')
+        .expect(shouldNotHitHandle(1))
+        .expect(shouldNotHitHandle(2))
+        .expect(shouldHitHandle(3))
+        .expect(200, done)
+    })
+
     it('should support parameterized path', function (done) {
       var cb = after(4, done)
       var router = new Router()
