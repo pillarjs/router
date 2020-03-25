@@ -1,5 +1,5 @@
-unreleased
-==========
+1.3.5 / 2020-03-24
+==================
 
   * Fix incorrect middleware execution with unanchored `RegExp`s
   * perf: use plain object for internal method map
