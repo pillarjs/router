@@ -251,15 +251,15 @@ Router.prototype.handle = function handle(req, res, callback) {
       }
 
       var method = req.method
-      var has_method = route._handles_method(method)
+      var hasMethod = route._handlesMethod(method)
 
       // build up automatic options response
-      if (!has_method && method === 'OPTIONS' && methods) {
+      if (!hasMethod && method === 'OPTIONS' && methods) {
         methods.push.apply(methods, route._methods())
       }
 
       // don't even bother matching route
-      if (!has_method && method !== 'HEAD') {
+      if (!hasMethod && method !== 'HEAD') {
         match = false
         continue
       }
@@ -288,14 +288,14 @@ Router.prototype.handle = function handle(req, res, callback) {
       }
 
       if (route) {
-        return layer.handle_request(req, res, next)
+        return layer.handleRequest(req, res, next)
       }
 
-      trim_prefix(layer, layerError, layerPath, path)
+      trimPrefix(layer, layerError, layerPath, path)
     })
   }
 
-  function trim_prefix(layer, layerError, layerPath, path) {
+  function trimPrefix (layer, layerError, layerPath, path) {
     if (layerPath.length !== 0) {
       // Validate path is a prefix match
       if (layerPath !== path.substr(0, layerPath.length)) {
@@ -331,9 +331,9 @@ Router.prototype.handle = function handle(req, res, callback) {
     debug('%s %s : %s', layer.name, layerPath, req.originalUrl)
 
     if (layerError) {
-      layer.handle_error(layerError, req, res, next)
+      layer.handleError(layerError, req, res, next)
     } else {
-      layer.handle_request(req, res, next)
+      layer.handleRequest(req, res, next)
     }
   }
 }
