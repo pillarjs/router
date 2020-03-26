@@ -37,7 +37,7 @@ describe('req.params', function () {
   it('should overwrite value outside the router', function (done) {
     var router = Router()
     var server = createServer(function (req, res, next) {
-      req.params = {'foo': 'bar'}
+      req.params = { foo: 'bar' }
       router(req, res, done)
     })
 
@@ -51,7 +51,7 @@ describe('req.params', function () {
   it('should restore previous value outside the router', function (done) {
     var router = Router()
     var server = createServer(function (req, res, next) {
-      req.params = {'foo': 'bar'}
+      req.params = { foo: 'bar' }
 
       router(req, res, function (err) {
         if (err) return next(err)
@@ -71,7 +71,7 @@ describe('req.params', function () {
     it('should merge outsite object with params', function (done) {
       var router = Router({ mergeParams: true })
       var server = createServer(function (req, res, next) {
-        req.params = {'foo': 'bar'}
+        req.params = { foo: 'bar' }
 
         router(req, res, function (err) {
           if (err) return next(err)
@@ -109,7 +109,7 @@ describe('req.params', function () {
     it('should overwrite outside keys that are the same', function (done) {
       var router = Router({ mergeParams: true })
       var server = createServer(function (req, res, next) {
-        req.params = {'foo': 'bar'}
+        req.params = { foo: 'bar' }
 
         router(req, res, function (err) {
           if (err) return next(err)
@@ -129,7 +129,7 @@ describe('req.params', function () {
       it('should merge numeric properies by offsetting', function (done) {
         var router = Router({ mergeParams: true })
         var server = createServer(function (req, res, next) {
-          req.params = {'0': 'foo', '1': 'bar'}
+          req.params = { 0: 'foo', 1: 'bar' }
 
           router(req, res, function (err) {
             if (err) return next(err)
@@ -148,7 +148,7 @@ describe('req.params', function () {
       it('should merge with same numeric properties', function (done) {
         var router = Router({ mergeParams: true })
         var server = createServer(function (req, res, next) {
-          req.params = {'0': 'foo'}
+          req.params = { 0: 'foo' }
 
           router(req, res, function (err) {
             if (err) return next(err)
@@ -167,15 +167,15 @@ describe('req.params', function () {
   })
 })
 
-function hitParams(num) {
+function hitParams (num) {
   var name = 'x-params-' + String(num)
-  return function hit(req, res, next) {
+  return function hit (req, res, next) {
     res.setHeader(name, JSON.stringify(req.params))
     next()
   }
 }
 
-function sawParams(req, res) {
+function sawParams (req, res) {
   res.statusCode = 200
   res.setHeader('Content-Type', 'application/json')
   res.end(JSON.stringify(req.params))

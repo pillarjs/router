@@ -48,14 +48,14 @@ module.exports.Route = Route
  * @public
  */
 
-function Router(options) {
+function Router (options) {
   if (!(this instanceof Router)) {
     return new Router(options)
   }
 
   var opts = options || {}
 
-  function router(req, res, next) {
+  function router (req, res, next) {
     router.handle(req, res, next)
   }
 
@@ -111,7 +111,7 @@ Router.prototype = function () {}
  * @public
  */
 
-Router.prototype.param = function param(name, fn) {
+Router.prototype.param = function param (name, fn) {
   if (!name) {
     throw new TypeError('argument name is required')
   }
@@ -145,7 +145,7 @@ Router.prototype.param = function param(name, fn) {
  * @private
  */
 
-Router.prototype.handle = function handle(req, res, callback) {
+Router.prototype.handle = function handle (req, res, callback) {
   if (!callback) {
     throw new TypeError('argument callback is required')
   }
@@ -183,7 +183,7 @@ Router.prototype.handle = function handle(req, res, callback) {
 
   next()
 
-  function next(err) {
+  function next (err) {
     var layerError = err === 'route'
       ? null
       : err
@@ -353,7 +353,7 @@ Router.prototype.handle = function handle(req, res, callback) {
  * @public
  */
 
-Router.prototype.use = function use(handler) {
+Router.prototype.use = function use (handler) {
   var offset = 0
   var path = '/'
 
@@ -416,7 +416,7 @@ Router.prototype.use = function use(handler) {
  * @public
  */
 
-Router.prototype.route = function route(path) {
+Router.prototype.route = function route (path) {
   var route = new Route(path)
 
   var layer = new Layer(path, {
@@ -425,7 +425,7 @@ Router.prototype.route = function route(path) {
     end: true
   }, handle)
 
-  function handle(req, res, next) {
+  function handle (req, res, next) {
     route.dispatch(req, res, next)
   }
 
@@ -436,7 +436,7 @@ Router.prototype.route = function route(path) {
 }
 
 // create Router#VERB functions
-methods.concat('all').forEach(function(method){
+methods.concat('all').forEach(function (method) {
   Router.prototype[method] = function (path) {
     var route = this.route(path)
     route[method].apply(route, slice.call(arguments, 1))
@@ -452,8 +452,8 @@ methods.concat('all').forEach(function(method){
  * @private
  */
 
-function generateOptionsResponder(res, methods) {
-  return function onDone(fn, err) {
+function generateOptionsResponder (res, methods) {
+  return function onDone (fn, err) {
     if (err || methods.length === 0) {
       return fn(err)
     }
@@ -469,7 +469,7 @@ function generateOptionsResponder(res, methods) {
  * @private
  */
 
-function getPathname(req) {
+function getPathname (req) {
   try {
     return parseUrl(req).pathname
   } catch (err) {
@@ -484,7 +484,7 @@ function getPathname(req) {
  * @private
  */
 
-function getProtohost(url) {
+function getProtohost (url) {
   if (typeof url !== 'string' || url.length === 0 || url[0] === '/') {
     return undefined
   }
@@ -508,7 +508,7 @@ function getProtohost(url) {
  * @private
  */
 
-function matchLayer(layer, path) {
+function matchLayer (layer, path) {
   try {
     return layer.match(path)
   } catch (err) {
@@ -522,7 +522,7 @@ function matchLayer(layer, path) {
  * @private
  */
 
-function mergeParams(params, parent) {
+function mergeParams (params, parent) {
   if (typeof parent !== 'object' || !parent) {
     return params
   }
@@ -657,7 +657,7 @@ function processParams (params, layer, called, req, res, done) {
  * @private
  */
 
-function restore(fn, obj) {
+function restore (fn, obj) {
   var props = new Array(arguments.length - 2)
   var vals = new Array(arguments.length - 2)
 
@@ -666,7 +666,7 @@ function restore(fn, obj) {
     vals[i] = obj[props[i]]
   }
 
-  return function(){
+  return function () {
     // restore vals
     for (var i = 0; i < props.length; i++) {
       obj[props[i]] = vals[i]
@@ -682,7 +682,7 @@ function restore(fn, obj) {
  * @private
  */
 
-function sendOptionsResponse(res, methods) {
+function sendOptionsResponse (res, methods) {
   var options = Object.create(null)
 
   // build unique method map
@@ -707,7 +707,7 @@ function sendOptionsResponse(res, methods) {
  * @private
  */
 
-function trySendOptionsResponse(res, methods, next) {
+function trySendOptionsResponse (res, methods, next) {
   try {
     sendOptionsResponse(res, methods)
   } catch (err) {
@@ -721,8 +721,8 @@ function trySendOptionsResponse(res, methods, next) {
  * @private
  */
 
-function wrap(old, fn) {
-  return function proxy() {
+function wrap (old, fn) {
+  return function proxy () {
     var args = new Array(arguments.length + 1)
 
     args[0] = old

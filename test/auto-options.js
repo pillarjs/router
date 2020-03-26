@@ -78,7 +78,7 @@ describe('OPTIONS', function () {
   describe('when error occurs in respone handler', function () {
     it('should pass error to callback', function (done) {
       var router = Router()
-      var server = createServer(function hander(req, res, next) {
+      var server = createServer(function hander (req, res, next) {
         res.writeHead(200)
         router(req, res, function (err) {
           res.end(String(Boolean(err)))
@@ -94,16 +94,16 @@ describe('OPTIONS', function () {
   })
 })
 
-function saw(req, res) {
+function saw (req, res) {
   var msg = 'saw ' + req.method + ' ' + req.url
   res.statusCode = 200
   res.setHeader('Content-Type', 'text/plain')
   res.end(msg)
 }
 
-function sethit(num) {
+function sethit (num) {
   var name = 'x-fn-' + String(num)
-  return function hit(req, res, next) {
+  return function hit (req, res, next) {
     res.setHeader(name, 'hit')
     next()
   }
