@@ -14,6 +14,8 @@ var shouldHitHandle = utils.shouldHitHandle
 var shouldNotHaveBody = utils.shouldNotHaveBody
 var shouldNotHitHandle = utils.shouldNotHitHandle
 
+var describePromises = global.Promise ? describe : describe.skip
+
 describe('Router', function () {
   describe('.route(path)', function () {
     it('should return a new route', function () {
@@ -80,6 +82,8 @@ describe('Router', function () {
       var route = router.route('/foo')
       var server = createServer(router)
 
+      assert.ok(route)
+
       request(server)
         .get('/foo')
         .expect(404, cb)
@@ -94,8 +98,8 @@ describe('Router', function () {
       var route = router.route('/foo')
       var server = createServer(router)
 
-      route.all(function handleError(err, req, res, next) {
-        throw new Error('boom!')
+      route.all(function handleError (err, req, res, next) {
+        throw err || new Error('boom!')
       })
 
       request(server)
@@ -205,8 +209,7 @@ describe('Router', function () {
 
           route[method](helloWorld)
 
-          request(server)
-            [method]('/')
+          request(server)[method]('/')
             .expect(200)
             .expect(body)
             .end(done)
@@ -237,8 +240,7 @@ describe('Router', function () {
 
           route[method](createHitHandle(1), createHitHandle(2), helloWorld)
 
-          request(server)
-            [method]('/foo')
+          request(server)[method]('/foo')
             .expect(200)
             .expect('x-fn-1', 'hit')
             .expect('x-fn-2', 'hit')
@@ -268,8 +270,7 @@ describe('Router', function () {
 
           route[method]([[createHitHandle(1), createHitHandle(2)], createHitHandle(3)], helloWorld)
 
-          request(server)
-            [method]('/foo')
+          request(server)[method]('/foo')
             .expect(200)
             .expect('x-fn-1', 'hit')
             .expect('x-fn-2', 'hit')
@@ -286,13 +287,13 @@ describe('Router', function () {
         var route = router.route('/foo')
         var server = createServer(router)
 
-        route.all(function createError(req, res, next) {
+        route.all(function createError (req, res, next) {
           next(new Error('boom!'))
         })
 
         route.all(helloWorld)
 
-        route.all(function handleError(err, req, res, next) {
+        route.all(function handleError (err, req, res, next) {
           res.statusCode = 500
           res.end('caught: ' + err.message)
         })
@@ -307,13 +308,13 @@ describe('Router', function () {
         var route = router.route('/foo')
         var server = createServer(router)
 
-        route.all(function createError(req, res, next) {
+        route.all(function createError (req, res, next) {
           throw new Error('boom!')
         })
 
         route.all(helloWorld)
 
-        route.all(function handleError(err, req, res, next) {
+        route.all(function handleError (err, req, res, next) {
           res.statusCode = 500
           res.end('caught: ' + err.message)
         })
@@ -328,22 +329,22 @@ describe('Router', function () {
         var route = router.route('/foo')
         var server = createServer(router)
 
-        route.all(function createError(req, res, next) {
+        route.all(function createError (req, res, next) {
           throw new Error('boom!')
         })
 
-        route.all(function handleError(err, req, res, next) {
-          throw new Error('oh, no!')
+        route.all(function handleError (err, req, res, next) {
+          throw new Error('ouch: ' + err.message)
         })
 
-        route.all(function handleError(err, req, res, next) {
+        route.all(function handleError (err, req, res, next) {
           res.statusCode = 500
           res.end('caught: ' + err.message)
         })
 
         request(server)
           .get('/foo')
-          .expect(500, 'caught: oh, no!', done)
+          .expect(500, 'caught: ouch: boom!', done)
       })
     })
 
@@ -416,7 +417,7 @@ describe('Router', function () {
           next('route')
         })
 
-        route.all(function handleError(err, req, res, next) {
+        route.all(function handleError (err, req, res, next) {
           res.statusCode = 500
           res.end('caught: ' + err.message)
         })
@@ -477,6 +478,142 @@ describe('Router', function () {
       })
     })
 
+    describePromises('promise support', function () {
+      it('should pass rejected promise value', function (done) {
+        var router = new Router()
+        var route = router.route('/foo')
+        var server = createServer(router)
+
+        route.all(function createError (req, res, next) {
+          return Promise.reject(new Error('boom!'))
+        })
+
+        route.all(helloWorld)
+
+        route.all(function handleError (err, req, res, next) {
+          res.statusCode = 500
+          res.end('caught: ' + err.message)
+        })
+
+        request(server)
+          .get('/foo')
+          .expect(500, 'caught: boom!', done)
+      })
+
+      it('should pass rejected promise without value', function (done) {
+        var router = new Router()
+        var route = router.route('/foo')
+        var server = createServer(router)
+
+        route.all(function createError (req, res, next) {
+          return Promise.reject() // eslint-disable-line prefer-promise-reject-errors
+        })
+
+        route.all(helloWorld)
+
+        route.all(function handleError (err, req, res, next) {
+          res.statusCode = 500
+          res.end('caught: ' + err.message)
+        })
+
+        request(server)
+          .get('/foo')
+          .expect(500, 'caught: Rejected promise', done)
+      })
+
+      it('should ignore resolved promise', function (done) {
+        var router = new Router()
+        var route = router.route('/foo')
+        var server = createServer(router)
+
+        route.all(function createError (req, res, next) {
+          saw(req, res)
+          return Promise.resolve('foo')
+        })
+
+        route.all(function () {
+          done(new Error('Unexpected route invoke'))
+        })
+
+        request(server)
+          .get('/foo')
+          .expect(200, 'saw GET /foo', done)
+      })
+
+      describe('error handling', function () {
+        it('should pass rejected promise value', function (done) {
+          var router = new Router()
+          var route = router.route('/foo')
+          var server = createServer(router)
+
+          route.all(function createError (req, res, next) {
+            return Promise.reject(new Error('boom!'))
+          })
+
+          route.all(function handleError (err, req, res, next) {
+            return Promise.reject(new Error('caught: ' + err.message))
+          })
+
+          route.all(function handleError (err, req, res, next) {
+            res.statusCode = 500
+            res.end('caught again: ' + err.message)
+          })
+
+          request(server)
+            .get('/foo')
+            .expect(500, 'caught again: caught: boom!', done)
+        })
+
+        it('should pass rejected promise without value', function (done) {
+          var router = new Router()
+          var route = router.route('/foo')
+          var server = createServer(router)
+
+          route.all(function createError (req, res, next) {
+            return Promise.reject(new Error('boom!'))
+          })
+
+          route.all(function handleError (err, req, res, next) {
+            assert.equal(err.message, 'boom!')
+            return Promise.reject() // eslint-disable-line prefer-promise-reject-errors
+          })
+
+          route.all(function handleError (err, req, res, next) {
+            res.statusCode = 500
+            res.end('caught again: ' + err.message)
+          })
+
+          request(server)
+            .get('/foo')
+            .expect(500, 'caught again: Rejected promise', done)
+        })
+
+        it('should ignore resolved promise', function (done) {
+          var router = new Router()
+          var route = router.route('/foo')
+          var server = createServer(router)
+
+          route.all(function createError (req, res, next) {
+            return Promise.reject(new Error('boom!'))
+          })
+
+          route.all(function handleError (err, req, res, next) {
+            res.statusCode = 500
+            res.end('caught: ' + err.message)
+            return Promise.resolve('foo')
+          })
+
+          route.all(function () {
+            done(new Error('Unexpected route invoke'))
+          })
+
+          request(server)
+            .get('/foo')
+            .expect(500, 'caught: boom!', done)
+        })
+      })
+    })
+
     describe('path', function () {
       describe('using ":name"', function () {
         it('should name a capture group', function (done) {
@@ -488,7 +625,7 @@ describe('Router', function () {
 
           request(server)
             .get('/bar')
-            .expect(200, {'foo': 'bar'}, done)
+            .expect(200, { foo: 'bar' }, done)
         })
 
         it('should match single path segment', function (done) {
@@ -512,24 +649,24 @@ describe('Router', function () {
 
           request(server)
             .get('/fizz/buzz')
-            .expect(200, {'foo': 'fizz', 'bar': 'buzz'}, done)
+            .expect(200, { foo: 'fizz', bar: 'buzz' }, done)
         })
 
         it('should work following a partial capture group', function (done) {
           var cb = after(2, done)
           var router = new Router()
-          var route = router.route('/user(s)?/:user/:op')
+          var route = router.route('/user(s?)/:user/:op')
           var server = createServer(router)
 
           route.all(sendParams)
 
           request(server)
             .get('/user/tj/edit')
-            .expect(200, {'user': 'tj', 'op': 'edit'}, cb)
+            .expect(200, { 0: '', user: 'tj', op: 'edit' }, cb)
 
           request(server)
             .get('/users/tj/edit')
-            .expect(200, {'0': 's', 'user': 'tj', 'op': 'edit'}, cb)
+            .expect(200, { 0: 's', user: 'tj', op: 'edit' }, cb)
         })
 
         it('should work inside literal paranthesis', function (done) {
@@ -541,7 +678,7 @@ describe('Router', function () {
 
           request(server)
             .get('/tj(edit)')
-            .expect(200, {'user': 'tj', 'op': 'edit'}, done)
+            .expect(200, { user: 'tj', op: 'edit' }, done)
         })
 
         it('should work within arrays', function (done) {
@@ -554,168 +691,155 @@ describe('Router', function () {
 
           request(server)
             .get('/user/tj/poke')
-            .expect(200, {'user': 'tj'}, cb)
+            .expect(200, { user: 'tj' }, cb)
 
           request(server)
             .get('/user/tj/pokes')
-            .expect(200, {'user': 'tj'}, cb)
+            .expect(200, { user: 'tj' }, cb)
         })
       })
 
-      describe('using "*"', function () {
-        it('should capture everything', function (done) {
-          var router = new Router()
-          var route = router.route('*')
-          var server = createServer(router)
-
-          route.all(sendParams)
-
-          request(server)
-            .get('/foo/bar/baz')
-            .expect(200, {'0': '/foo/bar/baz'}, done)
-        })
-
-        it('should decode the capture', function (done) {
-          var router = new Router()
-          var route = router.route('*')
-          var server = createServer(router)
-
-          route.all(sendParams)
-
-          request(server)
-            .get('/foo/%20/baz')
-            .expect(200, {'0': '/foo/ /baz'}, done)
-        })
-
-        it('should capture everything with pre- and post-fixes', function (done) {
-          var router = new Router()
-          var route = router.route('/foo/*/bar')
-          var server = createServer(router)
-
-          route.all(sendParams)
-
-          request(server)
-            .get('/foo/1/2/3/bar')
-            .expect(200, {'0': '1/2/3'}, done)
-        })
-
-        it('should capture greedly', function (done) {
-          var router = new Router()
-          var route = router.route('/foo/*/bar')
-          var server = createServer(router)
-
-          route.all(sendParams)
-
-          request(server)
-            .get('/foo/bar/bar/bar')
-            .expect(200, {'0': 'bar/bar'}, done)
-        })
-
-        it('should be an optional capture', function (done) {
-          var router = new Router()
-          var route = router.route('/foo*')
-          var server = createServer(router)
-
-          route.all(sendParams)
-
-          request(server)
-            .get('/foo')
-            .expect(200, {'0': ''}, done)
-        })
-
-        it('should require preceeding /', function (done) {
+      describe('using ":name?"', function () {
+        it('should name an optional parameter', function (done) {
           var cb = after(2, done)
           var router = new Router()
-          var route = router.route('/foo/*')
-          var server = createServer(router)
-
-          route.all(sendParams)
-
-          request(server)
-            .get('/foo')
-            .expect(404, cb)
-
-          request(server)
-            .get('/foo/')
-            .expect(200, cb)
-        })
-
-        it('should work in a named parameter', function (done) {
-          var cb = after(2, done)
-          var router = new Router()
-          var route = router.route('/:foo(*)')
+          var route = router.route('/:foo?')
           var server = createServer(router)
 
           route.all(sendParams)
 
           request(server)
             .get('/bar')
-            .expect(200, {'0': 'bar', 'foo': 'bar'}, cb)
+            .expect(200, { foo: 'bar' }, cb)
+
+          request(server)
+            .get('/')
+            .expect(200, {}, cb)
+        })
+
+        it('should work in any segment', function (done) {
+          var cb = after(2, done)
+          var router = new Router()
+          var route = router.route('/user/:foo?/delete')
+          var server = createServer(router)
+
+          route.all(sendParams)
+
+          request(server)
+            .get('/user/bar/delete')
+            .expect(200, { foo: 'bar' }, cb)
+
+          request(server)
+            .get('/user/delete')
+            .expect(200, {}, cb)
+        })
+      })
+
+      describe('using ":name*"', function () {
+        it('should name a zero-or-more repeated parameter', function (done) {
+          var cb = after(3, done)
+          var router = new Router()
+          var route = router.route('/:foo*')
+          var server = createServer(router)
+
+          route.all(sendParams)
+
+          request(server)
+            .get('/')
+            .expect(200, {}, cb)
+
+          request(server)
+            .get('/bar')
+            .expect(200, { foo: 'bar' }, cb)
 
           request(server)
             .get('/fizz/buzz')
-            .expect(200, {'0': 'fizz/buzz', 'foo': 'fizz/buzz'}, cb)
+            .expect(200, { foo: 'fizz/buzz' }, cb)
         })
 
-        it('should work before a named parameter', function (done) {
-          var router = new Router()
-          var route = router.route('/*/user/:id')
-          var server = createServer(router)
-
-          route.all(sendParams)
-
-          request(server)
-            .get('/poke/user/42')
-            .expect(200, {'0': 'poke', 'id': '42'}, done)
-        })
-
-        it('should work within arrays', function (done) {
+        it('should work in any segment', function (done) {
           var cb = after(3, done)
           var router = new Router()
-          var route = router.route(['/user/:id', '/foo/*', '/:action'])
+          var route = router.route('/user/:foo*/delete')
           var server = createServer(router)
 
           route.all(sendParams)
 
           request(server)
-            .get('/user/42')
-            .expect(200, {'id': '42'}, cb)
+            .get('/user/delete')
+            .expect(200, {}, cb)
 
           request(server)
-            .get('/foo/bar')
-            .expect(200, {'0': 'bar'}, cb)
+            .get('/user/bar/delete')
+            .expect(200, { foo: 'bar' }, cb)
 
           request(server)
-            .get('/poke')
-            .expect(200, {'action': 'poke'}, cb)
+            .get('/user/fizz/buzz/delete')
+            .expect(200, { foo: 'fizz/buzz' }, cb)
+        })
+      })
+
+      describe('using ":name+"', function () {
+        it('should name a one-or-more repeated parameter', function (done) {
+          var cb = after(3, done)
+          var router = new Router()
+          var route = router.route('/:foo+')
+          var server = createServer(router)
+
+          route.all(sendParams)
+
+          request(server)
+            .get('/')
+            .expect(404, cb)
+
+          request(server)
+            .get('/bar')
+            .expect(200, { foo: 'bar' }, cb)
+
+          request(server)
+            .get('/fizz/buzz')
+            .expect(200, { foo: 'fizz/buzz' }, cb)
+        })
+
+        it('should work in any segment', function (done) {
+          var cb = after(3, done)
+          var router = new Router()
+          var route = router.route('/user/:foo+/delete')
+          var server = createServer(router)
+
+          route.all(sendParams)
+
+          request(server)
+            .get('/user/delete')
+            .expect(404, cb)
+
+          request(server)
+            .get('/user/bar/delete')
+            .expect(200, { foo: 'bar' }, cb)
+
+          request(server)
+            .get('/user/fizz/buzz/delete')
+            .expect(200, { foo: 'fizz/buzz' }, cb)
         })
       })
     })
   })
 })
 
-function helloWorld(req, res) {
+function helloWorld (req, res) {
   res.statusCode = 200
   res.setHeader('Content-Type', 'text/plain')
   res.end('hello, world')
 }
 
-function setsaw(num) {
-  var name = 'x-saw-' + String(num)
-  return function hit(req, res, next) {
-    res.setHeader(name, req.method + ' ' + req.url)
-    next()
-  }
-}
-
-function saw(req, res) {
+function saw (req, res) {
   var msg = 'saw ' + req.method + ' ' + req.url
   res.statusCode = 200
   res.setHeader('Content-Type', 'text/plain')
   res.end(msg)
 }
 
-function sendParams(req, res) {
+function sendParams (req, res) {
   res.statusCode = 200
   res.setHeader('Content-Type', 'application/json')
   res.end(JSON.stringify(req.params))

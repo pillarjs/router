@@ -57,15 +57,15 @@ describe('FQDN url', function () {
   })
 })
 
-function setsaw(num) {
+function setsaw (num) {
   var name = 'x-saw-' + String(num)
-  return function hit(req, res, next) {
+  return function hit (req, res, next) {
     res.setHeader(name, req.method + ' ' + req.url)
     next()
   }
 }
 
-function saw(req, res) {
+function saw (req, res) {
   var msg = 'saw ' + req.method + ' ' + req.url
   res.statusCode = 200
   res.setHeader('Content-Type', 'text/plain')

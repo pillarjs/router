@@ -37,7 +37,7 @@ describe('Router', function () {
       var router = new Router()
       var server = createServer(router)
 
-      router.param('id', function parseId(req, res, next, val) {
+      router.param('id', function parseId (req, res, next, val) {
         req.params.id = Number(val)
         next()
       })
@@ -60,12 +60,12 @@ describe('Router', function () {
       var router = new Router()
       var server = createServer(router)
 
-      router.param('id', function parseId(req, res, next, val) {
+      router.param('id', function parseId (req, res, next, val) {
         req.params.id = Number(val)
         next()
       })
 
-      router.param('id', function parseId(req, res, next, val) {
+      router.param('id', function parseId (req, res, next, val) {
         req.itemId = Number(val)
         next()
       })
@@ -84,7 +84,7 @@ describe('Router', function () {
       var router = new Router()
       var server = createServer(router)
 
-      router.param('user', function parseUser(req, res, next, user) {
+      router.param('user', function parseUser (req, res, next, user) {
         req.user = user
         next()
       })
@@ -103,7 +103,7 @@ describe('Router', function () {
       var router = new Router()
       var server = createServer(router)
 
-      router.param('user', function parseUser(req, res, next, user) {
+      router.param('user', function parseUser (req, res, next, user) {
         req.user = user
         next()
       })
@@ -123,12 +123,12 @@ describe('Router', function () {
       var router = new Router()
       var server = createServer(router)
 
-      router.param('id', function parseId(req, res, next, val) {
+      router.param('id', function parseId (req, res, next, val) {
         res.setHeader('x-id', val)
         next()
       })
 
-      router.param('user', function parseUser(req, res, next, user) {
+      router.param('user', function parseUser (req, res, next, user) {
         throw new Error('boom')
       })
 
@@ -149,7 +149,7 @@ describe('Router', function () {
       var router = new Router()
       var server = createServer(router)
 
-      router.param('user', function parseUser(req, res, next, user) {
+      router.param('user', function parseUser (req, res, next, user) {
         req.count = (req.count || 0) + 1
         req.user = user
         next()
@@ -171,7 +171,7 @@ describe('Router', function () {
       var router = new Router()
       var server = createServer(router)
 
-      router.param('id', function parseUser(req, res, next, val) {
+      router.param('id', function parseUser (req, res, next, val) {
         req.count = (req.count || 0) + 1
         req.params.id = Number(val)
         next()
@@ -195,7 +195,7 @@ describe('Router', function () {
       var router = new Router()
       var server = createServer(router)
 
-      router.param('user', function parseUser(req, res, next, user) {
+      router.param('user', function parseUser (req, res, next, user) {
         req.count = (req.count || 0) + 1
         req.user = user
         req.vals = (req.vals || []).concat(user)
@@ -218,7 +218,7 @@ describe('Router', function () {
       var router = new Router()
       var server = createServer(router)
 
-      router.param('user', function parseUser(req, res, next, user) {
+      router.param('user', function parseUser (req, res, next, user) {
         throw new Error('boom')
       })
 
@@ -236,11 +236,11 @@ describe('Router', function () {
       var router = new Router()
       var server = createServer(router)
 
-      router.param('user', function parseUser(req, res, next, user) {
+      router.param('user', function parseUser (req, res, next, user) {
         process.nextTick(next)
       })
 
-      router.param('user', function parseUser(req, res, next, user) {
+      router.param('user', function parseUser (req, res, next, user) {
         throw new Error('boom')
       })
 
@@ -260,7 +260,7 @@ describe('Router', function () {
         var router = new Router()
         var server = createServer(router)
 
-        router.param('id', function parseId(req, res, next, val) {
+        router.param('id', function parseId (req, res, next, val) {
           var id = Number(val)
 
           if (isNaN(id)) {
@@ -299,7 +299,7 @@ describe('Router', function () {
         var router = new Router()
         var server = createServer(router)
 
-        router.param('user', function parseUser(req, res, next, user) {
+        router.param('user', function parseUser (req, res, next, user) {
           req.count = (req.count || 0) + 1
           req.user = user
           req.vals = (req.vals || []).concat(user)
@@ -323,15 +323,15 @@ describe('Router', function () {
   })
 })
 
-function sethit(num) {
+function sethit (num) {
   var name = 'x-fn-' + String(num)
-  return function hit(req, res, next) {
+  return function hit (req, res, next) {
     res.setHeader(name, 'hit')
     next()
   }
 }
 
-function saw(req, res) {
+function saw (req, res) {
   var msg = 'saw ' + req.method + ' ' + req.url
   res.statusCode = 200
   res.setHeader('Content-Type', 'text/plain')
