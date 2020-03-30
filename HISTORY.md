@@ -1,5 +1,5 @@
-2.x
-===
+2.0.0-beta.1 / 2020-03-29
+=========================
 
 This incorporates all changes after 1.3.3 up to 1.3.5.
 
