@@ -4,6 +4,7 @@
 This incorporates all changes after 1.3.3 up to 1.3.5.
 
   * Internalize private `router.process_params` method
+  * Remove `debug` dependency
   * deps: array-flatten@3.0.0
   * deps: parseurl@~1.3.3
   * deps: path-to-regexp@3.2.0

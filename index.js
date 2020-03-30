@@ -12,7 +12,6 @@
  * @private
  */
 
-var debug = require('debug')('router')
 var flatten = require('array-flatten').flatten
 var Layer = require('./lib/layer')
 var methods = require('methods')
@@ -149,8 +148,6 @@ Router.prototype.handle = function handle (req, res, callback) {
   if (!callback) {
     throw new TypeError('argument callback is required')
   }
-
-  debug('dispatching %s %s', req.method, req.url)
 
   var idx = 0
   var methods
@@ -312,7 +309,6 @@ Router.prototype.handle = function handle (req, res, callback) {
 
       // Trim off the part of the url that matches the route
       // middleware (.use stuff) needs to have the path stripped
-      debug('trim prefix (%s) from url %s', layerPath, req.url)
       removed = layerPath
       req.url = protohost + req.url.substr(protohost.length + removed.length)
 
@@ -327,8 +323,6 @@ Router.prototype.handle = function handle (req, res, callback) {
         ? removed.substring(0, removed.length - 1)
         : removed)
     }
-
-    debug('%s %s : %s', layer.name, layerPath, req.originalUrl)
 
     if (layerError) {
       layer.handleError(layerError, req, res, next)
@@ -387,8 +381,6 @@ Router.prototype.use = function use (handler) {
     }
 
     // add the middleware
-    debug('use %o %s', path, fn.name || '<anonymous>')
-
     var layer = new Layer(path, {
       sensitive: this.caseSensitive,
       strict: false,
