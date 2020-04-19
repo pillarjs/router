@@ -608,24 +608,6 @@ describe('Router', function () {
           .get('/')
           .expect(500, done)
       })
-      it('should invoke error function after router.param returns rejected promise', function (done) {
-        var router = new Router()
-        var server = createServer(router)
-
-        router.param('user', function (req, res, next, user) {
-          return Promise.reject(new Error('boom!'))
-        })
-
-        router.get('/:user', function handle (req, res, next) {
-          res.end()
-        })
-
-        router.use(sawError)
-
-        request(server)
-          .get('/username')
-          .expect(200, 'saw Error: boom!', done)
-      })
     })
 
     describe('next("route")', function () {
@@ -830,6 +812,24 @@ describe('Router', function () {
             .get('/foo')
             .expect(200, 'saw Error: boom!', done)
         })
+      })
+      it('should invoke error function after router.param returns rejected promise', function (done) {
+        var router = new Router()
+        var server = createServer(router)
+
+        router.param('user', function (req, res, next, user) {
+          return Promise.reject(new Error('boom!'))
+        })
+
+        router.get('/:user', function handle (req, res, next) {
+          res.end()
+        })
+
+        router.use(sawError)
+
+        request(server)
+          .get('/username')
+          .expect(200, 'saw Error: boom!', done)
       })
     })
 
@@ -1331,5 +1331,4 @@ function sawBase (req, res) {
   var msg = 'saw ' + req.baseUrl
   res.statusCode = 200
   res.setHeader('Content-Type', 'text/plain')
-  res.end(msg)
-}
+  res.end(msg)}
