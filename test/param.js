@@ -254,6 +254,24 @@ describe('Router', function () {
         .expect(500, /Error: boom/, done)
     })
 
+    it('should catch rejected promises returned from fn', function (done) {
+      var router = new Router()
+      var server = createServer(router)
+
+      router.param('user', function parseUser (req, res, next, user) {
+        return Promise.reject(new Error('boom'))
+      })
+
+      router.get('/user/:user', function (req, res) {
+        res.setHeader('Content-Type', 'text/plain')
+        res.end('get user ' + req.params.id)
+      })
+
+      request(server)
+        .get('/user/bob')
+        .expect(500, /Error: boom/, done)
+    })
+
     describe('next("route")', function () {
       it('should cause route with param to be skipped', function (done) {
         var cb = after(3, done)

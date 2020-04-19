@@ -19,6 +19,7 @@ var mixin = require('utils-merge')
 var parseUrl = require('parseurl')
 var Route = require('./lib/route')
 var setPrototypeOf = require('setprototypeof')
+var isPromise = require('is-promise')
 
 /**
  * Module variables.
@@ -634,7 +635,12 @@ function processParams (params, layer, called, req, res, done) {
     if (!fn) return param()
 
     try {
-      fn(req, res, paramCallback, paramVal, key.name)
+      var ret = fn(req, res, paramCallback, paramVal, key.name)
+      if (isPromise(ret)) {
+        ret.then(null, function (error) {
+          paramCallback(error || new Error('Rejected promise'))
+        })
+      }
     } catch (e) {
       paramCallback(e)
     }
