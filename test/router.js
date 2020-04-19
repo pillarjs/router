@@ -1331,4 +1331,5 @@ function sawBase (req, res) {
   var msg = 'saw ' + req.baseUrl
   res.statusCode = 200
   res.setHeader('Content-Type', 'text/plain')
-  res.end(msg)}
+  res.end(msg)
+}
