@@ -10,6 +10,8 @@ var shouldNotHitHandle = utils.shouldNotHitHandle
 var createServer = utils.createServer
 var request = utils.request
 
+var describePromises = global.Promise ? describe : describe.skip
+
 describe('Router', function () {
   describe('.param(name, fn)', function () {
     it('should reject missing name', function () {
@@ -252,6 +254,48 @@ describe('Router', function () {
       request(server)
         .get('/user/bob')
         .expect(500, /Error: boom/, done)
+    })
+
+    describePromises('promise support', function () {
+      it('should pass rejected promise value', function (done) {
+        var router = new Router()
+        var server = createServer(router)
+
+        router.param('user', function parseUser (req, res, next, user) {
+          return Promise.reject(new Error('boom'))
+        })
+
+        router.get('/user/:user', function (req, res) {
+          res.setHeader('Content-Type', 'text/plain')
+          res.end('get user ' + req.params.id)
+        })
+
+        request(server)
+          .get('/user/bob')
+          .expect(500, /Error: boom/, done)
+      })
+
+      it('should pass rejected promise without value', function (done) {
+        var router = new Router()
+        var server = createServer(router)
+
+        router.use(function createError (req, res, next) {
+          return Promise.reject() // eslint-disable-line prefer-promise-reject-errors
+        })
+
+        router.param('user', function parseUser (req, res, next, user) {
+          return Promise.reject() // eslint-disable-line prefer-promise-reject-errors
+        })
+
+        router.get('/user/:user', function (req, res) {
+          res.setHeader('Content-Type', 'text/plain')
+          res.end('get user ' + req.params.id)
+        })
+
+        request(server)
+          .get('/user/bob')
+          .expect(500, /Error: Rejected promise/, done)
+      })
     })
 
     describe('next("route")', function () {

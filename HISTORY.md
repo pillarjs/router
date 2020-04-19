@@ -3,6 +3,8 @@
 
 This incorporates all changes after 1.3.5 up to 1.3.6.
 
+  * Add support for returned, rejected Promises to `router.param`
+
 2.0.0-beta.1 / 2020-03-29
 =========================
 

@@ -13,6 +13,7 @@
  */
 
 var flatten = require('array-flatten').flatten
+var isPromise = require('is-promise')
 var Layer = require('./lib/layer')
 var methods = require('methods')
 var mixin = require('utils-merge')
@@ -642,7 +643,12 @@ function processParams (params, layer, called, req, res, done) {
     if (!fn) return param()
 
     try {
-      fn(req, res, paramCallback, paramVal, key.name)
+      var ret = fn(req, res, paramCallback, paramVal, key.name)
+      if (isPromise(ret)) {
+        ret.then(null, function (error) {
+          paramCallback(error || new Error('Rejected promise'))
+        })
+      }
     } catch (e) {
       paramCallback(e)
     }
