@@ -13,13 +13,13 @@
  */
 
 var flatten = require('array-flatten').flatten
+var isPromise = require('is-promise')
 var Layer = require('./lib/layer')
 var methods = require('methods')
 var mixin = require('utils-merge')
 var parseUrl = require('parseurl')
 var Route = require('./lib/route')
 var setPrototypeOf = require('setprototypeof')
-var isPromise = require('is-promise')
 
 /**
  * Module variables.
