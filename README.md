@@ -115,7 +115,7 @@ Maps the specified path parameter `name` to a specialized param-capturing middle
 
 This function positions the middleware in the same stack as `.use`.
 
-If a `Promise` object is returned from the `param_middleware` function, the router
+If a `Promise` is returned from the `param_middleware` function, the router
 will attach an `onRejected` callback using `.then`. If the promise is rejected,
 `next` will be called with the rejected value, or an error if the value is falsy.
 
