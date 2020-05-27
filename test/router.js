@@ -35,6 +35,21 @@ describe('Router', function () {
     router({}, {}, done)
   })
 
+  describe('.removeAllRoutes()', function () {
+    it('should remove all routes from the stack', function (done) {
+      var router = new Router()
+
+      for (var i = 0; i < 10; i++) {
+        router.get('/thing' + i, helloWorld)
+      }
+
+      router.removeAllRoutes()
+
+      assert.equal(router.stack.length, 0)
+      done()
+    })
+  })
+
   describe('.all(path, fn)', function () {
     it('should be chainable', function () {
       var router = new Router()

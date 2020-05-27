@@ -436,7 +436,9 @@ Router.prototype.process_params = function process_params(layer, called, req, re
 }
 
 /**
- * Remove all paths from the current stack
+ * Removes all paths from the current stack
+ *
+ * Removing routes could be useful when you need to add/remove routes on runtime.
  *
  * @public
  */
