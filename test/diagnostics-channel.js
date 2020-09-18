@@ -3,8 +3,8 @@ var Router = require('../')
   , assert = require('assert');
 
 var dc = require('diagnostics_channel');
-var onHandleRequest = dc.channel('express.layer.handle_request');
-var onHandleError = dc.channel('express.layer.handle_error');
+var onHandleRequest = dc.channel('router.layer.handle_request');
+var onHandleError = dc.channel('router.layer.handle_error');
 
 function mapProp(prop) {
   return function mapped(obj) {
