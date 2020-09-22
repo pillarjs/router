@@ -71,7 +71,9 @@ describe('diagnostics_channel', function () {
       res.end();
     });
 
-    outer.use('/hello', inner);
+    outer.use('/hello', (req, res, next) => {
+      next();
+    }, inner);
 
     function end() {
       assert.strictEqual(joinLayerStack(handleRequest.request.layerStack), '/hello/:name/');
