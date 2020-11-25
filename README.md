@@ -321,7 +321,7 @@ handler.get('/', function (req, res) {
   res.setHeader('Content-Type', 'text/plain; charset=utf-8')
 
   // will respond with the param of the router's parent route
-  res.end(path + '\n')
+  res.end(req.params.path + '\n')
 })
 
 // make our http server listen to connections
