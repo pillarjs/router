@@ -24,7 +24,7 @@
     "finalhandler": "1.1.2",
     "istanbul": "0.4.5",
     "mocha": "8.2.1",
-    "safe-buffer": "5.2.0",
+    "safe-buffer": "5.2.1",
     "supertest": "6.0.1"
   },
   "files": [
