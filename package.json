@@ -19,7 +19,7 @@
   },
   "devDependencies": {
     "after": "0.8.2",
-    "eslint": "7.23.0",
+    "eslint": "7.24.0",
     "eslint-plugin-markdown": "2.0.1",
     "finalhandler": "1.1.2",
     "istanbul": "0.4.5",
