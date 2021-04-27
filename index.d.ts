@@ -4,17 +4,27 @@ export = Router;
 
 declare namespace Router {
 
-  export interface RouterOptions {
+  interface RouterOptions {
     strict?: boolean;
     caseSensitive?: boolean;
     mergeParams?: boolean;
+  }
+
+  interface Layer {
+    name: string,
+    handle: RequestHandler | ErrorRequestHandler,
+    handle_request: RequestHandler,
+    handle_error: ErrorRequestHandler,
+    match: (path: string) => boolean,
   }
 
   interface IncomingRequest extends http.IncomingMessage {
     url: string,
     method: string,
     originalUrl?: string,
-    params?: any;
+    params?: {
+      [key: string]: any,
+    },
   }
 
   interface RoutedRequest extends IncomingRequest {
@@ -23,25 +33,24 @@ declare namespace Router {
     route?: IRoute
   }
 
-  type RequestParamHandler = (req: IncomingRequest, res: http.ServerResponse, next: NextFunction, value: any, name: string) => any;
+  type RequestParamHandler = (req: IncomingRequest, res: http.ServerResponse, next: NextFunction, value: string, name: string) => void;
 
   interface RouteHandler {
     // tslint:disable-next-line callable-types (This is extended from and can't extend from a type alias in ts<2.2
-    (req: RoutedRequest, res: http.ServerResponse, next: NextFunction): any;
+    (req: RoutedRequest, res: http.ServerResponse, next: NextFunction): void;
   }
 
   interface RequestHandler {
     // tslint:disable-next-line callable-types (This is extended from and can't extend from a type alias in ts<2.2
-    (req: IncomingRequest, res: http.ServerResponse, next: NextFunction): any;
+    (req: IncomingRequest, res: http.ServerResponse, next: NextFunction): void;
   }
-
 
   interface NextFunction {
     // tslint:disable-next-line callable-types (In ts2.1 it thinks the type alias has no call signatures)
-    (err?: any): void;
+    (err?: Error | "route" | "router"): void;
   }
 
-  type ErrorRequestHandler = (err: any, req: IncomingRequest, res: http.ServerResponse, next: NextFunction) => any;
+  type ErrorRequestHandler = (err: Error, req: IncomingRequest, res: http.ServerResponse, next: NextFunction) => void;
 
   type PathParams = string | RegExp | Array<string | RegExp>;
 
@@ -105,7 +114,7 @@ declare namespace Router {
 
     route(prefix: PathParams): IRoute;
     // Stack of configured routes
-    stack: any[];
+    stack: Layer[];
 
     // Common HTTP methods
     delete: IRouterMatcher<this>;
@@ -149,7 +158,7 @@ declare namespace Router {
 
   interface IRoute {
     path: string;
-    stack: any;
+    stack: Layer[];
 
     all: IRouterHandler<this>;
 
