@@ -1,3 +1,5 @@
+import * as http from 'http';
+
 export = Router;
 
 declare namespace Router {
@@ -8,7 +10,7 @@ declare namespace Router {
     mergeParams?: boolean;
   }
 
-  interface IncomingRequest {
+  interface IncomingRequest extends http.IncomingMessage {
     url: string,
     method: string,
     originalUrl?: string,
@@ -21,16 +23,16 @@ declare namespace Router {
     route?: IRoute
   }
 
-  type RequestParamHandler = (req: IncomingRequest, res: any, next: NextFunction, value: any, name: string) => any;
+  type RequestParamHandler = (req: IncomingRequest, res: http.ServerResponse, next: NextFunction, value: any, name: string) => any;
 
   interface RouteHandler {
     // tslint:disable-next-line callable-types (This is extended from and can't extend from a type alias in ts<2.2
-    (req: RoutedRequest, res: any, next: NextFunction): any;
+    (req: RoutedRequest, res: http.ServerResponse, next: NextFunction): any;
   }
 
   interface RequestHandler {
     // tslint:disable-next-line callable-types (This is extended from and can't extend from a type alias in ts<2.2
-    (req: IncomingRequest, res: any, next: NextFunction): any;
+    (req: IncomingRequest, res: http.ServerResponse, next: NextFunction): any;
   }
 
 
@@ -39,7 +41,7 @@ declare namespace Router {
     (err?: any): void;
   }
 
-  type ErrorRequestHandler = (err: any, req: IncomingRequest, res: any, next: NextFunction) => any;
+  type ErrorRequestHandler = (err: any, req: IncomingRequest, res: http.ServerResponse, next: NextFunction) => any;
 
   type PathParams = string | RegExp | Array<string | RegExp>;
 
