@@ -99,13 +99,14 @@ declare namespace Router {
      */
     all: IRouterMatcher<this>;
 
+    /* Common HTTP methods */
+    delete: IRouterMatcher<this>;
     get: IRouterMatcher<this>;
+    head: IRouterMatcher<this>;
+    options: IRouterMatcher<this>;
+    patch: IRouterMatcher<this>;
     post: IRouterMatcher<this>;
     put: IRouterMatcher<this>;
-    delete: IRouterMatcher<this>;
-    patch: IRouterMatcher<this>;
-    options: IRouterMatcher<this>;
-    head: IRouterMatcher<this>;
 
     use: IRouterHandler<this> & IRouterMatcher<this>;
 
@@ -121,14 +122,17 @@ declare namespace Router {
   interface IRoute {
     path: string;
     stack: any;
+
     all: IRouterHandler<this>;
+
+    /* Common HTTP methods */
+    delete: IRouterHandler<this>;
     get: IRouterHandler<this>;
+    head: IRouterHandler<this>;
+    options: IRouterHandler<this>;
+    patch: IRouterHandler<this>;
     post: IRouterHandler<this>;
     put: IRouterHandler<this>;
-    delete: IRouterHandler<this>;
-    patch: IRouterHandler<this>;
-    options: IRouterHandler<this>;
-    head: IRouterHandler<this>;
   }
 
   interface RouterConstructor extends IRouter {
