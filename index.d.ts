@@ -35,15 +35,8 @@ declare namespace Router {
 
   type RequestParamHandler = (req: IncomingRequest, res: http.ServerResponse, next: NextFunction, value: string, name: string) => void;
 
-  interface RouteHandler {
-    // tslint:disable-next-line callable-types (This is extended from and can't extend from a type alias in ts<2.2
-    (req: RoutedRequest, res: http.ServerResponse, next: NextFunction): void;
-  }
-
-  interface RequestHandler {
-    // tslint:disable-next-line callable-types (This is extended from and can't extend from a type alias in ts<2.2
-    (req: IncomingRequest, res: http.ServerResponse, next: NextFunction): void;
-  }
+  type RouteHandler = (req: RoutedRequest, res: http.ServerResponse, next: NextFunction) => void;
+  type RequestHandler = (req: IncomingRequest, res: http.ServerResponse, next: NextFunction) => void;
 
   type NextFunction = (err?: Error | "route" | "router") => void;
   type Callback = (err?: Error) => void;
