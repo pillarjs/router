@@ -45,10 +45,8 @@ declare namespace Router {
     (req: IncomingRequest, res: http.ServerResponse, next: NextFunction): void;
   }
 
-  interface NextFunction {
-    // tslint:disable-next-line callable-types (In ts2.1 it thinks the type alias has no call signatures)
-    (err?: Error | "route" | "router"): void;
-  }
+  type NextFunction = (err?: Error | "route" | "router") => void;
+  type Callback = (err?: Error) => void;
 
   type ErrorRequestHandler = (err: Error, req: IncomingRequest, res: http.ServerResponse, next: NextFunction) => void;
 
@@ -75,7 +73,7 @@ declare namespace Router {
      * could automatically load a user's information from the database without
      * any additional code,
      *
-     * The callback uses the samesignature as middleware, the only differencing
+     * The callback uses the same signature as middleware, the only differencing
      * being that the value of the placeholder is passed, in this case the _id_
      * of the user. Once the `next()` function is invoked, just like middleware
      * it will continue on to execute the route, or subsequent parameter functions.
@@ -110,7 +108,7 @@ declare namespace Router {
 
     use: IRouterHandler<this> & IRouterMatcher<this>;
 
-    handle: RequestHandler;
+    handle: (req: http.IncomingMessage, res: http.ServerResponse, cb: Callback) => void;
 
     route(prefix: PathParams): IRoute;
     // Stack of configured routes
@@ -203,7 +201,7 @@ declare namespace Router {
   }
 
   interface RouterConstructor extends IRouter {
-    new(options?: RouterOptions): IRouter & RequestHandler;
+    new(options?: RouterOptions): IRouter & ((req: http.IncomingMessage, res: http.ServerResponse, cb: Callback) => void);
   }
 
 }

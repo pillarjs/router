@@ -5,10 +5,8 @@ import {
   IncomingRequest,
   RouteHandler,
   IRoute,
-  NextFunction,
   RoutedRequest
 } from '..';
-
 
 const options: RouterOptions = {
   strict: false,
@@ -18,7 +16,9 @@ const options: RouterOptions = {
 
 const r = new Router();
 const router = new Router(options);
-const routerHandler: RouteHandler = (req: IncomingRequest, res: any, next: NextFunction) => {};
+const routerHandler: RouteHandler = (req, res) => {
+  res.end('FIN');
+};
 
 router.get('/', routerHandler);
 router.post('/', routerHandler);
@@ -29,7 +29,10 @@ router.head('/', routerHandler);
 router.unsubscribe('/', routerHandler);
 
 // param
-router.param('user_id', (req, res, next, id) => {});
+router.param('user_id', (req, res, next, id) => {
+  const val: string = id;
+  next();
+});
 
 // middleware
 router.use((req, res, next) => {
@@ -39,24 +42,25 @@ router.use((req, res, next) => {
 const api: IRoute = router.route('/api/');
 
 router.route('/')
-.all((req: RoutedRequest, res: any, next: NextFunction) => {
+.all((req, res, next) => {
+  const url: string = req.baseUrl;
   next();
 })
 .get((req, res) => {
-  // do nothing
+  res.setHeader('x-header', 'value');
+  res.end('.');
 });
 
 
 // test router handling
-
 var server = createServer(function(req: IncomingMessage, res: ServerResponse) {
-  router(req as IncomingRequest, res, (err: any) => {
+  router(req, res, (err) => {
+    if (err) {
+      const e: Error = err;
+    }
     //
   })
-  router.handle(req as Router.IncomingRequest, res, (err: any) => {
+  router.handle(req, res, (err) => {
     //
   })
 })
-
-
-
