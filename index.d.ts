@@ -99,7 +99,15 @@ declare namespace Router {
      */
     all: IRouterMatcher<this>;
 
-    /* Common HTTP methods */
+    use: IRouterHandler<this> & IRouterMatcher<this>;
+
+    handle: RequestHandler;
+
+    route(prefix: PathParams): IRoute;
+    // Stack of configured routes
+    stack: any[];
+
+    // Common HTTP methods
     delete: IRouterMatcher<this>;
     get: IRouterMatcher<this>;
     head: IRouterMatcher<this>;
@@ -108,15 +116,35 @@ declare namespace Router {
     post: IRouterMatcher<this>;
     put: IRouterMatcher<this>;
 
-    use: IRouterHandler<this> & IRouterMatcher<this>;
-
-    handle: RequestHandler;
-
-    route(prefix: PathParams): IRoute;
-    /**
-     * Stack of configured routes
-     */
-    stack: any[];
+    // Exotic HTTP methods
+    acl: IRouterMatcher<this>;
+    bind: IRouterMatcher<this>;
+    checkout: IRouterMatcher<this>;
+    connect: IRouterMatcher<this>;
+    copy: IRouterMatcher<this>;
+    link: IRouterMatcher<this>;
+    lock: IRouterMatcher<this>;
+    "m-search": IRouterMatcher<this>;
+    merge: IRouterMatcher<this>;
+    mkactivity: IRouterMatcher<this>;
+    mkcalendar: IRouterMatcher<this>;
+    mkcol: IRouterMatcher<this>;
+    move: IRouterMatcher<this>;
+    notify: IRouterMatcher<this>;
+    pri: IRouterMatcher<this>;
+    propfind: IRouterMatcher<this>;
+    proppatch: IRouterMatcher<this>;
+    purge: IRouterMatcher<this>;
+    rebind: IRouterMatcher<this>;
+    report: IRouterMatcher<this>;
+    search: IRouterMatcher<this>;
+    source: IRouterMatcher<this>;
+    subscribe: IRouterMatcher<this>;
+    trace: IRouterMatcher<this>;
+    unbind: IRouterMatcher<this>;
+    unlink: IRouterMatcher<this>;
+    unlock: IRouterMatcher<this>;
+    unsubscribe: IRouterMatcher<this>;
   }
 
   interface IRoute {
@@ -125,7 +153,7 @@ declare namespace Router {
 
     all: IRouterHandler<this>;
 
-    /* Common HTTP methods */
+    // Common HTTP methods
     delete: IRouterHandler<this>;
     get: IRouterHandler<this>;
     head: IRouterHandler<this>;
@@ -133,6 +161,36 @@ declare namespace Router {
     patch: IRouterHandler<this>;
     post: IRouterHandler<this>;
     put: IRouterHandler<this>;
+
+    // Exotic HTTP methods
+    acl: IRouterHandler<this>;
+    bind: IRouterHandler<this>;
+    checkout: IRouterHandler<this>;
+    connect: IRouterHandler<this>;
+    copy: IRouterHandler<this>;
+    link: IRouterHandler<this>;
+    lock: IRouterHandler<this>;
+    "m-search": IRouterHandler<this>;
+    merge: IRouterHandler<this>;
+    mkactivity: IRouterHandler<this>;
+    mkcalendar: IRouterHandler<this>;
+    mkcol: IRouterHandler<this>;
+    move: IRouterHandler<this>;
+    notify: IRouterHandler<this>;
+    pri: IRouterHandler<this>;
+    propfind: IRouterHandler<this>;
+    proppatch: IRouterHandler<this>;
+    purge: IRouterHandler<this>;
+    rebind: IRouterHandler<this>;
+    report: IRouterHandler<this>;
+    search: IRouterHandler<this>;
+    source: IRouterHandler<this>;
+    subscribe: IRouterHandler<this>;
+    trace: IRouterHandler<this>;
+    unbind: IRouterHandler<this>;
+    unlink: IRouterHandler<this>;
+    unlock: IRouterHandler<this>;
+    unsubscribe: IRouterHandler<this>;
   }
 
   interface RouterConstructor extends IRouter {

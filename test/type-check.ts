@@ -26,6 +26,7 @@ router.delete('/', routerHandler);
 router.patch('/', routerHandler);
 router.options('/', routerHandler);
 router.head('/', routerHandler);
+router.unsubscribe('/', routerHandler);
 
 // param
 router.param('user_id', (req, res, next, id) => {});
