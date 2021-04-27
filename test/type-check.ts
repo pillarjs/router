@@ -2,7 +2,7 @@ import { createServer, IncomingMessage, ServerResponse } from 'http';
 import {
   default as Router,
   RouterOptions,
-  IncommingRequest,
+  IncomingRequest,
   RouteHandler,
   IRoute,
   NextFunction,
@@ -18,7 +18,7 @@ const options: RouterOptions = {
 
 const r = new Router();
 const router = new Router(options);
-const routerHandler: RouteHandler = (req: IncommingRequest, res: any, next: NextFunction) => {};
+const routerHandler: RouteHandler = (req: IncomingRequest, res: any, next: NextFunction) => {};
 
 router.get('/', routerHandler);
 router.post('/', routerHandler);
@@ -49,10 +49,10 @@ router.route('/')
 // test router handling
 
 var server = createServer(function(req: IncomingMessage, res: ServerResponse) {
-  router(req as IncommingRequest, res, (err: any) => {
+  router(req as IncomingRequest, res, (err: any) => {
     //
   })
-  router.handle(req as Router.IncommingRequest, res, (err: any) => {
+  router.handle(req as Router.IncomingRequest, res, (err: any) => {
     //
   })
 })

@@ -27,7 +27,7 @@
     "nyc": "15.1.0",
     "safe-buffer": "5.2.1",
     "supertest": "6.1.3",
-    "typescript": "^2.9.2"
+    "typescript": "^4.2.4"
   },
   "files": [
     "lib/",

@@ -8,20 +8,20 @@ declare namespace Router {
     mergeParams?: boolean;
   }
 
-  interface IncommingRequest {
+  interface IncomingRequest {
     url: string,
     method: string,
     originalUrl?: string,
     params?: any;
   }
 
-  interface RoutedRequest extends IncommingRequest {
+  interface RoutedRequest extends IncomingRequest {
     baseUrl: string,
     next?: NextFunction,
     route?: IRoute
   }
 
-  type RequestParamHandler = (req: IncommingRequest, res: any, next: NextFunction, value: any, name: string) => any;
+  type RequestParamHandler = (req: IncomingRequest, res: any, next: NextFunction, value: any, name: string) => any;
 
   interface RouteHandler {
     // tslint:disable-next-line callable-types (This is extended from and can't extend from a type alias in ts<2.2
@@ -30,7 +30,7 @@ declare namespace Router {
 
   interface RequestHandler {
     // tslint:disable-next-line callable-types (This is extended from and can't extend from a type alias in ts<2.2
-    (req: IncommingRequest, res: any, next: NextFunction): any;
+    (req: IncomingRequest, res: any, next: NextFunction): any;
   }
 
 
@@ -39,7 +39,7 @@ declare namespace Router {
     (err?: any): void;
   }
 
-  type ErrorRequestHandler = (err: any, req: IncommingRequest, res: any, next: NextFunction) => any;
+  type ErrorRequestHandler = (err: any, req: IncomingRequest, res: any, next: NextFunction) => any;
 
   type PathParams = string | RegExp | Array<string | RegExp>;
 
