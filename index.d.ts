@@ -199,4 +199,4 @@ declare namespace Router {
 
 }
 
-declare var Router: Router.RouterConstructor;
+declare const Router: Router.RouterConstructor;
