@@ -19,8 +19,6 @@ declare namespace Router {
   }
 
   interface IncomingRequest extends http.IncomingMessage {
-    url: string,
-    method: string,
     originalUrl?: string,
     params?: {
       [key: string]: any,
