@@ -85,13 +85,6 @@ declare namespace Router {
     param(name: string, handler: RequestParamHandler): this;
 
     /**
-     * Alternatively, you can pass only a callback, in which case you have the opportunity to alter the app.param()
-     *
-     * @deprecated since version 4.11
-     */
-    param(callback: (name: string, matcher: RegExp) => RequestParamHandler): this;
-
-    /**
      * Special-cased "all" method, applying the given route `path`,
      * middleware, and callback to _every_ HTTP method.
      */
