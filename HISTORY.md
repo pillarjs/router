@@ -1,6 +1,7 @@
 unreleased
 ==========
 
+  * Fix handling very large stacks of sync middleware
   * deps: safe-buffer@5.2.1
 
 1.3.5 / 2020-03-24

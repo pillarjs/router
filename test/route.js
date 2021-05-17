@@ -103,6 +103,24 @@ describe('Router', function () {
         .expect(404, done)
     })
 
+    it('should not stack overflow with a large sync stack', function (done) {
+      this.timeout(5000) // long-running test
+
+      var router = new Router()
+      var route = router.route('/foo')
+      var server = createServer(router)
+
+      for (var i = 0; i < 6000; i++) {
+        route.all(function (req, res, next) { next() })
+      }
+
+      route.get(helloWorld)
+
+      request(server)
+        .get('/foo')
+        .expect(200, 'hello, world', done)
+    })
+
     describe('.all(...fn)', function () {
       it('should reject no arguments', function () {
         var router = new Router()

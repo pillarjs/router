@@ -577,6 +577,23 @@ describe('Router', function () {
         .expect(404, done)
     })
 
+    it('should not stack overflow with a large sync stack', function (done) {
+      this.timeout(5000) // long-running test
+
+      var router = new Router()
+      var server = createServer(router)
+
+      for (var i = 0; i < 6000; i++) {
+        router.use(function (req, res, next) { next() })
+      }
+
+      router.use(helloWorld)
+
+      request(server)
+        .get('/')
+        .expect(200, 'hello, world', done)
+    })
+
     describe('error handling', function () {
       it('should invoke error function after next(err)', function (done) {
         var router = new Router()
