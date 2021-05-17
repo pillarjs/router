@@ -3,7 +3,7 @@
 [![NPM Version][npm-image]][npm-url]
 [![NPM Downloads][downloads-image]][downloads-url]
 [![Node.js Version][node-version-image]][node-version-url]
-[![Build Status][travis-image]][travis-url]
+[![Build Status][ci-image]][ci-url]
 [![Test Coverage][coveralls-image]][coveralls-url]
 
 Simple middleware-style router
@@ -381,12 +381,12 @@ server.listen(8080)
 
 [MIT](LICENSE)
 
+[ci-image]: https://badgen.net/github/checks/pillarjs/router/master?label=ci
+[ci-url]: https://github.com/pillarjs/router/actions?query=workflow%3Aci
 [npm-image]: https://img.shields.io/npm/v/router.svg
 [npm-url]: https://npmjs.org/package/router
 [node-version-image]: https://img.shields.io/node/v/router.svg
 [node-version-url]: http://nodejs.org/download/
-[travis-image]: https://img.shields.io/travis/pillarjs/router/master.svg
-[travis-url]: https://travis-ci.org/pillarjs/router
 [coveralls-image]: https://img.shields.io/coveralls/pillarjs/router/master.svg
 [coveralls-url]: https://coveralls.io/r/pillarjs/router?branch=master
 [downloads-image]: https://img.shields.io/npm/dm/router.svg
