@@ -444,6 +444,18 @@ Router.prototype.process_params = function process_params(layer, called, req, re
 }
 
 /**
+ * Removes all paths from the current stack
+ *
+ * Removing routes could be useful when you need to add/remove routes on runtime.
+ *
+ * @public
+ */
+
+Router.prototype.removeAllRoutes = function removeAllRoutes() {
+  this.stack = []
+}
+
+/**
  * Use the given middleware function, with optional path, defaulting to "/".
  *
  * Use (like `.all`) will run for any http METHOD, but it will not add
