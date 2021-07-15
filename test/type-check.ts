@@ -30,6 +30,9 @@ router.unsubscribe('/', routerHandler);
 
 // param
 router.param('user_id', (req, res, next, id) => {
+  const baseUrl: string = req.baseUrl;
+  const route: string = req.route?.path || 'na';
+  const param = req.params?.user_id;
   const val: string = id;
   next();
 });

@@ -32,7 +32,7 @@ declare namespace Router {
     route?: IRoute
   }
 
-  type RequestParamHandler = (req: IncomingRequest, res: http.ServerResponse, next: NextFunction, value: string, name: string) => void;
+  type RequestParamHandler = (req: RoutedRequest, res: http.ServerResponse, next: NextFunction, value: string, name: string) => void;
 
   type RouteHandler = (req: RoutedRequest, res: http.ServerResponse, next: NextFunction) => void;
   type RequestHandler = (req: IncomingRequest, res: http.ServerResponse, next: NextFunction) => void;
