@@ -59,8 +59,5 @@ var server = createServer(function(req: IncomingMessage, res: ServerResponse) {
       const e: Error = err;
     }
     //
-  })
-  router.handle(req, res, (err) => {
-    //
-  })
+  });
 })

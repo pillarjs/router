@@ -10,6 +10,7 @@ declare namespace Router {
     mergeParams?: boolean;
   }
 
+  // Private
   interface Layer {
     name: string,
     handle: RequestHandler | ErrorRequestHandler,
@@ -92,11 +93,12 @@ declare namespace Router {
 
     use: IRouterHandler<this> & IRouterMatcher<this>;
 
-    handle: (req: http.IncomingMessage, res: http.ServerResponse, cb: Callback) => void;
+    // private
+    // handle: (req: http.IncomingMessage, res: http.ServerResponse, cb: Callback) => void;
 
     route(prefix: PathParams): IRoute;
-    // Stack of configured routes
-    stack: Layer[];
+    // Stack of configured routes. private
+    // stack: Layer[];
 
     // Common HTTP methods
     delete: IRouterMatcher<this>;
@@ -140,7 +142,9 @@ declare namespace Router {
 
   interface IRoute {
     path: string;
-    stack: Layer[];
+
+    // Stack of configured routes. Private.
+    // stack: Layer[];
 
     all: IRouterHandler<this>;
 
