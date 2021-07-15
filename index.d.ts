@@ -36,10 +36,10 @@ declare namespace Router {
   type RouteHandler = (req: RoutedRequest, res: http.ServerResponse, next: NextFunction) => void;
   type RequestHandler = (req: IncomingRequest, res: http.ServerResponse, next: NextFunction) => void;
 
-  type NextFunction = (err?: Error | "route" | "router") => void;
-  type Callback = (err?: Error) => void;
+  type NextFunction = (err?: any | "route" | "router") => void;
+  type Callback = (err?: any) => void;
 
-  type ErrorRequestHandler = (err: Error, req: IncomingRequest, res: http.ServerResponse, next: NextFunction) => void;
+  type ErrorRequestHandler = (err: any, req: IncomingRequest, res: http.ServerResponse, next: NextFunction) => void;
 
   type PathParams = string | RegExp | Array<string | RegExp>;
 
