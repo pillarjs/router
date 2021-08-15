@@ -8,6 +8,7 @@
   ],
   "license": "MIT",
   "repository": "pillarjs/router",
+  "types": "types/index.d.ts",
   "dependencies": {
     "array-flatten": "3.0.0",
     "debug": "2.6.9",
