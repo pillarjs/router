@@ -18,7 +18,7 @@ This incorporates all changes after 1.3.3 up to 1.3.5.
       `(*)` is no longer valid and must be written as `(.*)`, for example.
     - Named matching groups no longer available by position in `req.params`.
       `/:foo(.*)` only captures as `req.params.foo` and not available as
-      `req.parmas[0]`.
+      `req.params[0]`.
     - Regular expressions can only be used in a matching group.
       `/\\d+` is no longer valid and must be written as `/(\\d+)`.
     - Special `*` path segment behavior removed.
