@@ -687,7 +687,7 @@ describe('Router', function () {
             .expect(200, { 0: 's', user: 'tj', op: 'edit' }, cb)
         })
 
-        it('should work inside literal paranthesis', function (done) {
+        it('should work inside literal parenthesis', function (done) {
           var router = new Router()
           var route = router.route('/:user\\(:op\\)')
           var server = createServer(router)
@@ -697,6 +697,27 @@ describe('Router', function () {
           request(server)
             .get('/tj(edit)')
             .expect(200, { user: 'tj', op: 'edit' }, done)
+        })
+
+        it('should allow matching literal parenthesis within a group', function (done) {
+          var cb = after(3, done)
+          var router = new Router()
+          var route = router.route('/:user([a-z\\(\\)]+)')
+          var server = createServer(router)
+
+          route.all(sendParams)
+
+          request(server)
+            .get('/1234')
+            .expect(404, cb)
+
+          request(server)
+            .get('/foo')
+            .expect(200, { user: 'foo' }, cb)
+
+          request(server)
+            .get('/(foo)')
+            .expect(200, { user: '(foo)' }, cb)
         })
 
         it('should work within arrays', function (done) {
