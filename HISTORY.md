@@ -1,3 +1,8 @@
+2.x
+===
+
+This incorporates all changes after 1.3.5 up to 1.3.6.
+
 2.0.0-beta.1 / 2020-03-29
 =========================
 
@@ -32,6 +37,12 @@ This incorporates all changes after 1.3.3 up to 1.3.5.
     - Change non-TTY date format
     - Remove `DEBUG_FD` environment variable support
     - Support 256 namespace colors
+
+1.3.6 / 2021-11-15
+==================
+
+  * Fix handling very large stacks of sync middleware
+  * deps: safe-buffer@5.2.1
 
 1.3.5 / 2020-03-24
 ==================

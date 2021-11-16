@@ -1,2 +1,19 @@
 root: true
-extends: standard
+extends:
+  - standard
+  - plugin:markdown/recommended
+plugins:
+  - markdown
+overrides:
+  - files: '**/*.md'
+    processor: 'markdown/markdown'
+rules:
+  eol-last: error
+  indent:
+    - error
+    - 2
+    - SwitchCase: 1
+  no-trailing-spaces: error
+  semi:
+    - error
+    - never

@@ -68,7 +68,7 @@ describe('req.params', function () {
   })
 
   describe('when "mergeParams: true"', function () {
-    it('should merge outsite object with params', function (done) {
+    it('should merge outside object with params', function (done) {
       var router = Router({ mergeParams: true })
       var server = createServer(function (req, res, next) {
         req.params = { foo: 'bar' }
@@ -87,7 +87,7 @@ describe('req.params', function () {
         .expect(200, '{"foo":"bar"}', done)
     })
 
-    it('should ignore non-object outsite object', function (done) {
+    it('should ignore non-object outside object', function (done) {
       var router = Router({ mergeParams: true })
       var server = createServer(function (req, res, next) {
         req.params = 42
@@ -126,7 +126,7 @@ describe('req.params', function () {
     })
 
     describe('with numeric properties in req.params', function () {
-      it('should merge numeric properies by offsetting', function (done) {
+      it('should merge numeric properties by offsetting', function (done) {
         var router = Router({ mergeParams: true })
         var server = createServer(function (req, res, next) {
           req.params = { 0: 'foo', 1: 'bar' }

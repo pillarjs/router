@@ -155,6 +155,7 @@ Router.prototype.handle = function handle (req, res, callback) {
   var removed = ''
   var self = this
   var slashAdded = false
+  var sync = 0
   var paramcalled = {}
 
   // middleware and routes
@@ -208,6 +209,11 @@ Router.prototype.handle = function handle (req, res, callback) {
     if (idx >= stack.length) {
       setImmediate(done, layerError)
       return
+    }
+
+    // max sync stack
+    if (++sync > 100) {
+      return setImmediate(next, err)
     }
 
     // get pathname of request
@@ -329,6 +335,8 @@ Router.prototype.handle = function handle (req, res, callback) {
     } else {
       layer.handleRequest(req, res, next)
     }
+
+    sync = 0
   }
 }
 
