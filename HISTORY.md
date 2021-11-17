@@ -4,6 +4,11 @@
 This incorporates all changes after 1.3.5 up to 1.3.7.
 
   * Add support for returned, rejected Promises to `router.param`
+  * deps: path-to-regexp@6.2.0
+    - Support for **named capturing groups** in paths using `RegExp`, i.e.: `/\/(?<group>.+)/` would result in `req.params.group` being populated.
+    - Custom **prefix and suffix groups** using `{}`, e.g.: `/:entity{-:action}?` would match `/user` and `/user-delete`.
+    - Unbalanced patterns would now produce an error: `/test(foo` previously would worked, now it expects either `(` to be closed or the character to be escaped for the previous behavior, e.g. `/test\\(foo`.
+    - Just like with parentheses since `2.0.0-beta.1`, bracket literals now require escaping, i.e.: `/user{:id}` no longer matches `/user{42}` as before unless written as `/user\\{:id\\}`.
 
 2.0.0-beta.1 / 2020-03-29
 =========================
