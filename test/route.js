@@ -877,6 +877,27 @@ describe('Router', function () {
             .get('/page_42')
             .expect(200, { 0: '42' }, cb)
         })
+
+        it('should treat regexp as literal regexp', function (done) {
+          var cb = after(3, done)
+          var router = new Router()
+          var route = router.route('/([a-z]+:n[0-9]+)')
+          var server = createServer(router)
+
+          route.all(sendParams)
+
+          request(server)
+            .get('/foo:bar')
+            .expect(404, cb)
+
+          request(server)
+            .get('/foo:n')
+            .expect(404, cb)
+
+          request(server)
+            .get('/foo:n42')
+            .expect(200, { 0: 'foo:n42' }, cb)
+        })
       })
     })
   })

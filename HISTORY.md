@@ -23,6 +23,8 @@ This incorporates all changes after 1.3.3 up to 1.3.5.
       `req.params[0]`.
     - Regular expressions can only be used in a matching group.
       `/\\d+` is no longer valid and must be written as `/(\\d+)`.
+    - Matching groups are now literal regular expressions.
+      `:foo` named captures can no longer be included inside a capture group.
     - Special `*` path segment behavior removed.
       `/foo/*/bar` will match a literal `*` as the middle segment.
   * deps: setprototypeof@1.2.0
