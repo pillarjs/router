@@ -196,14 +196,14 @@ Router.prototype.handle = function handle(req, res, callback) {
 
     // remove added slash
     if (slashAdded) {
-      req.url = req.url.substr(1)
+      req.url = req.url.slice(1)
       slashAdded = false
     }
 
     // restore altered req.url
     if (removed.length !== 0) {
       req.baseUrl = parentUrl
-      req.url = protohost + removed + req.url.substr(protohost.length)
+      req.url = protohost + removed + req.url.slice(protohost.length)
       removed = ''
     }
 
@@ -309,7 +309,7 @@ Router.prototype.handle = function handle(req, res, callback) {
   function trim_prefix(layer, layerError, layerPath, path) {
     if (layerPath.length !== 0) {
       // Validate path is a prefix match
-      if (layerPath !== path.substr(0, layerPath.length)) {
+      if (layerPath !== path.substring(0, layerPath.length)) {
         next(layerError)
         return
       }
@@ -325,7 +325,7 @@ Router.prototype.handle = function handle(req, res, callback) {
       // middleware (.use stuff) needs to have the path stripped
       debug('trim prefix (%s) from url %s', layerPath, req.url)
       removed = layerPath
-      req.url = protohost + req.url.substr(protohost.length + removed.length)
+      req.url = protohost + req.url.slice(protohost.length + removed.length)
 
       // Ensure leading slash
       if (!protohost && req.url[0] !== '/') {
@@ -598,10 +598,10 @@ function getProtohost(url) {
   var pathLength = searchIndex !== -1
     ? searchIndex
     : url.length
-  var fqdnIndex = url.substr(0, pathLength).indexOf('://')
+  var fqdnIndex = url.substring(0, pathLength).indexOf('://')
 
   return fqdnIndex !== -1
-    ? url.substr(0, url.indexOf('/', 3 + fqdnIndex))
+    ? url.substring(0, url.indexOf('/', 3 + fqdnIndex))
     : undefined
 }
 
