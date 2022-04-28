@@ -382,7 +382,7 @@ server.listen(8080)
 [MIT](LICENSE)
 
 [ci-image]: https://badgen.net/github/checks/pillarjs/router/master?label=ci
-[ci-url]: https://github.com/pillarjs/router/actions?query=workflow%3Aci
+[ci-url]: https://github.com/pillarjs/router/actions/workflows/ci.yml
 [npm-image]: https://img.shields.io/npm/v/router.svg
 [npm-url]: https://npmjs.org/package/router
 [node-version-image]: https://img.shields.io/node/v/router.svg
