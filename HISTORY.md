@@ -1,3 +1,8 @@
+unreleased
+==========
+
+  * Fix hanging on large stack of sync routes
+
 1.3.6 / 2021-11-15
 ==================
 

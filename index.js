@@ -295,14 +295,14 @@ Router.prototype.handle = function handle(req, res, callback) {
     // this should be done for the layer
     self.process_params(layer, paramcalled, req, res, function (err) {
       if (err) {
-        return next(layerError || err)
+        next(layerError || err)
+      } else if (route) {
+        layer.handle_request(req, res, next)
+      } else {
+        trim_prefix(layer, layerError, layerPath, path)
       }
 
-      if (route) {
-        return layer.handle_request(req, res, next)
-      }
-
-      trim_prefix(layer, layerError, layerPath, path)
+      sync = 0
     })
   }
 
@@ -346,8 +346,6 @@ Router.prototype.handle = function handle(req, res, callback) {
     } else {
       layer.handle_request(req, res, next)
     }
-
-    sync = 0
   }
 }
 
