@@ -147,6 +147,23 @@ describe('Router', function () {
         .expect(200, 'hello, world', done)
     })
 
+    it('should not stack overflow with a large sync stack', function (done) {
+      this.timeout(5000) // long-running test
+
+      var router = new Router()
+      var server = createServer(router)
+
+      for (var i = 0; i < 6000; i++) {
+        router.get('/foo', function (req, res, next) { next() })
+      }
+
+      router.get('/foo', helloWorld)
+
+      request(server)
+        .get('/foo')
+        .expect(200, 'hello, world', done)
+    })
+
     describe('with "caseSensitive" option', function () {
       it('should not match paths case-sensitively by default', function (done) {
         var cb = after(3, done)
