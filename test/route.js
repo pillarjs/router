@@ -859,6 +859,25 @@ describe('Router', function () {
             .expect(200, { foo: '42' }, cb)
         })
       })
+
+      describe('using "(regexp)"', function () {
+        it('should add capture group using regexp', function (done) {
+          var cb = after(2, done)
+          var router = new Router()
+          var route = router.route('/page_([0-9]+)')
+          var server = createServer(router)
+
+          route.all(sendParams)
+
+          request(server)
+            .get('/page_foo')
+            .expect(404, cb)
+
+          request(server)
+            .get('/page_42')
+            .expect(200, { 0: '42' }, cb)
+        })
+      })
     })
   })
 })
