@@ -840,6 +840,25 @@ describe('Router', function () {
             .expect(200, { foo: 'fizz/buzz' }, cb)
         })
       })
+
+      describe('using ":name(regexp)"', function () {
+        it('should limit capture group to regexp match', function (done) {
+          var cb = after(2, done)
+          var router = new Router()
+          var route = router.route('/:foo([0-9]+)')
+          var server = createServer(router)
+
+          route.all(sendParams)
+
+          request(server)
+            .get('/foo')
+            .expect(404, cb)
+
+          request(server)
+            .get('/42')
+            .expect(200, { foo: '42' }, cb)
+        })
+      })
     })
   })
 })
