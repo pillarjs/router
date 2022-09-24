@@ -1,3 +1,8 @@
+unreleased
+==========
+
+  * Fix routing requests without method
+
 1.3.7 / 2022-04-28
 ==================
 
