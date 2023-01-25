@@ -19,7 +19,7 @@
   },
   "devDependencies": {
     "after": "0.8.2",
-    "eslint": "8.28.0",
+    "eslint": "8.32.0",
     "eslint-plugin-markdown": "3.0.0",
     "finalhandler": "1.2.0",
     "mocha": "10.2.0",
