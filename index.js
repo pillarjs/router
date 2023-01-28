@@ -301,7 +301,7 @@ Router.prototype.handle = function handle(req, res, callback) {
           catch (e) {
             availableMethods = {}
           }
-          availableMethods = Object.keys(availableMethods).map(function (key) { key.toUpperCase() })
+          availableMethods = Object.keys(availableMethods).map(function (key) { return key.toUpperCase() })
 
           // If there's (1) available methods for this path (2) no method match and (3) a path match, emit 405
           if (availableMethods.length > 0 && layer.regexp.exec(path) && !availableMethods.includes(req.method)) {

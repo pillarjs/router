@@ -69,9 +69,8 @@ describe('Router', function () {
 
       request(server)
         .put('/foo')
-        .end((err, res) => {
-            if (res.headers.allow.length > 1) cb();
-         });
+        .expect('Allow', 'DELETE, GET, POST')
+        .expect(405, done)
     })
 
     it('should route without method', function (done) {
