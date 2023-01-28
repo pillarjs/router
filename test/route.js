@@ -44,6 +44,20 @@ describe('Router', function () {
         .expect(404, cb)
     })
 
+    it('should respond to multiple methods', function (done) {
+      var cb = after(1, done)
+      var router = new Router({ automatic405: true })
+      var route = router.route('/foo')
+      var server = createServer(router)
+
+      route.get(saw)
+      route.post(saw)
+
+      request(server)
+        .put('/foo')
+        .expect(405, cb)
+    })
+
     it('should route without method', function (done) {
       var router = new Router()
       var route = router.route('/foo')

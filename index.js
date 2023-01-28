@@ -72,6 +72,7 @@ function Router(options) {
   router.params = {}
   router.strict = opts.strict
   router.stack = []
+  router.automatic405 = opts.automatic405
 
   return router
 }
@@ -168,6 +169,7 @@ Router.prototype.handle = function handle(req, res, callback) {
 
   // middleware and routes
   var stack = this.stack
+  var automatic405 = this.automatic405
 
   // manage inter-router variables
   var parentParams = req.params
@@ -190,6 +192,7 @@ Router.prototype.handle = function handle(req, res, callback) {
   next()
 
   function next(err) {
+    
     var layerError = err === 'route'
       ? null
       : err
@@ -278,6 +281,27 @@ Router.prototype.handle = function handle(req, res, callback) {
 
     // no match
     if (match !== true) {
+      if (automatic405 && req.method != 'OPTIONS' && !layerError) {
+        var is405AndIfSoAllowedMethods = testFor405(stack, path, req.method)
+
+        if (is405AndIfSoAllowedMethods && is405AndIfSoAllowedMethods.length > 0) {
+          // set 405 response
+          res.statusCode = 405
+
+          // construct the allow list
+          var allow = is405AndIfSoAllowedMethods.sort().join(', ')
+
+          // send response
+          res.setHeader('Allow', allow)
+          res.setHeader('Content-Length', Buffer.byteLength(allow))
+          res.setHeader('Content-Type', 'text/plain')
+          res.setHeader('X-Content-Type-Options', 'nosniff')
+          res.end(allow)
+
+          // res.end()
+          done()
+        }
+      }
       return done(layerError)
     }
 
@@ -745,4 +769,30 @@ function wrap(old, fn) {
 
     fn.apply(this, args)
   }
+}
+
+function testFor405(stack, path, reqMethod) {
+  // Loop through every path
+  for (let layer of stack) {
+    /* If we set automatic405 to true by default,
+       and
+          let methods = layer.route.methods
+       one of the automatic tests fails:
+          Router
+            .use(path, ...fn)
+              should invoke when req.url starts with path:
+          Uncaught TypeError: Cannot read properties of undefined (reading 'methods')
+       The solution is calling .methods safely for undefined cases
+     */
+    let methods = layer.route?.methods || {}
+    let availableMethodHandlers = Object.keys(methods).map(key => key.toUpperCase())
+
+    // If there's a path match but no method match, return true
+    if (layer.regexp.exec(path) && !availableMethodHandlers.includes(reqMethod)) {
+      return availableMethodHandlers;
+    }
+  }
+
+  // Otherwise return false
+  return false
 }
