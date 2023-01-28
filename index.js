@@ -294,19 +294,19 @@ Router.prototype.handle = function handle(req, res, callback) {
                   Uncaught TypeError: Cannot read properties of undefined (reading 'methods')
              The solution is calling .methods safely for undefined cases and generic handlers
            */
-          var methods
+          var availableMethods
           try {
-            methods = layer.route.methods
+            availableMethods = layer.route.methods
           }
           catch (e) {
-            methods = {}
+            availableMethods = {}
           }
-          var availableMethodHandlers = Object.keys(methods).map(key => key.toUpperCase())
+          availableMethods = Object.keys(availableMethods).map(function (key) { key.toUpperCase() })
 
           // If there's (1) available methods for this path (2) no method match and (3) a path match, emit 405
-          if (availableMethodHandlers.length > 0 && layer.regexp.exec(path) && !availableMethodHandlers.includes(req.method)) {
+          if (availableMethods.length > 0 && layer.regexp.exec(path) && !availableMethods.includes(req.method)) {
             // Construct the allow list
-            var allow = availableMethodHandlers.sort().join(', ')
+            var allow = availableMethods.sort().join(', ')
 
             /* https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/405
                The server must generate an Allow header field in a 405 status code response.
@@ -318,7 +318,7 @@ Router.prototype.handle = function handle(req, res, callback) {
             res.setHeader('X-Content-Type-Options', 'nosniff')
             
             // Instead of res.end() like in OPTIONS, let's send an error downstream
-            var layerError = new Error("Method Not Allowed")
+            layerError = new Error("Method Not Allowed")
             layerError.statusCode = 405
             layerError.stack = "Method Not Allowed"
 
