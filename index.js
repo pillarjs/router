@@ -314,8 +314,10 @@ Router.prototype.handle = function handle(req, res, callback) {
             res.setHeader('Content-Type', 'text/plain')
             res.setHeader('X-Content-Type-Options', 'nosniff')
             
-            res.end(allow)
-            return done()
+            let layerError = new Error("Method Not Allowed")
+            layerError.statusCode = 405
+            layerError.stack = "Method Not Allowed"
+            return done(layerError)
           }
 
         }
