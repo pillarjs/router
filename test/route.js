@@ -44,7 +44,7 @@ describe('Router', function () {
         .expect(404, cb)
     })
 
-    it('should respond to multiple methods', function (done) {
+    it('should emit 405 in response to an invalid method on valid path if automatic405 option is set to true', function (done) {
       var cb = after(1, done)
       var router = new Router({ automatic405: true })
       var route = router.route('/foo')
