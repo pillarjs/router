@@ -299,9 +299,6 @@ Router.prototype.handle = function handle(req, res, callback) {
 
           // If there's (1) available methods for this path (2) no method match and (3) a path match, emit 405
           if (availableMethodHandlers.length > 0 && layer.regexp.exec(path) && !availableMethodHandlers.includes(req.method)) {
-            // Set 405 response
-            res.statusCode = 405
-
             // Construct the allow list
             var allow = availableMethodHandlers.sort().join(', ')
 
@@ -314,9 +311,12 @@ Router.prototype.handle = function handle(req, res, callback) {
             res.setHeader('Content-Type', 'text/plain')
             res.setHeader('X-Content-Type-Options', 'nosniff')
             
+            // Instead of res.end() like in OPTIONS, let's send an error downstream
             let layerError = new Error("Method Not Allowed")
             layerError.statusCode = 405
             layerError.stack = "Method Not Allowed"
+
+            // Stop the for loop!
             return done(layerError)
           }
 
