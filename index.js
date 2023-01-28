@@ -316,7 +316,7 @@ Router.prototype.handle = function handle(req, res, callback) {
             res.setHeader('Content-Length', Buffer.byteLength(allow))
             res.setHeader('Content-Type', 'text/plain')
             res.setHeader('X-Content-Type-Options', 'nosniff')
-            
+
             // Instead of res.end() like in OPTIONS, let's send an error downstream
             layerError = new Error("Method Not Allowed")
             layerError.statusCode = 405
