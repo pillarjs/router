@@ -31,7 +31,7 @@ var slice = Array.prototype.slice
 /* istanbul ignore next */
 var defer = typeof setImmediate === 'function'
   ? setImmediate
-  : function(fn){ process.nextTick(fn.bind.apply(fn, arguments)) }
+  : function (fn) { process.nextTick(fn.bind.apply(fn, arguments)) }
 
 /**
  * Expose `Router`.
@@ -82,7 +82,7 @@ function Router(options) {
  */
 
 /* istanbul ignore next */
-Router.prototype = function () {}
+Router.prototype = function () { }
 
 /**
  * Map the given param placeholder `name`(s) to the given callback.
@@ -192,7 +192,7 @@ Router.prototype.handle = function handle(req, res, callback) {
   next()
 
   function next(err) {
-    
+
     var layerError = err === 'route'
       ? null
       : err
@@ -282,24 +282,42 @@ Router.prototype.handle = function handle(req, res, callback) {
     // no match
     if (match !== true) {
       if (automatic405 && req.method != 'OPTIONS' && !layerError) {
-        var is405AndIfSoAllowedMethods = testFor405(stack, path, req.method)
+        // Loop through every path
+        for (let layer of stack) {
+          /* If we set automatic405 to true by default in all the tests,
+             and simply did:
+                  let methods = layer.route.methods
+             one of the automatic tests fails:
+                  Router
+                    .use(path, ...fn)
+                      should invoke when req.url starts with path:
+                  Uncaught TypeError: Cannot read properties of undefined (reading 'methods')
+             The solution is calling .methods safely for undefined cases and generic handlers
+           */
+          let methods = layer.route?.methods || {}
+          let availableMethodHandlers = Object.keys(methods).map(key => key.toUpperCase())
 
-        if (is405AndIfSoAllowedMethods && is405AndIfSoAllowedMethods.length > 0) {
-          // set 405 response
-          res.statusCode = 405
+          // If there's (1) available methods for this path (2) no method match and (3) a path match, emit 405
+          if (availableMethodHandlers.length > 0 && layer.regexp.exec(path) && !availableMethodHandlers.includes(req.method)) {
+            // Set 405 response
+            res.statusCode = 405
 
-          // construct the allow list
-          var allow = is405AndIfSoAllowedMethods.sort().join(', ')
+            // Construct the allow list
+            var allow = availableMethodHandlers.sort().join(', ')
 
-          // send response
-          res.setHeader('Allow', allow)
-          res.setHeader('Content-Length', Buffer.byteLength(allow))
-          res.setHeader('Content-Type', 'text/plain')
-          res.setHeader('X-Content-Type-Options', 'nosniff')
-          res.end(allow)
+            /* https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/405
+               The server must generate an Allow header field in a 405 status code response.
+               The field must contain a list of methods that the target resource currently supports.
+               */
+            res.setHeader('Allow', allow)
+            res.setHeader('Content-Length', Buffer.byteLength(allow))
+            res.setHeader('Content-Type', 'text/plain')
+            res.setHeader('X-Content-Type-Options', 'nosniff')
+            
+            res.end(allow)
+            return done()
+          }
 
-          // res.end()
-          done()
         }
       }
       return done(layerError)
@@ -405,7 +423,7 @@ Router.prototype.process_params = function process_params(layer, called, req, re
       return done(err)
     }
 
-    if (i >= keys.length ) {
+    if (i >= keys.length) {
       return done()
     }
 
@@ -563,7 +581,7 @@ Router.prototype.route = function route(path) {
 }
 
 // create Router#VERB functions
-methods.concat('all').forEach(function(method){
+methods.concat('all').forEach(function (method) {
   Router.prototype[method] = function (path) {
     var route = this.route(path)
     route[method].apply(route, slice.call(arguments, 1))
@@ -703,7 +721,7 @@ function restore(fn, obj) {
     vals[i] = obj[props[i]]
   }
 
-  return function(){
+  return function () {
     // restore vals
     for (var i = 0; i < props.length; i++) {
       obj[props[i]] = vals[i]
