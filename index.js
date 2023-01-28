@@ -282,7 +282,7 @@ Router.prototype.handle = function handle(req, res, callback) {
     if (match !== true) {
       if (automatic405 && req.method != 'OPTIONS' && !layerError) {
         // Loop through every path
-        for (i = 0; i < stack.length; i++) {
+        for (let i = 0; i < stack.length; i++) {
           let layer = stack[i]
           /* If we set automatic405 to true by default in all the tests,
              and simply did:
@@ -294,7 +294,13 @@ Router.prototype.handle = function handle(req, res, callback) {
                   Uncaught TypeError: Cannot read properties of undefined (reading 'methods')
              The solution is calling .methods safely for undefined cases and generic handlers
            */
-          let methods = layer.route?.methods || {}
+          let methods
+          try {
+            methods = layer.route.methods
+          }
+          catch (e) {
+            methods = {}
+          }
           let availableMethodHandlers = Object.keys(methods).map(key => key.toUpperCase())
 
           // If there's (1) available methods for this path (2) no method match and (3) a path match, emit 405
@@ -789,30 +795,4 @@ function wrap(old, fn) {
 
     fn.apply(this, args)
   }
-}
-
-function testFor405(stack, path, reqMethod) {
-  // Loop through every path
-  for (let layer of stack) {
-    /* If we set automatic405 to true by default,
-       and
-          let methods = layer.route.methods
-       one of the automatic tests fails:
-          Router
-            .use(path, ...fn)
-              should invoke when req.url starts with path:
-          Uncaught TypeError: Cannot read properties of undefined (reading 'methods')
-       The solution is calling .methods safely for undefined cases
-     */
-    let methods = layer.route?.methods || {}
-    let availableMethodHandlers = Object.keys(methods).map(key => key.toUpperCase())
-
-    // If there's a path match but no method match, return true
-    if (layer.regexp.exec(path) && !availableMethodHandlers.includes(reqMethod)) {
-      return availableMethodHandlers;
-    }
-  }
-
-  // Otherwise return false
-  return false
 }
