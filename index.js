@@ -304,7 +304,7 @@ Router.prototype.handle = function handle(req, res, callback) {
           availableMethods = Object.keys(availableMethods).map(function (key) { return key.toUpperCase() })
 
           // If there's (1) available methods for this path (2) no method match and (3) a path match, emit 405
-          if (availableMethods.length > 0 && layer.regexp.exec(path) && !availableMethods.includes(req.method)) {
+          if (availableMethods.length > 0 && layer.regexp.exec(path) && availableMethods.indexOf(req.method) == -1) {
             // Construct the allow list
             var allow = availableMethods.sort().join(', ')
 
