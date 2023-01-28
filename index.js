@@ -282,7 +282,8 @@ Router.prototype.handle = function handle(req, res, callback) {
     if (match !== true) {
       if (automatic405 && req.method != 'OPTIONS' && !layerError) {
         // Loop through every path
-        for (let layer of stack) {
+        for (i = 0; i < stack.length; i++) {
+          let layer = stack[i]
           /* If we set automatic405 to true by default in all the tests,
              and simply did:
                   let methods = layer.route.methods
