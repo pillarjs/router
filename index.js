@@ -31,7 +31,7 @@ var slice = Array.prototype.slice
 /* istanbul ignore next */
 var defer = typeof setImmediate === 'function'
   ? setImmediate
-  : function (fn) { process.nextTick(fn.bind.apply(fn, arguments)) }
+  : function(fn){ process.nextTick(fn.bind.apply(fn, arguments)) }
 
 /**
  * Expose `Router`.
@@ -82,7 +82,7 @@ function Router(options) {
  */
 
 /* istanbul ignore next */
-Router.prototype = function () { }
+Router.prototype = function () {}
 
 /**
  * Map the given param placeholder `name`(s) to the given callback.
@@ -192,7 +192,6 @@ Router.prototype.handle = function handle(req, res, callback) {
   next()
 
   function next(err) {
-
     var layerError = err === 'route'
       ? null
       : err
@@ -425,7 +424,7 @@ Router.prototype.process_params = function process_params(layer, called, req, re
       return done(err)
     }
 
-    if (i >= keys.length) {
+    if (i >= keys.length ) {
       return done()
     }
 
@@ -583,7 +582,7 @@ Router.prototype.route = function route(path) {
 }
 
 // create Router#VERB functions
-methods.concat('all').forEach(function (method) {
+methods.concat('all').forEach(function(method){
   Router.prototype[method] = function (path) {
     var route = this.route(path)
     route[method].apply(route, slice.call(arguments, 1))
@@ -723,7 +722,7 @@ function restore(fn, obj) {
     vals[i] = obj[props[i]]
   }
 
-  return function () {
+  return function(){
     // restore vals
     for (var i = 0; i < props.length; i++) {
       obj[props[i]] = vals[i]
