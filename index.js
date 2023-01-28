@@ -282,11 +282,11 @@ Router.prototype.handle = function handle(req, res, callback) {
     if (match !== true) {
       if (automatic405 && req.method != 'OPTIONS' && !layerError) {
         // Loop through every path
-        for (let i = 0; i < stack.length; i++) {
-          let layer = stack[i]
+        for (var i = 0; i < stack.length; i++) {
+          var layer = stack[i]
           /* If we set automatic405 to true by default in all the tests,
              and simply did:
-                  let methods = layer.route.methods
+                  var methods = layer.route.methods
              one of the automatic tests fails:
                   Router
                     .use(path, ...fn)
@@ -294,14 +294,14 @@ Router.prototype.handle = function handle(req, res, callback) {
                   Uncaught TypeError: Cannot read properties of undefined (reading 'methods')
              The solution is calling .methods safely for undefined cases and generic handlers
            */
-          let methods
+          var methods
           try {
             methods = layer.route.methods
           }
           catch (e) {
             methods = {}
           }
-          let availableMethodHandlers = Object.keys(methods).map(key => key.toUpperCase())
+          var availableMethodHandlers = Object.keys(methods).map(key => key.toUpperCase())
 
           // If there's (1) available methods for this path (2) no method match and (3) a path match, emit 405
           if (availableMethodHandlers.length > 0 && layer.regexp.exec(path) && !availableMethodHandlers.includes(req.method)) {
@@ -318,7 +318,7 @@ Router.prototype.handle = function handle(req, res, callback) {
             res.setHeader('X-Content-Type-Options', 'nosniff')
             
             // Instead of res.end() like in OPTIONS, let's send an error downstream
-            let layerError = new Error("Method Not Allowed")
+            var layerError = new Error("Method Not Allowed")
             layerError.statusCode = 405
             layerError.stack = "Method Not Allowed"
 
