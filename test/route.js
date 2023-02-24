@@ -14,8 +14,7 @@ var shouldHitHandle = utils.shouldHitHandle
 var shouldNotHaveBody = utils.shouldNotHaveBody
 var shouldNotHitHandle = utils.shouldNotHitHandle
 
-// Named capturing groups are available from Node `10.0.0` and up
-var describeCaptureGroups = runningOnNodeMajorVersionGreaterOrEqualThan(10) ? describe : describe.skip
+var describeNamedCaptureGroups = supportsRegExp('(?<foo>.)') ? describe : describe.skip
 var describePromises = global.Promise ? describe : describe.skip
 
 describe('Router', function () {
@@ -1021,7 +1020,7 @@ describe('Router', function () {
         })
       })
 
-      describeCaptureGroups('using "(?<name>)"', function () {
+      describeNamedCaptureGroups('using "(?<name>)"', function () {
         it('should allow defining capturing groups using regexps', function (done) {
           var cb = after(3, done)
           var router = new Router()
@@ -1095,6 +1094,10 @@ function sendParams (req, res) {
   res.end(JSON.stringify(req.params))
 }
 
-function runningOnNodeMajorVersionGreaterOrEqualThan (version) {
-  return Number(process.versions.node.split('.')[0]) >= Number(version)
+function supportsRegExp (source) {
+  try {
+    return RegExp(source).source !== ''
+  } catch (e) {
+    return false
+  }
 }
