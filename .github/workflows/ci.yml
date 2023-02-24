@@ -195,7 +195,7 @@ jobs:
           mv "./${{ matrix.name }}" "./coverage/${{ matrix.name }}"
         fi
     - name: Upload code coverage
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
 
       if: steps.list_env.outputs.nyc != ''
       with:
