@@ -1,5 +1,5 @@
-unreleased
-==========
+1.3.8 / 2023-02-24
+==================
 
   * Fix routing requests without method
 
