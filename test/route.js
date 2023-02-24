@@ -14,6 +14,8 @@ var shouldHitHandle = utils.shouldHitHandle
 var shouldNotHaveBody = utils.shouldNotHaveBody
 var shouldNotHitHandle = utils.shouldNotHitHandle
 
+// Named capturing groups are available from Node `10.0.0` and up
+var describeCaptureGroups = runningOnNodeMajorVersionGreaterOrEqualThan(10) ? describe : describe.skip
 var describePromises = global.Promise ? describe : describe.skip
 
 describe('Router', function () {
@@ -1019,60 +1021,57 @@ describe('Router', function () {
         })
       })
 
-      // Named capturing groups are available from Node `10.0.0` and up
-      if (runningOnNodeMajorVersionGreaterOrEqualThan(10)) {
-        describe('using "(?<name>)"', function () {
-          it('should allow defining capturing groups using regexps', function (done) {
-            var cb = after(3, done)
-            var router = new Router()
-            var route = router.route(/\/(?<name>.+)/)
-            var server = createServer(router)
+      describeCaptureGroups('using "(?<name>)"', function () {
+        it('should allow defining capturing groups using regexps', function (done) {
+          var cb = after(3, done)
+          var router = new Router()
+          var route = router.route(/\/(?<name>.+)/)
+          var server = createServer(router)
 
-            route.all(sendParams)
+          route.all(sendParams)
 
-            request(server)
-              .get('/')
-              .expect(404, cb)
+          request(server)
+            .get('/')
+            .expect(404, cb)
 
-            request(server)
-              .get('/foo/bar')
-              .expect(200, { name: 'foo/bar' }, cb)
+          request(server)
+            .get('/foo/bar')
+            .expect(200, { name: 'foo/bar' }, cb)
 
-            request(server)
-              .get('/foo')
-              .expect(200, { name: 'foo' }, cb)
-          })
-
-          it('should work with multiple named groups in the same segment', function (done) {
-            var cb = after(5, done)
-            var router = new Router()
-            var route = router.route(/\/(?<filename>.*).(?<ext>html|pdf|json)/)
-            var server = createServer(router)
-
-            route.all(sendParams)
-
-            request(server)
-              .get('/foo')
-              .expect(404, cb)
-
-            request(server)
-              .get('/foo.xml')
-              .expect(404, cb)
-
-            request(server)
-              .get('/foo.html')
-              .expect(200, { filename: 'foo', ext: 'html' }, cb)
-
-            request(server)
-              .get('/bar.pdf')
-              .expect(200, { filename: 'bar', ext: 'pdf' }, cb)
-
-            request(server)
-              .get('/baz.json')
-              .expect(200, { filename: 'baz', ext: 'json' }, cb)
-          })
+          request(server)
+            .get('/foo')
+            .expect(200, { name: 'foo' }, cb)
         })
-      }
+
+        it('should work with multiple named groups in the same segment', function (done) {
+          var cb = after(5, done)
+          var router = new Router()
+          var route = router.route(/\/(?<filename>.*).(?<ext>html|pdf|json)/)
+          var server = createServer(router)
+
+          route.all(sendParams)
+
+          request(server)
+            .get('/foo')
+            .expect(404, cb)
+
+          request(server)
+            .get('/foo.xml')
+            .expect(404, cb)
+
+          request(server)
+            .get('/foo.html')
+            .expect(200, { filename: 'foo', ext: 'html' }, cb)
+
+          request(server)
+            .get('/bar.pdf')
+            .expect(200, { filename: 'bar', ext: 'pdf' }, cb)
+
+          request(server)
+            .get('/baz.json')
+            .expect(200, { filename: 'baz', ext: 'json' }, cb)
+        })
+      })
     })
   })
 })
