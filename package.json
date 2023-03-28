@@ -9,6 +9,7 @@
   "license": "MIT",
   "repository": "pillarjs/router",
   "dependencies": {
+    "@types/methods": "^1.1.1",
     "array-flatten": "3.0.0",
     "debug": "2.6.9",
     "methods": "~1.1.2",
@@ -18,6 +19,7 @@
     "utils-merge": "1.0.1"
   },
   "devDependencies": {
+    "@types/node": "^18.0.0",
     "after": "0.8.2",
     "eslint": "8.34.0",
     "eslint-plugin-markdown": "3.0.0",
@@ -33,8 +35,10 @@
     "HISTORY.md",
     "README.md",
     "SECURITY.md",
-    "index.js"
+    "index.js",
+    "index.d.ts"
   ],
+  "types": "index.d.ts",
   "engines": {
     "node": ">= 0.8"
   },
@@ -43,6 +47,7 @@
     "test": "mocha --reporter spec --bail --check-leaks test/",
     "test-ci": "nyc --reporter=lcov --reporter=text npm test",
     "test-cov": "nyc --reporter=text npm test",
+    "test-types": "npx -p typescript tsc --project tsconfig.json --noEmit",
     "version": "node scripts/version-history.js && git add HISTORY.md"
   }
 }
