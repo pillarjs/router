@@ -37,27 +37,32 @@ jobs:
         - name: Node.js 0.8
           node-version: "0.8"
           npm-i: mocha@2.5.3 supertest@1.1.0
-          npm-rm: nyc
+          npm-rm: nyc @types/node typescript
 
         - name: Node.js 0.10
           node-version: "0.10"
           npm-i: mocha@3.5.3 nyc@10.3.2 supertest@2.0.0
+          npm-rm: @types/node typescript
 
         - name: Node.js 0.12
           node-version: "0.12"
           npm-i: mocha@3.5.3 nyc@10.3.2 supertest@2.0.0
+          npm-rm: @types/node typescript
 
         - name: io.js 1.x
           node-version: "1.8"
           npm-i: mocha@3.5.3 nyc@10.3.2 supertest@2.0.0
+          npm-rm: @types/node typescript
 
         - name: io.js 2.x
           node-version: "2.5"
           npm-i: mocha@3.5.3 nyc@10.3.2 supertest@2.0.0
+          npm-rm: @types/node typescript
 
         - name: io.js 3.x
           node-version: "3.3"
           npm-i: mocha@3.5.3 nyc@10.3.2 supertest@2.0.0
+          npm-rm: @types/node typescript
 
         - name: Node.js 4.x
           node-version: "4.9"
@@ -181,6 +186,10 @@ jobs:
         else
           npm test
         fi
+
+    - name: Test type definition
+      if: steps.list_env.outputs.typescript != ''
+      run: npm run test-types
 
     - name: Lint code
       if: steps.list_env.outputs.eslint != ''
