@@ -44,10 +44,14 @@ export interface IncomingRequest {
   params?: Record<string, string>;
 }
 
-export interface RoutedRequest extends IncomingRequest {
+interface BaseRoutedRequest extends IncomingRequest {
   baseUrl: string;
   next?: NextFunction;
   route?: IRoute;
+}
+
+export type RoutedRequest = BaseRoutedRequest & {
+  [key: string]: any;
 }
 
 export interface NextFunction {

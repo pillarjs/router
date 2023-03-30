@@ -54,6 +54,11 @@ router.use((req, res, next) => {
     next();
 });
 
+// RoutedRequest is extended with properties without type errors
+router.use((req, res, next) => {
+  req.extendable = 'extendable'
+  next();
+});
 
 router.route('/')
 .all((req, res, next) => {
@@ -70,7 +75,7 @@ router.route('/')
 
 
 // valid for router from createServer
-var server = createServer(function(req, res) {
+createServer(function(req, res) {
   router(req, res, (err) => {})
   router.handle(req, res, (err) => {})
 })
