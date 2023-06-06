@@ -574,7 +574,7 @@ describe('Router', function () {
             .expect(200, {'0': 's', 'user': 'tj', 'op': 'edit'}, cb)
         })
 
-        it('should work inside literal paranthesis', function (done) {
+        it('should work inside literal parentheses', function (done) {
           var router = new Router()
           var route = router.route('/:user\\(:op\\)')
           var server = createServer(router)
