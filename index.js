@@ -238,10 +238,10 @@ Router.prototype.handle = function handle(req, res, callback) {
 
     while (match === false && idx < stack.length) {
       layer = stack[idx++]
-      try {
-        match = layer.match(path)
-      } catch (err) {
-        layerError = layerError || err
+      match = matchLayer(layer, path)
+      if (match !== false && typeof match.path !== 'string') {
+        // hold on to layerError
+        layerError = layerError || match
       }
       route = layer.route
 
@@ -600,6 +600,22 @@ function getProtohost(url) {
   return fqdnIndex !== -1
     ? url.substring(0, url.indexOf('/', 3 + fqdnIndex))
     : undefined
+}
+
+/**
+ * Match path to a layer.
+ *
+ * @param {Layer} layer
+ * @param {string} path
+ * @private
+ */
+
+function matchLayer(layer, path) {
+  try {
+    return layer.match(path)
+  } catch (err) {
+    return err
+  }
 }
 
 /**
