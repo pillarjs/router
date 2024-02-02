@@ -233,20 +233,19 @@ Router.prototype.handle = function handle(req, res, callback) {
 
     // find next matching layer
     var layer
-    var match
+    var match = false
     var route
 
-    while (match !== true && idx < stack.length) {
+    while (match === false && idx < stack.length) {
       layer = stack[idx++]
-      match = matchLayer(layer, path)
+      try {
+        match = layer.match(path)
+      } catch (err) {
+        layerError = layerError || err
+      }
       route = layer.route
 
-      if (typeof match !== 'boolean') {
-        // hold on to layerError
-        layerError = layerError || match
-      }
-
-      if (match !== true) {
+      if (match === false) {
         continue
       }
 
@@ -277,7 +276,7 @@ Router.prototype.handle = function handle(req, res, callback) {
     }
 
     // no match
-    if (match !== true) {
+    if (match === false) {
       return done(layerError)
     }
 
@@ -288,9 +287,9 @@ Router.prototype.handle = function handle(req, res, callback) {
 
     // Capture one-time layer values
     req.params = self.mergeParams
-      ? mergeParams(layer.params, parentParams)
-      : layer.params
-    var layerPath = layer.path
+      ? mergeParams(match.params, parentParams)
+      : match.params
+    var layerPath = match.path
 
     // this should be done for the layer
     self.process_params(layer, paramcalled, req, res, function (err) {
@@ -601,22 +600,6 @@ function getProtohost(url) {
   return fqdnIndex !== -1
     ? url.substring(0, url.indexOf('/', 3 + fqdnIndex))
     : undefined
-}
-
-/**
- * Match path to a layer.
- *
- * @param {Layer} layer
- * @param {string} path
- * @private
- */
-
-function matchLayer(layer, path) {
-  try {
-    return layer.match(path)
-  } catch (err) {
-    return err
-  }
 }
 
 /**
