@@ -233,19 +233,19 @@ Router.prototype.handle = function handle(req, res, callback) {
 
     // find next matching layer
     var layer
-    var match = false
+    var match = null
     var route
 
-    while (match === false && idx < stack.length) {
+    while (!match && idx < stack.length) {
       layer = stack[idx++]
       match = matchLayer(layer, path)
-      if (match !== false && typeof match.path !== 'string') {
+      if (match && typeof match.path !== 'string') {
         // hold on to layerError
         layerError = layerError || match
       }
       route = layer.route
 
-      if (match === false) {
+      if (!match) {
         continue
       }
 
@@ -256,7 +256,7 @@ Router.prototype.handle = function handle(req, res, callback) {
 
       if (layerError) {
         // routes do not match with a pending error
-        match = false
+        match = null
         continue
       }
 
@@ -270,13 +270,13 @@ Router.prototype.handle = function handle(req, res, callback) {
 
       // don't even bother matching route
       if (!has_method && method !== 'HEAD') {
-        match = false
+        match = null
         continue
       }
     }
 
     // no match
-    if (match === false) {
+    if (!match) {
       return done(layerError)
     }
 
