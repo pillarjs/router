@@ -1,13 +1,18 @@
 name: ci
 
 on:
-- pull_request
-- push
+  workflow_dispatch:
+  push:
+    branches:
+    - master
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
 
 jobs:
   test:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         name:
         - Node.js 0.8
@@ -77,11 +82,11 @@ jobs:
 
         - name: Node.js 8.x
           node-version: "8.17"
-          npm-i: mocha@7.2.0
+          npm-i: mocha@7.2.0 nyc@14.1.1
 
         - name: Node.js 9.x
           node-version: "9.11"
-          npm-i: mocha@7.2.0
+          npm-i: mocha@7.2.0 nyc@14.1.1
 
         - name: Node.js 10.x
           node-version: "10.24"
