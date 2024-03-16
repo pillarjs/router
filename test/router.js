@@ -15,6 +15,8 @@ var shouldHitHandle = utils.shouldHitHandle
 var shouldNotHaveBody = utils.shouldNotHaveBody
 var shouldNotHitHandle = utils.shouldNotHitHandle
 
+var describePromises = global.Promise ? describe : describe.skip
+
 describe('Router', function () {
   it('should return a function', function () {
     assert.equal(typeof Router(), 'function')
@@ -57,8 +59,7 @@ describe('Router', function () {
           ? shouldHaveBody(Buffer.from('hello, world'))
           : shouldNotHaveBody()
 
-        request(server)
-          [method]('/')
+        request(server)[method]('/')
           .expect(200)
           .expect(body)
           .end(cb)
@@ -298,8 +299,7 @@ describe('Router', function () {
 
         router[method]('/', helloWorld)
 
-        request(server)
-          [method]('/')
+        request(server)[method]('/')
           .expect(200)
           .expect(body)
           .end(done)
@@ -317,21 +317,18 @@ describe('Router', function () {
 
         router[method](['/foo', '/bar'], createHitHandle(1), helloWorld)
 
-        request(server)
-          [method]('/')
+        request(server)[method]('/')
           .expect(404)
           .expect(shouldNotHitHandle(1))
           .end(cb)
 
-        request(server)
-          [method]('/foo')
+        request(server)[method]('/foo')
           .expect(200)
           .expect(shouldHitHandle(1))
           .expect(body)
           .end(cb)
 
-        request(server)
-          [method]('/bar')
+        request(server)[method]('/bar')
           .expect(200)
           .expect(shouldHitHandle(1))
           .expect(body)
@@ -345,21 +342,18 @@ describe('Router', function () {
 
         router[method](/^\/[a-z]oo$/, createHitHandle(1), helloWorld)
 
-        request(server)
-          [method]('/')
+        request(server)[method]('/')
           .expect(404)
           .expect(shouldNotHitHandle(1))
           .end(cb)
 
-        request(server)
-          [method]('/foo')
+        request(server)[method]('/foo')
           .expect(200)
           .expect(shouldHitHandle(1))
           .expect(body)
           .end(cb)
 
-        request(server)
-          [method]('/zoo')
+        request(server)[method]('/zoo')
           .expect(200)
           .expect(shouldHitHandle(1))
           .expect(body)
@@ -373,28 +367,24 @@ describe('Router', function () {
 
         router[method]('/:thing', createHitHandle(1), helloWorld)
 
-        request(server)
-          [method]('/')
+        request(server)[method]('/')
           .expect(404)
           .expect(shouldNotHitHandle(1))
           .end(cb)
 
-        request(server)
-          [method]('/foo')
+        request(server)[method]('/foo')
           .expect(200)
           .expect(shouldHitHandle(1))
           .expect(body)
           .end(cb)
 
-        request(server)
-          [method]('/bar')
+        request(server)[method]('/bar')
           .expect(200)
           .expect(shouldHitHandle(1))
           .expect(body)
           .end(cb)
 
-        request(server)
-          [method]('/foo/bar')
+        request(server)[method]('/foo/bar')
           .expect(404)
           .expect(shouldNotHitHandle(1))
           .end(cb)
@@ -406,8 +396,7 @@ describe('Router', function () {
 
         router[method]('/', createHitHandle(1), createHitHandle(2), helloWorld)
 
-        request(server)
-          [method]('/')
+        request(server)[method]('/')
           .expect(200)
           .expect(shouldHitHandle(1))
           .expect(shouldHitHandle(2))
@@ -420,13 +409,12 @@ describe('Router', function () {
           var router = new Router()
           var server = createServer(router)
 
-          router[method]('/foo', function handle(req, res) {
+          router[method]('/foo', function handle (req, res) {
             res.setHeader('x-url-base', JSON.stringify(req.baseUrl))
             res.end()
           })
 
-          request(server)
-            [method]('/foo')
+          request(server)[method]('/foo')
             .expect('x-url-base', '""')
             .expect(200, done)
         })
@@ -437,13 +425,12 @@ describe('Router', function () {
           var router = new Router()
           var server = createServer(router)
 
-          router[method]('/foo', function handle(req, res) {
+          router[method]('/foo', function handle (req, res) {
             res.setHeader('x-is-route', String(req.route instanceof Router.Route))
             res.end()
           })
 
-          request(server)
-            [method]('/foo')
+          request(server)[method]('/foo')
             .expect('x-is-route', 'true')
             .expect(200, done)
         })
@@ -452,13 +439,12 @@ describe('Router', function () {
           var router = new Router()
           var server = createServer(router)
 
-          router[method]('/foo', function handle(req, res) {
+          router[method]('/foo', function handle (req, res) {
             res.setHeader('x-is-route', String(req.route.path === '/foo'))
             res.end()
           })
 
-          request(server)
-            [method]('/foo')
+          request(server)[method]('/foo')
             .expect('x-is-route', 'true')
             .expect(200, done)
         })
@@ -516,7 +502,7 @@ describe('Router', function () {
 
     it('should not invoke for blank URLs', function (done) {
       var router = new Router()
-      var server = createServer(function hander(req, res, next) {
+      var server = createServer(function hander (req, res, next) {
         req.url = ''
         router(req, res, next)
       })
@@ -585,8 +571,8 @@ describe('Router', function () {
       var router = new Router()
       var server = createServer(router)
 
-      router.use(function handleError(err, req, res, next) {
-        throw new Error('boom!')
+      router.use(function handleError (err, req, res, next) {
+        throw err || new Error('boom!')
       })
 
       request(server)
@@ -616,7 +602,7 @@ describe('Router', function () {
         var router = new Router()
         var server = createServer(router)
 
-        router.use(function handle(req, res, next) {
+        router.use(function handle (req, res, next) {
           next(new Error('boom!'))
         })
 
@@ -631,7 +617,7 @@ describe('Router', function () {
         var router = new Router()
         var server = createServer(router)
 
-        router.use(function handle(req, res, next) {
+        router.use(function handle (req, res, next) {
           throw new Error('boom!')
         })
 
@@ -648,7 +634,7 @@ describe('Router', function () {
 
         router.use(sawError)
 
-        router.use(function handle(req, res, next) {
+        router.use(function handle (req, res, next) {
           throw new Error('boom!')
         })
 
@@ -748,6 +734,118 @@ describe('Router', function () {
           .get('/')
           .expect('x-next', 'router')
           .expect(404, done)
+      })
+    })
+
+    describePromises('promise support', function () {
+      it('should pass rejected promise value', function (done) {
+        var router = new Router()
+        var server = createServer(router)
+
+        router.use(function createError (req, res, next) {
+          return Promise.reject(new Error('boom!'))
+        })
+
+        router.use(sawError)
+
+        request(server)
+          .get('/')
+          .expect(200, 'saw Error: boom!', done)
+      })
+
+      it('should pass rejected promise without value', function (done) {
+        var router = new Router()
+        var server = createServer(router)
+
+        router.use(function createError (req, res, next) {
+          return Promise.reject() // eslint-disable-line prefer-promise-reject-errors
+        })
+
+        router.use(sawError)
+
+        request(server)
+          .get('/')
+          .expect(200, 'saw Error: Rejected promise', done)
+      })
+
+      it('should ignore resolved promise', function (done) {
+        var router = new Router()
+        var server = createServer(router)
+
+        router.use(function createError (req, res, next) {
+          saw(req, res)
+          return Promise.resolve('foo')
+        })
+
+        router.use(function () {
+          done(new Error('Unexpected middleware invoke'))
+        })
+
+        request(server)
+          .get('/foo')
+          .expect(200, 'saw GET /foo', done)
+      })
+
+      describe('error handling', function () {
+        it('should pass rejected promise value', function (done) {
+          var router = new Router()
+          var server = createServer(router)
+
+          router.use(function createError (req, res, next) {
+            return Promise.reject(new Error('boom!'))
+          })
+
+          router.use(function handleError (err, req, res, next) {
+            return Promise.reject(new Error('caught: ' + err.message))
+          })
+
+          router.use(sawError)
+
+          request(server)
+            .get('/')
+            .expect(200, 'saw Error: caught: boom!', done)
+        })
+
+        it('should pass rejected promise without value', function (done) {
+          var router = new Router()
+          var server = createServer(router)
+
+          router.use(function createError (req, res, next) {
+            return Promise.reject() // eslint-disable-line prefer-promise-reject-errors
+          })
+
+          router.use(function handleError (err, req, res, next) {
+            return Promise.reject(new Error('caught: ' + err.message))
+          })
+
+          router.use(sawError)
+
+          request(server)
+            .get('/')
+            .expect(200, 'saw Error: caught: Rejected promise', done)
+        })
+
+        it('should ignore resolved promise', function (done) {
+          var router = new Router()
+          var server = createServer(router)
+
+          router.use(function createError (req, res, next) {
+            return Promise.reject(new Error('boom!'))
+          })
+
+          router.use(function handleError (err, req, res, next) {
+            sawError(err, req, res, next)
+            return Promise.resolve('foo')
+          })
+
+          router.use(function () {
+            done(new Error('Unexpected middleware invoke'))
+          })
+
+          request(server)
+            .get('/foo')
+            .expect(200, 'saw Error: boom!', done)
+        })
       })
     })
 
@@ -1088,7 +1186,7 @@ describe('Router', function () {
           .expect(200, 'saw /foo/bar', done)
       })
 
-      it('should be altered correctly', function(done){
+      it('should be altered correctly', function (done) {
         var router = new Router()
         var server = createServer(router)
         var sub1 = new Router()
@@ -1209,43 +1307,43 @@ describe('Router', function () {
   })
 })
 
-function helloWorld(req, res) {
+function helloWorld (req, res) {
   res.statusCode = 200
   res.setHeader('Content-Type', 'text/plain')
   res.end('hello, world')
 }
 
-function setsaw(num) {
+function setsaw (num) {
   var name = 'x-saw-' + String(num)
-  return function saw(req, res, next) {
+  return function saw (req, res, next) {
     res.setHeader(name, req.method + ' ' + req.url)
     next()
   }
 }
 
-function setsawBase(num) {
+function setsawBase (num) {
   var name = 'x-saw-base-' + String(num)
-  return function sawBase(req, res, next) {
+  return function sawBase (req, res, next) {
     res.setHeader(name, String(req.baseUrl))
     next()
   }
 }
 
-function saw(req, res) {
+function saw (req, res) {
   var msg = 'saw ' + req.method + ' ' + req.url
   res.statusCode = 200
   res.setHeader('Content-Type', 'text/plain')
   res.end(msg)
 }
 
-function sawError(err, req, res, next) {
+function sawError (err, req, res, next) {
   var msg = 'saw ' + err.name + ': ' + err.message
   res.statusCode = 200
   res.setHeader('Content-Type', 'text/plain')
   res.end(msg)
 }
 
-function sawBase(req, res) {
+function sawBase (req, res) {
   var msg = 'saw ' + req.baseUrl
   res.statusCode = 200
   res.setHeader('Content-Type', 'text/plain')
