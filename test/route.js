@@ -14,6 +14,7 @@ var shouldHitHandle = utils.shouldHitHandle
 var shouldNotHaveBody = utils.shouldNotHaveBody
 var shouldNotHitHandle = utils.shouldNotHitHandle
 
+var describeNamedCaptureGroups = supportsRegExp('(?<foo>.)') ? describe : describe.skip
 var describePromises = global.Promise ? describe : describe.skip
 
 describe('Router', function () {
@@ -711,7 +712,7 @@ describe('Router', function () {
             .expect(200, { 0: 's', user: 'tj', op: 'edit' }, cb)
         })
 
-        it('should work inside literal paranthesis', function (done) {
+        it('should work inside literal parenthesis', function (done) {
           var router = new Router()
           var route = router.route('/:user\\(:op\\)')
           var server = createServer(router)
@@ -721,6 +722,27 @@ describe('Router', function () {
           request(server)
             .get('/tj(edit)')
             .expect(200, { user: 'tj', op: 'edit' }, done)
+        })
+
+        it('should allow matching literal parenthesis within a group', function (done) {
+          var cb = after(3, done)
+          var router = new Router()
+          var route = router.route('/:user([a-z\\(\\)]+)')
+          var server = createServer(router)
+
+          route.all(sendParams)
+
+          request(server)
+            .get('/1234')
+            .expect(404, cb)
+
+          request(server)
+            .get('/foo')
+            .expect(200, { user: 'foo' }, cb)
+
+          request(server)
+            .get('/(foo)')
+            .expect(200, { user: '(foo)' }, cb)
         })
 
         it('should work within arrays', function (done) {
@@ -884,6 +906,54 @@ describe('Router', function () {
         })
       })
 
+      describe('using "{<prefix>:name}"', function () {
+        it('should allow defining custom prefixes', function (done) {
+          var cb = after(3, done)
+          var router = new Router()
+          var route = router.route('/{$:foo}{$:bar}?')
+          var server = createServer(router)
+
+          route.all(sendParams)
+
+          request(server)
+            .get('/bar')
+            .expect(404, cb)
+
+          request(server)
+            .get('/$bar')
+            .expect(200, { foo: 'bar' }, cb)
+
+          request(server)
+            .get('/$bar$fizz')
+            .expect(200, { foo: 'bar', bar: 'fizz' }, cb)
+        })
+
+        it('should work in any segment', function (done) {
+          var cb = after(4, done)
+          var router = new Router()
+          var route = router.route('/user/:foo?{-:bar}?{-:baz}?')
+          var server = createServer(router)
+
+          route.all(sendParams)
+
+          request(server)
+            .get('/user')
+            .expect(200, cb)
+
+          request(server)
+            .get('/user/delete')
+            .expect(200, { foo: 'delete' }, cb)
+
+          request(server)
+            .get('/user/delete-fizz')
+            .expect(200, { foo: 'delete', bar: 'fizz' }, cb)
+
+          request(server)
+            .get('/user/delete-fizz-buzz')
+            .expect(200, { foo: 'delete', bar: 'fizz', baz: 'buzz' }, cb)
+        })
+      })
+
       describe('using "(regexp)"', function () {
         it('should add capture group using regexp', function (done) {
           var cb = after(2, done)
@@ -922,6 +992,108 @@ describe('Router', function () {
             .get('/foo:n42')
             .expect(200, { 0: 'foo:n42' }, cb)
         })
+
+        it('should allow optional capturing group', function (done) {
+          var cb = after(4, done)
+          var router = new Router()
+          var route = router.route('/user(s)?/:foo')
+          var server = createServer(router)
+
+          route.all(sendParams)
+
+          request(server)
+            .get('/user')
+            .expect(404, cb)
+
+          request(server)
+            .get('/users')
+            .expect(404, cb)
+
+          request(server)
+            .get('/user/bar')
+            .expect(200, { foo: 'bar' }, cb)
+
+          request(server)
+            .get('/users/bar')
+            .expect(200, { 0: 's', foo: 'bar' }, cb)
+        })
+
+        it('should work in any segment', function (done) {
+          var cb = after(4, done)
+          var router = new Router()
+          var route = router.route('/users/image(s)?/:foo')
+          var server = createServer(router)
+
+          route.all(sendParams)
+
+          request(server)
+            .get('/users/image')
+            .expect(404, cb)
+
+          request(server)
+            .get('/users/images')
+            .expect(404, cb)
+
+          request(server)
+            .get('/users/image/1234')
+            .expect(200, { foo: '1234' }, cb)
+
+          request(server)
+            .get('/users/images/1234')
+            .expect(200, { 0: 's', foo: '1234' }, cb)
+        })
+      })
+
+      describeNamedCaptureGroups('using "(?<name>)"', function () {
+        it('should allow defining capturing groups using regexps', function (done) {
+          var cb = after(3, done)
+          var router = new Router()
+          var route = router.route(/\/(?<name>.+)/)
+          var server = createServer(router)
+
+          route.all(sendParams)
+
+          request(server)
+            .get('/')
+            .expect(404, cb)
+
+          request(server)
+            .get('/foo/bar')
+            .expect(200, { name: 'foo/bar' }, cb)
+
+          request(server)
+            .get('/foo')
+            .expect(200, { name: 'foo' }, cb)
+        })
+
+        it('should work with multiple named groups in the same segment', function (done) {
+          var cb = after(5, done)
+          var router = new Router()
+          var route = router.route(/\/(?<filename>.*).(?<ext>html|pdf|json)/)
+          var server = createServer(router)
+
+          route.all(sendParams)
+
+          request(server)
+            .get('/foo')
+            .expect(404, cb)
+
+          request(server)
+            .get('/foo.xml')
+            .expect(404, cb)
+
+          request(server)
+            .get('/foo.html')
+            .expect(200, { filename: 'foo', ext: 'html' }, cb)
+
+          request(server)
+            .get('/bar.pdf')
+            .expect(200, { filename: 'bar', ext: 'pdf' }, cb)
+
+          request(server)
+            .get('/baz.json')
+            .expect(200, { filename: 'baz', ext: 'json' }, cb)
+        })
       })
     })
   })
@@ -944,4 +1116,12 @@ function sendParams (req, res) {
   res.statusCode = 200
   res.setHeader('Content-Type', 'application/json')
   res.end(JSON.stringify(req.params))
+}
+
+function supportsRegExp (source) {
+  try {
+    return RegExp(source).source !== ''
+  } catch (e) {
+    return false
+  }
 }
