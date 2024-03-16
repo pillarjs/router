@@ -233,20 +233,19 @@ Router.prototype.handle = function handle(req, res, callback) {
 
     // find next matching layer
     var layer
-    var match
+    var match = null
     var route
 
-    while (match !== true && idx < stack.length) {
+    while (!match && idx < stack.length) {
       layer = stack[idx++]
       match = matchLayer(layer, path)
-      route = layer.route
-
-      if (typeof match !== 'boolean') {
+      if (match && typeof match.path !== 'string') {
         // hold on to layerError
         layerError = layerError || match
       }
+      route = layer.route
 
-      if (match !== true) {
+      if (!match) {
         continue
       }
 
@@ -257,7 +256,7 @@ Router.prototype.handle = function handle(req, res, callback) {
 
       if (layerError) {
         // routes do not match with a pending error
-        match = false
+        match = null
         continue
       }
 
@@ -271,13 +270,13 @@ Router.prototype.handle = function handle(req, res, callback) {
 
       // don't even bother matching route
       if (!has_method && method !== 'HEAD') {
-        match = false
+        match = null
         continue
       }
     }
 
     // no match
-    if (match !== true) {
+    if (!match) {
       return done(layerError)
     }
 
@@ -288,9 +287,9 @@ Router.prototype.handle = function handle(req, res, callback) {
 
     // Capture one-time layer values
     req.params = self.mergeParams
-      ? mergeParams(layer.params, parentParams)
-      : layer.params
-    var layerPath = layer.path
+      ? mergeParams(match.params, parentParams)
+      : match.params
+    var layerPath = match.path
 
     // this should be done for the layer
     self.process_params(layer, paramcalled, req, res, function (err) {

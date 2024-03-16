@@ -3,6 +3,7 @@ var Router = require('..')
 var utils = require('./support/utils')
 
 var createServer = utils.createServer
+var assert = utils.assert
 var request = utils.request
 
 describe('req.params', function () {
@@ -65,6 +66,27 @@ describe('req.params', function () {
       .get('/')
       .expect('x-params-1', '{}')
       .expect(200, '{"foo":"bar"}', done)
+  })
+
+  it('should not keep parameters in memory', function (done) {
+    var router = Router()
+    var server = createServer(function (req, res, next) {
+      router(req, res, function (err) {
+        if (err) return next(err)
+        sawParams(req, res)
+      })
+    })
+
+    router.get('/:fizz', hitParams(1))
+
+    request(server)
+      .get('/buzz')
+      .end(function(err) {
+        if (err) return done(err)
+
+        assert.strictEqual(router.stack[0].params, undefined)
+        done()
+      })
   })
 
   describe('when "mergeParams: true"', function () {
