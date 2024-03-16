@@ -1,7 +1,7 @@
 2.x
 ===
 
-This incorporates all changes after 1.3.5 up to 1.3.7.
+This incorporates all changes after 1.3.5 up to 1.3.8.
 
   * Add support for returned, rejected Promises to `router.param`
 
@@ -41,6 +41,11 @@ This incorporates all changes after 1.3.3 up to 1.3.5.
     - Change non-TTY date format
     - Remove `DEBUG_FD` environment variable support
     - Support 256 namespace colors
+
+1.3.8 / 2023-02-24
+==================
+
+  * Fix routing requests without method
 
 1.3.7 / 2022-04-28
 ==================

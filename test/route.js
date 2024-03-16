@@ -46,6 +46,30 @@ describe('Router', function () {
         .expect(404, cb)
     })
 
+    it('should route without method', function (done) {
+      var router = new Router()
+      var route = router.route('/foo')
+      var server = createServer(function (req, res, next) {
+        req.method = undefined
+        router(req, res, next)
+      })
+
+      route.post(createHitHandle(1))
+      route.all(createHitHandle(2))
+      route.get(createHitHandle(3))
+
+      router.get('/foo', createHitHandle(4))
+      router.use(saw)
+
+      request(server)
+        .get('/foo')
+        .expect(shouldNotHitHandle(1))
+        .expect(shouldHitHandle(2))
+        .expect(shouldNotHitHandle(3))
+        .expect(shouldNotHitHandle(4))
+        .expect(200, 'saw undefined /foo', done)
+    })
+
     it('should stack', function (done) {
       var cb = after(3, done)
       var router = new Router()
