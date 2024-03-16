@@ -103,18 +103,23 @@ jobs:
 
         - name: Node.js 15.x
           node-version: "15.14"
+          legacy-peer-deps: true
 
         - name: Node.js 16.x
           node-version: "16.19"
+          legacy-peer-deps: true
 
         - name: Node.js 17.x
           node-version: "17.9"
+          legacy-peer-deps: true
 
         - name: Node.js 18.x
           node-version: "18.14"
+          legacy-peer-deps: true
 
         - name: Node.js 19.x
           node-version: "19.7"
+          legacy-peer-deps: true
 
     steps:
     - uses: actions/checkout@v3
@@ -150,7 +155,7 @@ jobs:
         fi
 
     - name: Install Node.js dependencies
-      run: npm install
+      run: ${{ matrix.legacy-peer-deps && 'npm install --legacy-peer-deps' || 'npm install' }}
 
     - name: List environment
       id: list_env
