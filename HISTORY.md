@@ -1,5 +1,5 @@
-2.x
-===
+2.0.0-beta.2 / 2024-03-20
+=========================
 
 This incorporates all changes after 1.3.5 up to 1.3.8.
 
