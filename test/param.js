@@ -10,6 +10,8 @@ var shouldNotHitHandle = utils.shouldNotHitHandle
 var createServer = utils.createServer
 var request = utils.request
 
+var describePromises = global.Promise ? describe : describe.skip
+
 describe('Router', function () {
   describe('.param(name, fn)', function () {
     it('should reject missing name', function () {
@@ -37,7 +39,7 @@ describe('Router', function () {
       var router = new Router()
       var server = createServer(router)
 
-      router.param('id', function parseId(req, res, next, val) {
+      router.param('id', function parseId (req, res, next, val) {
         req.params.id = Number(val)
         next()
       })
@@ -60,12 +62,12 @@ describe('Router', function () {
       var router = new Router()
       var server = createServer(router)
 
-      router.param('id', function parseId(req, res, next, val) {
+      router.param('id', function parseId (req, res, next, val) {
         req.params.id = Number(val)
         next()
       })
 
-      router.param('id', function parseId(req, res, next, val) {
+      router.param('id', function parseId (req, res, next, val) {
         req.itemId = Number(val)
         next()
       })
@@ -84,7 +86,7 @@ describe('Router', function () {
       var router = new Router()
       var server = createServer(router)
 
-      router.param('user', function parseUser(req, res, next, user) {
+      router.param('user', function parseUser (req, res, next, user) {
         req.user = user
         next()
       })
@@ -103,7 +105,7 @@ describe('Router', function () {
       var router = new Router()
       var server = createServer(router)
 
-      router.param('user', function parseUser(req, res, next, user) {
+      router.param('user', function parseUser (req, res, next, user) {
         req.user = user
         next()
       })
@@ -123,12 +125,12 @@ describe('Router', function () {
       var router = new Router()
       var server = createServer(router)
 
-      router.param('id', function parseId(req, res, next, val) {
+      router.param('id', function parseId (req, res, next, val) {
         res.setHeader('x-id', val)
         next()
       })
 
-      router.param('user', function parseUser(req, res, next, user) {
+      router.param('user', function parseUser (req, res, next, user) {
         throw new Error('boom')
       })
 
@@ -149,7 +151,7 @@ describe('Router', function () {
       var router = new Router()
       var server = createServer(router)
 
-      router.param('user', function parseUser(req, res, next, user) {
+      router.param('user', function parseUser (req, res, next, user) {
         req.count = (req.count || 0) + 1
         req.user = user
         next()
@@ -171,7 +173,7 @@ describe('Router', function () {
       var router = new Router()
       var server = createServer(router)
 
-      router.param('id', function parseUser(req, res, next, val) {
+      router.param('id', function parseUser (req, res, next, val) {
         req.count = (req.count || 0) + 1
         req.params.id = Number(val)
         next()
@@ -195,7 +197,7 @@ describe('Router', function () {
       var router = new Router()
       var server = createServer(router)
 
-      router.param('user', function parseUser(req, res, next, user) {
+      router.param('user', function parseUser (req, res, next, user) {
         req.count = (req.count || 0) + 1
         req.user = user
         req.vals = (req.vals || []).concat(user)
@@ -218,7 +220,7 @@ describe('Router', function () {
       var router = new Router()
       var server = createServer(router)
 
-      router.param('user', function parseUser(req, res, next, user) {
+      router.param('user', function parseUser (req, res, next, user) {
         throw new Error('boom')
       })
 
@@ -236,11 +238,11 @@ describe('Router', function () {
       var router = new Router()
       var server = createServer(router)
 
-      router.param('user', function parseUser(req, res, next, user) {
+      router.param('user', function parseUser (req, res, next, user) {
         process.nextTick(next)
       })
 
-      router.param('user', function parseUser(req, res, next, user) {
+      router.param('user', function parseUser (req, res, next, user) {
         throw new Error('boom')
       })
 
@@ -254,13 +256,55 @@ describe('Router', function () {
         .expect(500, /Error: boom/, done)
     })
 
+    describePromises('promise support', function () {
+      it('should pass rejected promise value', function (done) {
+        var router = new Router()
+        var server = createServer(router)
+
+        router.param('user', function parseUser (req, res, next, user) {
+          return Promise.reject(new Error('boom'))
+        })
+
+        router.get('/user/:user', function (req, res) {
+          res.setHeader('Content-Type', 'text/plain')
+          res.end('get user ' + req.params.id)
+        })
+
+        request(server)
+          .get('/user/bob')
+          .expect(500, /Error: boom/, done)
+      })
+
+      it('should pass rejected promise without value', function (done) {
+        var router = new Router()
+        var server = createServer(router)
+
+        router.use(function createError (req, res, next) {
+          return Promise.reject() // eslint-disable-line prefer-promise-reject-errors
+        })
+
+        router.param('user', function parseUser (req, res, next, user) {
+          return Promise.reject() // eslint-disable-line prefer-promise-reject-errors
+        })
+
+        router.get('/user/:user', function (req, res) {
+          res.setHeader('Content-Type', 'text/plain')
+          res.end('get user ' + req.params.id)
+        })
+
+        request(server)
+          .get('/user/bob')
+          .expect(500, /Error: Rejected promise/, done)
+      })
+    })
+
     describe('next("route")', function () {
       it('should cause route with param to be skipped', function (done) {
         var cb = after(3, done)
         var router = new Router()
         var server = createServer(router)
 
-        router.param('id', function parseId(req, res, next, val) {
+        router.param('id', function parseId (req, res, next, val) {
           var id = Number(val)
 
           if (isNaN(id)) {
@@ -299,7 +343,7 @@ describe('Router', function () {
         var router = new Router()
         var server = createServer(router)
 
-        router.param('user', function parseUser(req, res, next, user) {
+        router.param('user', function parseUser (req, res, next, user) {
           req.count = (req.count || 0) + 1
           req.user = user
           req.vals = (req.vals || []).concat(user)
@@ -323,15 +367,15 @@ describe('Router', function () {
   })
 })
 
-function sethit(num) {
+function sethit (num) {
   var name = 'x-fn-' + String(num)
-  return function hit(req, res, next) {
+  return function hit (req, res, next) {
     res.setHeader(name, 'hit')
     next()
   }
 }
 
-function saw(req, res) {
+function saw (req, res) {
   var msg = 'saw ' + req.method + ' ' + req.url
   res.statusCode = 200
   res.setHeader('Content-Type', 'text/plain')

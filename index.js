@@ -12,8 +12,8 @@
  * @private
  */
 
-var debug = require('debug')('router')
 var flatten = require('array-flatten').flatten
+var isPromise = require('is-promise')
 var Layer = require('./lib/layer')
 var methods = require('methods')
 var mixin = require('utils-merge')
@@ -27,11 +27,6 @@ var setPrototypeOf = require('setprototypeof')
  */
 
 var slice = Array.prototype.slice
-
-/* istanbul ignore next */
-var defer = typeof setImmediate === 'function'
-  ? setImmediate
-  : function(fn){ process.nextTick(fn.bind.apply(fn, arguments)) }
 
 /**
  * Expose `Router`.
@@ -53,14 +48,14 @@ module.exports.Route = Route
  * @public
  */
 
-function Router(options) {
+function Router (options) {
   if (!(this instanceof Router)) {
     return new Router(options)
   }
 
   var opts = options || {}
 
-  function router(req, res, next) {
+  function router (req, res, next) {
     router.handle(req, res, next)
   }
 
@@ -116,7 +111,7 @@ Router.prototype = function () {}
  * @public
  */
 
-Router.prototype.param = function param(name, fn) {
+Router.prototype.param = function param (name, fn) {
   if (!name) {
     throw new TypeError('argument name is required')
   }
@@ -150,12 +145,10 @@ Router.prototype.param = function param(name, fn) {
  * @private
  */
 
-Router.prototype.handle = function handle(req, res, callback) {
+Router.prototype.handle = function handle (req, res, callback) {
   if (!callback) {
     throw new TypeError('argument callback is required')
   }
-
-  debug('dispatching %s %s', req.method, req.url)
 
   var idx = 0
   var methods
@@ -189,7 +182,7 @@ Router.prototype.handle = function handle(req, res, callback) {
 
   next()
 
-  function next(err) {
+  function next (err) {
     var layerError = err === 'route'
       ? null
       : err
@@ -209,19 +202,19 @@ Router.prototype.handle = function handle(req, res, callback) {
 
     // signal to exit router
     if (layerError === 'router') {
-      defer(done, null)
+      setImmediate(done, null)
       return
     }
 
     // no more matching layers
     if (idx >= stack.length) {
-      defer(done, layerError)
+      setImmediate(done, layerError)
       return
     }
 
     // max sync stack
     if (++sync > 100) {
-      return defer(next, err)
+      return setImmediate(next, err)
     }
 
     // get pathname of request
@@ -262,15 +255,15 @@ Router.prototype.handle = function handle(req, res, callback) {
       }
 
       var method = req.method
-      var has_method = route._handles_method(method)
+      var hasMethod = route._handlesMethod(method)
 
       // build up automatic options response
-      if (!has_method && method === 'OPTIONS' && methods) {
+      if (!hasMethod && method === 'OPTIONS' && methods) {
         methods.push.apply(methods, route._methods())
       }
 
       // don't even bother matching route
-      if (!has_method && method !== 'HEAD') {
+      if (!hasMethod && method !== 'HEAD') {
         match = false
         continue
       }
@@ -293,20 +286,20 @@ Router.prototype.handle = function handle(req, res, callback) {
     var layerPath = layer.path
 
     // this should be done for the layer
-    self.process_params(layer, paramcalled, req, res, function (err) {
+    processParams(self.params, layer, paramcalled, req, res, function (err) {
       if (err) {
         next(layerError || err)
       } else if (route) {
-        layer.handle_request(req, res, next)
+        layer.handleRequest(req, res, next)
       } else {
-        trim_prefix(layer, layerError, layerPath, path)
+        trimPrefix(layer, layerError, layerPath, path)
       }
 
       sync = 0
     })
   }
 
-  function trim_prefix(layer, layerError, layerPath, path) {
+  function trimPrefix (layer, layerError, layerPath, path) {
     if (layerPath.length !== 0) {
       // Validate path is a prefix match
       if (layerPath !== path.substring(0, layerPath.length)) {
@@ -323,7 +316,6 @@ Router.prototype.handle = function handle(req, res, callback) {
 
       // Trim off the part of the url that matches the route
       // middleware (.use stuff) needs to have the path stripped
-      debug('trim prefix (%s) from url %s', layerPath, req.url)
       removed = layerPath
       req.url = protohost + req.url.slice(protohost.length + removed.length)
 
@@ -339,106 +331,12 @@ Router.prototype.handle = function handle(req, res, callback) {
         : removed)
     }
 
-    debug('%s %s : %s', layer.name, layerPath, req.originalUrl)
-
     if (layerError) {
-      layer.handle_error(layerError, req, res, next)
+      layer.handleError(layerError, req, res, next)
     } else {
-      layer.handle_request(req, res, next)
+      layer.handleRequest(req, res, next)
     }
   }
-}
-
-/**
- * Process any parameters for the layer.
- *
- * @private
- */
-
-Router.prototype.process_params = function process_params(layer, called, req, res, done) {
-  var params = this.params
-
-  // captured parameters from the layer, keys and values
-  var keys = layer.keys
-
-  // fast track
-  if (!keys || keys.length === 0) {
-    return done()
-  }
-
-  var i = 0
-  var name
-  var paramIndex = 0
-  var key
-  var paramVal
-  var paramCallbacks
-  var paramCalled
-
-  // process params in order
-  // param callbacks can be async
-  function param(err) {
-    if (err) {
-      return done(err)
-    }
-
-    if (i >= keys.length ) {
-      return done()
-    }
-
-    paramIndex = 0
-    key = keys[i++]
-    name = key.name
-    paramVal = req.params[name]
-    paramCallbacks = params[name]
-    paramCalled = called[name]
-
-    if (paramVal === undefined || !paramCallbacks) {
-      return param()
-    }
-
-    // param previously called with same value or error occurred
-    if (paramCalled && (paramCalled.match === paramVal
-      || (paramCalled.error && paramCalled.error !== 'route'))) {
-      // restore value
-      req.params[name] = paramCalled.value
-
-      // next param
-      return param(paramCalled.error)
-    }
-
-    called[name] = paramCalled = {
-      error: null,
-      match: paramVal,
-      value: paramVal
-    }
-
-    paramCallback()
-  }
-
-  // single param callbacks
-  function paramCallback(err) {
-    var fn = paramCallbacks[paramIndex++]
-
-    // store updated value
-    paramCalled.value = req.params[key.name]
-
-    if (err) {
-      // store error
-      paramCalled.error = err
-      param(err)
-      return
-    }
-
-    if (!fn) return param()
-
-    try {
-      fn(req, res, paramCallback, paramVal, key.name)
-    } catch (e) {
-      paramCallback(e)
-    }
-  }
-
-  param()
 }
 
 /**
@@ -456,7 +354,7 @@ Router.prototype.process_params = function process_params(layer, called, req, re
  * @public
  */
 
-Router.prototype.use = function use(handler) {
+Router.prototype.use = function use (handler) {
   var offset = 0
   var path = '/'
 
@@ -490,8 +388,6 @@ Router.prototype.use = function use(handler) {
     }
 
     // add the middleware
-    debug('use %o %s', path, fn.name || '<anonymous>')
-
     var layer = new Layer(path, {
       sensitive: this.caseSensitive,
       strict: false,
@@ -519,7 +415,7 @@ Router.prototype.use = function use(handler) {
  * @public
  */
 
-Router.prototype.route = function route(path) {
+Router.prototype.route = function route (path) {
   var route = new Route(path)
 
   var layer = new Layer(path, {
@@ -528,7 +424,7 @@ Router.prototype.route = function route(path) {
     end: true
   }, handle)
 
-  function handle(req, res, next) {
+  function handle (req, res, next) {
     route.dispatch(req, res, next)
   }
 
@@ -539,7 +435,7 @@ Router.prototype.route = function route(path) {
 }
 
 // create Router#VERB functions
-methods.concat('all').forEach(function(method){
+methods.concat('all').forEach(function (method) {
   Router.prototype[method] = function (path) {
     var route = this.route(path)
     route[method].apply(route, slice.call(arguments, 1))
@@ -555,8 +451,8 @@ methods.concat('all').forEach(function(method){
  * @private
  */
 
-function generateOptionsResponder(res, methods) {
-  return function onDone(fn, err) {
+function generateOptionsResponder (res, methods) {
+  return function onDone (fn, err) {
     if (err || methods.length === 0) {
       return fn(err)
     }
@@ -572,7 +468,7 @@ function generateOptionsResponder(res, methods) {
  * @private
  */
 
-function getPathname(req) {
+function getPathname (req) {
   try {
     return parseUrl(req).pathname
   } catch (err) {
@@ -587,7 +483,7 @@ function getPathname(req) {
  * @private
  */
 
-function getProtohost(url) {
+function getProtohost (url) {
   if (typeof url !== 'string' || url.length === 0 || url[0] === '/') {
     return undefined
   }
@@ -611,7 +507,7 @@ function getProtohost(url) {
  * @private
  */
 
-function matchLayer(layer, path) {
+function matchLayer (layer, path) {
   try {
     return layer.match(path)
   } catch (err) {
@@ -625,7 +521,7 @@ function matchLayer(layer, path) {
  * @private
  */
 
-function mergeParams(params, parent) {
+function mergeParams (params, parent) {
   if (typeof parent !== 'object' || !parent) {
     return params
   }
@@ -665,12 +561,107 @@ function mergeParams(params, parent) {
 }
 
 /**
+ * Process any parameters for the layer.
+ *
+ * @private
+ */
+
+function processParams (params, layer, called, req, res, done) {
+  // captured parameters from the layer, keys and values
+  var keys = layer.keys
+
+  // fast track
+  if (!keys || keys.length === 0) {
+    return done()
+  }
+
+  var i = 0
+  var name
+  var paramIndex = 0
+  var key
+  var paramVal
+  var paramCallbacks
+  var paramCalled
+
+  // process params in order
+  // param callbacks can be async
+  function param (err) {
+    if (err) {
+      return done(err)
+    }
+
+    if (i >= keys.length) {
+      return done()
+    }
+
+    paramIndex = 0
+    key = keys[i++]
+    name = key.name
+    paramVal = req.params[name]
+    paramCallbacks = params[name]
+    paramCalled = called[name]
+
+    if (paramVal === undefined || !paramCallbacks) {
+      return param()
+    }
+
+    // param previously called with same value or error occurred
+    if (paramCalled && (paramCalled.match === paramVal ||
+      (paramCalled.error && paramCalled.error !== 'route'))) {
+      // restore value
+      req.params[name] = paramCalled.value
+
+      // next param
+      return param(paramCalled.error)
+    }
+
+    called[name] = paramCalled = {
+      error: null,
+      match: paramVal,
+      value: paramVal
+    }
+
+    paramCallback()
+  }
+
+  // single param callbacks
+  function paramCallback (err) {
+    var fn = paramCallbacks[paramIndex++]
+
+    // store updated value
+    paramCalled.value = req.params[key.name]
+
+    if (err) {
+      // store error
+      paramCalled.error = err
+      param(err)
+      return
+    }
+
+    if (!fn) return param()
+
+    try {
+      var ret = fn(req, res, paramCallback, paramVal, key.name)
+      if (isPromise(ret)) {
+        ret.then(null, function (error) {
+          paramCallback(error || new Error('Rejected promise'))
+        })
+      }
+    } catch (e) {
+      paramCallback(e)
+    }
+  }
+
+  param()
+}
+
+/**
  * Restore obj props after function
  *
  * @private
  */
 
-function restore(fn, obj) {
+function restore (fn, obj) {
   var props = new Array(arguments.length - 2)
   var vals = new Array(arguments.length - 2)
 
@@ -679,7 +670,7 @@ function restore(fn, obj) {
     vals[i] = obj[props[i]]
   }
 
-  return function(){
+  return function () {
     // restore vals
     for (var i = 0; i < props.length; i++) {
       obj[props[i]] = vals[i]
@@ -695,7 +686,7 @@ function restore(fn, obj) {
  * @private
  */
 
-function sendOptionsResponse(res, methods) {
+function sendOptionsResponse (res, methods) {
   var options = Object.create(null)
 
   // build unique method map
@@ -720,7 +711,7 @@ function sendOptionsResponse(res, methods) {
  * @private
  */
 
-function trySendOptionsResponse(res, methods, next) {
+function trySendOptionsResponse (res, methods, next) {
   try {
     sendOptionsResponse(res, methods)
   } catch (err) {
@@ -734,8 +725,8 @@ function trySendOptionsResponse(res, methods, next) {
  * @private
  */
 
-function wrap(old, fn) {
-  return function proxy() {
+function wrap (old, fn) {
+  return function proxy () {
     var args = new Array(arguments.length + 1)
 
     args[0] = old

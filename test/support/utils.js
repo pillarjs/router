@@ -16,21 +16,21 @@ exports.shouldNotHaveBody = shouldNotHaveBody
 exports.shouldHitHandle = shouldHitHandle
 exports.shouldNotHitHandle = shouldNotHitHandle
 
-function createHitHandle(num) {
+function createHitHandle (num) {
   var name = 'x-fn-' + String(num)
-  return function hit(req, res, next) {
+  return function hit (req, res, next) {
     res.setHeader(name, 'hit')
     next()
   }
 }
 
-function createServer(router) {
-  return http.createServer(function onRequest(req, res) {
+function createServer (router) {
+  return http.createServer(function onRequest (req, res) {
     router(req, res, finalhandler(req, res))
   })
 }
 
-function rawrequest(server) {
+function rawrequest (server) {
   var _headers = {}
   var _method
   var _path
@@ -40,7 +40,7 @@ function rawrequest(server) {
     _test[method] = go.bind(null, method)
   })
 
-  function expect(status, body, callback) {
+  function expect (status, body, callback) {
     if (arguments.length === 2) {
       _headers[status.toLowerCase()] = body
       return this
@@ -65,12 +65,12 @@ function rawrequest(server) {
         path: _path,
         port: port
       })
-      req.on('response', function(res){
+      req.on('response', function (res) {
         var buf = ''
 
         res.setEncoding('utf8')
-        res.on('data', function(s){ buf += s })
-        res.on('end', function(){
+        res.on('data', function (s) { buf += s })
+        res.on('end', function () {
           var err = null
 
           try {
@@ -117,7 +117,7 @@ function shouldHaveBody (buf) {
   }
 }
 
-function shouldHitHandle(num) {
+function shouldHitHandle (num) {
   var header = 'x-fn-' + String(num)
   return function (res) {
     assert.equal(res.headers[header], 'hit', 'should hit handle ' + num)
@@ -130,11 +130,11 @@ function shouldNotHaveBody () {
   }
 }
 
-function shouldNotHitHandle(num) {
+function shouldNotHitHandle (num) {
   return shouldNotHaveHeader('x-fn-' + String(num))
 }
 
-function shouldNotHaveHeader(header) {
+function shouldNotHaveHeader (header) {
   return function (res) {
     assert.ok(!(header.toLowerCase() in res.headers), 'should not have header ' + header)
   }
