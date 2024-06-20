@@ -165,6 +165,7 @@ Router.prototype.handle = function handle(req, res, callback) {
   var slashAdded = false
   var sync = 0
   var paramcalled = {}
+  var matchedLayer = false
 
   // middleware and routes
   var stack = this.stack
@@ -291,6 +292,14 @@ Router.prototype.handle = function handle(req, res, callback) {
       ? mergeParams(layer.params, parentParams)
       : layer.params
     var layerPath = layer.path
+
+    if (!matchedLayer) {
+      matchedLayer = true
+      req.layerStack = req.layerStack || []
+    } else {
+      req.layerStack.pop()
+    }
+    req.layerStack.push(layer)
 
     // this should be done for the layer
     self.process_params(layer, paramcalled, req, res, function (err) {
