@@ -41,6 +41,7 @@
   "scripts": {
     "lint": "standard",
     "test": "mocha --reporter spec --bail --check-leaks test/",
+    "test:debug": "mocha --reporter spec --bail --check-leaks test/ --inspect --inspect-brk",
     "test-ci": "nyc --reporter=lcov --reporter=text npm test",
     "test-cov": "nyc --reporter=text npm test",
     "version": "node scripts/version-history.js && git add HISTORY.md"

@@ -716,27 +716,6 @@ describe('Router', function () {
             .expect(200, { foo: 'fizz', bar: 'buzz' }, done)
         })
 
-        it('should work following a partial capture group', function (done) {
-          const router = new Router()
-          const route = router.route('/user(s?)/:user/:op')
-          const server = createServer(router)
-
-          route.all(sendParams)
-
-          series([
-            function (cb) {
-              request(server)
-                .get('/user/tj/edit')
-                .expect(200, { 0: '', user: 'tj', op: 'edit' }, cb)
-            },
-            function (cb) {
-              request(server)
-                .get('/users/tj/edit')
-                .expect(200, { 0: 's', user: 'tj', op: 'edit' }, cb)
-            }
-          ], done)
-        })
-
         it('should work inside literal paranthesis', function (done) {
           const router = new Router()
           const route = router.route('/:user\\(:op\\)')
@@ -770,10 +749,10 @@ describe('Router', function () {
         })
       })
 
-      describe('using ":name?"', function () {
+      describe('using "{:name}"', function () {
         it('should name an optional parameter', function (done) {
           const router = new Router()
-          const route = router.route('/:foo?')
+          const route = router.route('{/:foo}')
           const server = createServer(router)
 
           route.all(sendParams)
@@ -793,7 +772,7 @@ describe('Router', function () {
 
         it('should work in any segment', function (done) {
           const router = new Router()
-          const route = router.route('/user/:foo?/delete')
+          const route = router.route('/user{/:foo}/delete')
           const server = createServer(router)
 
           route.all(sendParams)
@@ -812,10 +791,10 @@ describe('Router', function () {
         })
       })
 
-      describe('using ":name*"', function () {
+      describe('using "*name"', function () {
         it('should name a zero-or-more repeated parameter', function (done) {
           const router = new Router()
-          const route = router.route('/:foo*')
+          const route = router.route('{/*foo}')
           const server = createServer(router)
 
           route.all(sendParams)
@@ -828,19 +807,19 @@ describe('Router', function () {
             function (cb) {
               request(server)
                 .get('/bar')
-                .expect(200, { foo: 'bar' }, cb)
+                .expect(200, { foo: [ 'bar' ] }, cb)
             },
             function (cb) {
               request(server)
                 .get('/fizz/buzz')
-                .expect(200, { foo: 'fizz/buzz' }, cb)
+                .expect(200, { foo: [ 'fizz', 'buzz' ] }, cb)
             }
           ], done)
         })
 
         it('should work in any segment', function (done) {
           const router = new Router()
-          const route = router.route('/user/:foo*/delete')
+          const route = router.route('/user{/*foo}/delete')
           const server = createServer(router)
 
           route.all(sendParams)
@@ -853,135 +832,12 @@ describe('Router', function () {
             function (cb) {
               request(server)
                 .get('/user/bar/delete')
-                .expect(200, { foo: 'bar' }, cb)
+                .expect(200, { foo: [ 'bar' ] }, cb)
             },
             function (cb) {
               request(server)
                 .get('/user/fizz/buzz/delete')
-                .expect(200, { foo: 'fizz/buzz' }, cb)
-            }
-          ], done)
-        })
-      })
-
-      describe('using ":name+"', function () {
-        it('should name a one-or-more repeated parameter', function (done) {
-          const router = new Router()
-          const route = router.route('/:foo+')
-          const server = createServer(router)
-
-          route.all(sendParams)
-
-          series([
-            function (cb) {
-              request(server)
-                .get('/')
-                .expect(404, cb)
-            },
-            function (cb) {
-              request(server)
-                .get('/bar')
-                .expect(200, { foo: 'bar' }, cb)
-            },
-            function (cb) {
-              request(server)
-                .get('/fizz/buzz')
-                .expect(200, { foo: 'fizz/buzz' }, cb)
-            }
-          ], done)
-        })
-
-        it('should work in any segment', function (done) {
-          const router = new Router()
-          const route = router.route('/user/:foo+/delete')
-          const server = createServer(router)
-
-          route.all(sendParams)
-          series([
-            function (cb) {
-              request(server)
-                .get('/user/delete')
-                .expect(404, cb)
-            },
-            function (cb) {
-              request(server)
-                .get('/user/bar/delete')
-                .expect(200, { foo: 'bar' }, cb)
-            },
-            function (cb) {
-              request(server)
-                .get('/user/fizz/buzz/delete')
-                .expect(200, { foo: 'fizz/buzz' }, cb)
-            }
-          ], done)
-        })
-      })
-
-      describe('using ":name(regexp)"', function () {
-        it('should limit capture group to regexp match', function (done) {
-          const router = new Router()
-          const route = router.route('/:foo([0-9]+)')
-          const server = createServer(router)
-
-          route.all(sendParams)
-
-          series([
-            function (cb) {
-              request(server)
-                .get('/foo')
-                .expect(404, cb)
-            },
-            function (cb) {
-              request(server)
-                .get('/42')
-                .expect(200, { foo: '42' }, cb)
-            }
-          ], done)
-        })
-      })
-
-      describe('using "(regexp)"', function () {
-        it('should add capture group using regexp', function (done) {
-          const router = new Router()
-          const route = router.route('/page_([0-9]+)')
-          const server = createServer(router)
-
-          route.all(sendParams)
-          series([
-            function (cb) {
-              request(server)
-                .get('/page_foo')
-                .expect(404, cb)
-            },
-            function (cb) {
-              request(server)
-                .get('/page_42')
-                .expect(200, { 0: '42' }, cb)
-            }
-          ], done)
-        })
-
-        it('should treat regexp as literal regexp', function (done) {
-          const router = new Router()
-          const route = router.route('/([a-z]+:n[0-9]+)')
-          const server = createServer(router)
-
-          route.all(sendParams)
-          series([
-            function (cb) {
-              request(server)
-                .get('/foo:bar')
-                .expect(404, cb)
-            },
-            function (cb) {
-              request(server)
-                .get('/foo:n')
-                .expect(404, cb)
-            },
-            function (cb) {
-              request(server)
-                .get('/foo:n42')
-                .expect(200, { 0: 'foo:n42' }, cb)
+                .expect(200, { foo: [ 'fizz', 'buzz' ] }, cb)
             }
           ], done)
         })

@@ -124,46 +124,6 @@ describe('req.params', function () {
         .expect('x-params-1', '{"foo":"buzz"}')
         .expect(200, '{"foo":"bar"}', done)
     })
-
-    describe('with numeric properties in req.params', function () {
-      it('should merge numeric properties by offsetting', function (done) {
-        const router = Router({ mergeParams: true })
-        const server = createServer(function (req, res, next) {
-          req.params = { 0: 'foo', 1: 'bar' }
-
-          router(req, res, function (err) {
-            if (err) return next(err)
-            sawParams(req, res)
-          })
-        })
-
-        router.get('/(.*)', hitParams(1))
-
-        request(server)
-          .get('/buzz')
-          .expect('x-params-1', '{"0":"foo","1":"bar","2":"buzz"}')
-          .expect(200, '{"0":"foo","1":"bar"}', done)
-      })
-
-      it('should merge with same numeric properties', function (done) {
-        const router = Router({ mergeParams: true })
-        const server = createServer(function (req, res, next) {
-          req.params = { 0: 'foo' }
-
-          router(req, res, function (err) {
-            if (err) return next(err)
-            sawParams(req, res)
-          })
-        })
-
-        router.get('/(.*)', hitParams(1))
-
-        request(server)
-          .get('/bar')
-          .expect('x-params-1', '{"0":"foo","1":"bar"}')
-          .expect(200, '{"0":"foo"}', done)
-      })
-    })
   })
 })
 

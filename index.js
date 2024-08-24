@@ -576,7 +576,6 @@ function processParams (params, layer, called, req, res, done) {
   }
 
   let i = 0
-  let name
   let paramIndex = 0
   let key
   let paramVal
@@ -596,10 +595,9 @@ function processParams (params, layer, called, req, res, done) {
 
     paramIndex = 0
     key = keys[i++]
-    name = key.name
-    paramVal = req.params[name]
-    paramCallbacks = params[name]
-    paramCalled = called[name]
+    paramVal = req.params[key]
+    paramCallbacks = params[key]
+    paramCalled = called[key]
 
     if (paramVal === undefined || !paramCallbacks) {
       return param()
@@ -609,13 +607,13 @@ function processParams (params, layer, called, req, res, done) {
     if (paramCalled && (paramCalled.match === paramVal ||
       (paramCalled.error && paramCalled.error !== 'route'))) {
       // restore value
-      req.params[name] = paramCalled.value
+      req.params[key] = paramCalled.value
 
       // next param
       return param(paramCalled.error)
     }
 
-    called[name] = paramCalled = {
+    called[key] = paramCalled = {
       error: null,
       match: paramVal,
       value: paramVal
@@ -629,7 +627,7 @@ function processParams (params, layer, called, req, res, done) {
     const fn = paramCallbacks[paramIndex++]
 
     // store updated value
-    paramCalled.value = req.params[key.name]
+    paramCalled.value = req.params[key]
 
     if (err) {
       // store error
@@ -641,7 +639,7 @@ function processParams (params, layer, called, req, res, done) {
     if (!fn) return param()
 
     try {
-      const ret = fn(req, res, paramCallback, paramVal, key.name)
+      const ret = fn(req, res, paramCallback, paramVal, key)
       if (isPromise(ret)) {
         ret.then(null, function (error) {
           paramCallback(error || new Error('Rejected promise'))
