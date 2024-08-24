@@ -356,6 +356,7 @@ describe('Router', function () {
         const server = createServer(router)
 
         router[method](['/foo', '/bar'], createHitHandle(1), helloWorld)
+
         series([
           function (cb) {
             request(server)[method]('/')
@@ -372,35 +373,6 @@ describe('Router', function () {
           },
           function (cb) {
             request(server)[method]('/bar')
-              .expect(200)
-              .expect(shouldHitHandle(1))
-              .expect(body)
-              .end(cb)
-          }
-        ], done)
-      })
-
-      it('should support regexp path', function (done) {
-        const router = new Router()
-        const server = createServer(router)
-
-        router[method](/^\/[a-z]oo$/, createHitHandle(1), helloWorld)
-        series([
-          function (cb) {
-            request(server)[method]('/')
-              .expect(404)
-              .expect(shouldNotHitHandle(1))
-              .end(cb)
-          },
-          function (cb) {
-            request(server)[method]('/foo')
-              .expect(200)
-              .expect(shouldHitHandle(1))
-              .expect(body)
-              .end(cb)
-          },
-          function (cb) {
-            request(server)[method]('/zoo')
               .expect(200)
               .expect(shouldHitHandle(1))
               .expect(body)
@@ -1008,7 +980,7 @@ describe('Router', function () {
       const router = new Router()
       const server = createServer(router)
 
-      router.use(/^\/[a-z]oo/, saw)
+      router.use(/^\/[a-z]oo$/, saw)
       series([
         function (cb) {
           request(server)
@@ -1028,7 +1000,56 @@ describe('Router', function () {
         function (cb) {
           request(server)
             .get('/zoo/bear')
-            .expect(200, 'saw GET /bear', cb)
+            .expect(404, cb)
+        },
+        function (cb) {
+          request(server)
+            .get('/get/zoo')
+            .expect(404, cb)
+        }
+      ], done)
+    })
+
+    it('should support regexp path with params', function (done) {
+      const router = new Router()
+      const server = createServer(router)
+
+      router.use(/^\/([a-z]oo)$/, function (req, res, next) {
+        createHitHandle(req.params[0])(req, res, next)
+      }, saw)
+
+      router.use(/^\/([a-z]oo)\/(?<animal>bear)$/, function (req, res, next) {
+        createHitHandle(req.params[0] + req.params.animal)(req, res, next)
+      }, saw)
+
+      series([
+        function (cb) {
+          request(server)
+            .get('/')
+            .expect(404, cb)
+        },
+        function (cb) {
+          request(server)
+            .get('/foo')
+            .expect(shouldHitHandle('foo'))
+            .expect(200, 'saw GET /', cb)
+        },
+        function (cb) {
+          request(server)
+            .get('/zoo')
+            .expect(shouldHitHandle('zoo'))
+            .expect(200, 'saw GET /', cb)
+        },
+        function (cb) {
+          request(server)
+            .get('/fooo')
+            .expect(404, cb)
+        },
+        function (cb) {
+          request(server)
+            .get('/zoo/bear')
+            .expect(shouldHitHandle('zoobear'))
+            .expect(200, cb)
         },
         function (cb) {
           request(server)
@@ -1287,6 +1308,19 @@ describe('Router', function () {
 
         router1.use('/foo', router2)
         router2.use('/bar', sawBase)
+
+        request(server)
+          .get('/foo/bar/baz')
+          .expect(200, 'saw /foo/bar', done)
+      })
+
+      it('should contain the stripped path for multiple levels with regular expressions', function (done) {
+        const router1 = new Router()
+        const router2 = new Router()
+        const server = createServer(router1)
+
+        router1.use(/^\/foo/, router2)
+        router2.use(/^\/bar/, sawBase)
 
         request(server)
           .get('/foo/bar/baz')
