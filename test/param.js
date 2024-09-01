@@ -1,5 +1,5 @@
 
-var after = require('after')
+var series = require('run-series')
 var Router = require('..')
 var utils = require('./support/utils')
 
@@ -35,7 +35,6 @@ describe('Router', function () {
     })
 
     it('should map logic for a path param', function (done) {
-      var cb = after(2, done)
       var router = new Router()
       var server = createServer(router)
 
@@ -49,13 +48,18 @@ describe('Router', function () {
         res.end('get user ' + req.params.id)
       })
 
-      request(server)
-        .get('/user/2')
-        .expect(200, 'get user 2', cb)
-
-      request(server)
-        .get('/user/bob')
-        .expect(200, 'get user NaN', cb)
+      series([
+        function (cb) {
+          request(server)
+            .get('/user/2')
+            .expect(200, 'get user 2', cb)
+        },
+        function (cb) {
+          request(server)
+            .get('/user/bob')
+            .expect(200, 'get user NaN', cb)
+        }
+      ], done)
     })
 
     it('should allow chaining', function (done) {
@@ -121,7 +125,6 @@ describe('Router', function () {
     })
 
     it('should only invoke fn when necessary', function (done) {
-      var cb = after(2, done)
       var router = new Router()
       var server = createServer(router)
 
@@ -137,14 +140,19 @@ describe('Router', function () {
       router.get('/user/:user', saw)
       router.put('/user/:id', saw)
 
-      request(server)
-        .get('/user/bob')
-        .expect(500, /Error: boom/, cb)
-
-      request(server)
-        .put('/user/bob')
-        .expect('x-id', 'bob')
-        .expect(200, 'saw PUT /user/bob', cb)
+      series([
+        function (cb) {
+          request(server)
+            .get('/user/bob')
+            .expect(500, /Error: boom/, cb)
+        },
+        function (cb) {
+          request(server)
+            .put('/user/bob')
+            .expect('x-id', 'bob')
+            .expect(200, 'saw PUT /user/bob', cb)
+        }
+      ], done)
     })
 
     it('should only invoke fn once per request', function (done) {
@@ -300,7 +308,6 @@ describe('Router', function () {
 
     describe('next("route")', function () {
       it('should cause route with param to be skipped', function (done) {
-        var cb = after(3, done)
         var router = new Router()
         var server = createServer(router)
 
@@ -326,17 +333,23 @@ describe('Router', function () {
           res.end('cannot get a new user')
         })
 
-        request(server)
-          .get('/user/2')
-          .expect(200, 'get user 2', cb)
-
-        request(server)
-          .get('/user/bob')
-          .expect(404, cb)
-
-        request(server)
-          .get('/user/new')
-          .expect(400, 'cannot get a new user', cb)
+        series([
+          function (cb) {
+            request(server)
+              .get('/user/2')
+              .expect(200, 'get user 2', cb)
+          },
+          function (cb) {
+            request(server)
+              .get('/user/bob')
+              .expect(404, cb)
+          },
+          function (cb) {
+            request(server)
+              .get('/user/new')
+              .expect(400, 'cannot get a new user', cb)
+          }
+        ], done)
       })
 
       it('should invoke fn if path value differs', function (done) {
