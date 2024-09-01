@@ -1,14 +1,14 @@
+const { it, describe } = require('mocha')
+const Router = require('..')
+const utils = require('./support/utils')
 
-var Router = require('..')
-var utils = require('./support/utils')
-
-var createServer = utils.createServer
-var request = utils.request
+const createServer = utils.createServer
+const request = utils.request
 
 describe('req.params', function () {
   it('should default to empty object', function (done) {
-    var router = Router()
-    var server = createServer(router)
+    const router = Router()
+    const server = createServer(router)
 
     router.get('/', sawParams)
 
@@ -18,8 +18,8 @@ describe('req.params', function () {
   })
 
   it('should not exist outside the router', function (done) {
-    var router = Router()
-    var server = createServer(function (req, res, next) {
+    const router = Router()
+    const server = createServer(function (req, res, next) {
       router(req, res, function (err) {
         if (err) return next(err)
         sawParams(req, res)
@@ -35,8 +35,8 @@ describe('req.params', function () {
   })
 
   it('should overwrite value outside the router', function (done) {
-    var router = Router()
-    var server = createServer(function (req, res, next) {
+    const router = Router()
+    const server = createServer(function (req, res, next) {
       req.params = { foo: 'bar' }
       router(req, res, done)
     })
@@ -49,8 +49,8 @@ describe('req.params', function () {
   })
 
   it('should restore previous value outside the router', function (done) {
-    var router = Router()
-    var server = createServer(function (req, res, next) {
+    const router = Router()
+    const server = createServer(function (req, res, next) {
       req.params = { foo: 'bar' }
 
       router(req, res, function (err) {
@@ -69,8 +69,8 @@ describe('req.params', function () {
 
   describe('when "mergeParams: true"', function () {
     it('should merge outside object with params', function (done) {
-      var router = Router({ mergeParams: true })
-      var server = createServer(function (req, res, next) {
+      const router = Router({ mergeParams: true })
+      const server = createServer(function (req, res, next) {
         req.params = { foo: 'bar' }
 
         router(req, res, function (err) {
@@ -88,8 +88,8 @@ describe('req.params', function () {
     })
 
     it('should ignore non-object outside object', function (done) {
-      var router = Router({ mergeParams: true })
-      var server = createServer(function (req, res, next) {
+      const router = Router({ mergeParams: true })
+      const server = createServer(function (req, res, next) {
         req.params = 42
 
         router(req, res, function (err) {
@@ -107,8 +107,8 @@ describe('req.params', function () {
     })
 
     it('should overwrite outside keys that are the same', function (done) {
-      var router = Router({ mergeParams: true })
-      var server = createServer(function (req, res, next) {
+      const router = Router({ mergeParams: true })
+      const server = createServer(function (req, res, next) {
         req.params = { foo: 'bar' }
 
         router(req, res, function (err) {
@@ -127,8 +127,8 @@ describe('req.params', function () {
 
     describe('with numeric properties in req.params', function () {
       it('should merge numeric properties by offsetting', function (done) {
-        var router = Router({ mergeParams: true })
-        var server = createServer(function (req, res, next) {
+        const router = Router({ mergeParams: true })
+        const server = createServer(function (req, res, next) {
           req.params = { 0: 'foo', 1: 'bar' }
 
           router(req, res, function (err) {
@@ -146,8 +146,8 @@ describe('req.params', function () {
       })
 
       it('should merge with same numeric properties', function (done) {
-        var router = Router({ mergeParams: true })
-        var server = createServer(function (req, res, next) {
+        const router = Router({ mergeParams: true })
+        const server = createServer(function (req, res, next) {
           req.params = { 0: 'foo' }
 
           router(req, res, function (err) {
@@ -168,7 +168,7 @@ describe('req.params', function () {
 })
 
 function hitParams (num) {
-  var name = 'x-params-' + String(num)
+  const name = 'x-params-' + String(num)
   return function hit (req, res, next) {
     res.setHeader(name, JSON.stringify(req.params))
     next()

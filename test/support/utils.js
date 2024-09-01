@@ -1,10 +1,9 @@
-
-var assert = require('assert')
-var Buffer = require('safe-buffer').Buffer
-var finalhandler = require('finalhandler')
-var http = require('http')
-var methods = require('methods')
-var request = require('supertest')
+const assert = require('assert')
+const Buffer = require('safe-buffer').Buffer
+const finalhandler = require('finalhandler')
+const http = require('http')
+const methods = require('methods')
+const request = require('supertest')
 
 exports.assert = assert
 exports.createHitHandle = createHitHandle
@@ -17,7 +16,7 @@ exports.shouldHitHandle = shouldHitHandle
 exports.shouldNotHitHandle = shouldNotHitHandle
 
 function createHitHandle (num) {
-  var name = 'x-fn-' + String(num)
+  const name = 'x-fn-' + String(num)
   return function hit (req, res, next) {
     res.setHeader(name, 'hit')
     next()
@@ -31,10 +30,10 @@ function createServer (router) {
 }
 
 function rawrequest (server) {
-  var _headers = {}
-  var _method
-  var _path
-  var _test = {}
+  const _headers = {}
+  let _method
+  let _path
+  const _test = {}
 
   methods.forEach(function (method) {
     _test[method] = go.bind(null, method)
@@ -46,7 +45,7 @@ function rawrequest (server) {
       return this
     }
 
-    var _server
+    let _server
 
     if (!server.address()) {
       _server = server.listen(0, onListening)
@@ -56,25 +55,25 @@ function rawrequest (server) {
     onListening.call(server)
 
     function onListening () {
-      var addr = this.address()
-      var port = addr.port
+      const addr = this.address()
+      const port = addr.port
 
-      var req = http.request({
+      const req = http.request({
         host: '127.0.0.1',
         method: _method,
         path: _path,
-        port: port
+        port
       })
       req.on('response', function (res) {
-        var buf = ''
+        let buf = ''
 
         res.setEncoding('utf8')
         res.on('data', function (s) { buf += s })
         res.on('end', function () {
-          var err = null
+          let err = null
 
           try {
-            for (var key in _headers) {
+            for (const key in _headers) {
               assert.equal(res.headers[key], _headers[key])
             }
 
@@ -100,7 +99,7 @@ function rawrequest (server) {
     _path = path
 
     return {
-      expect: expect
+      expect
     }
   }
 
@@ -109,7 +108,7 @@ function rawrequest (server) {
 
 function shouldHaveBody (buf) {
   return function (res) {
-    var body = !Buffer.isBuffer(res.body)
+    const body = !Buffer.isBuffer(res.body)
       ? Buffer.from(res.text)
       : res.body
     assert.ok(body, 'response has body')
@@ -118,7 +117,7 @@ function shouldHaveBody (buf) {
 }
 
 function shouldHitHandle (num) {
-  var header = 'x-fn-' + String(num)
+  const header = 'x-fn-' + String(num)
   return function (res) {
     assert.equal(res.headers[header], 'hit', 'should hit handle ' + num)
   }

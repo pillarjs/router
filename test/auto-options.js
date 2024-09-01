@@ -1,14 +1,14 @@
+const { it, describe } = require('mocha')
+const Router = require('..')
+const utils = require('./support/utils')
 
-var Router = require('..')
-var utils = require('./support/utils')
-
-var createServer = utils.createServer
-var request = utils.request
+const createServer = utils.createServer
+const request = utils.request
 
 describe('OPTIONS', function () {
   it('should respond with defined routes', function (done) {
-    var router = Router()
-    var server = createServer(router)
+    const router = Router()
+    const server = createServer(router)
 
     router.delete('/', saw)
     router.get('/users', saw)
@@ -22,8 +22,8 @@ describe('OPTIONS', function () {
   })
 
   it('should not contain methods multiple times', function (done) {
-    var router = Router()
-    var server = createServer(router)
+    const router = Router()
+    const server = createServer(router)
 
     router.delete('/', saw)
     router.get('/users', saw)
@@ -37,8 +37,8 @@ describe('OPTIONS', function () {
   })
 
   it('should not include "all" routes', function (done) {
-    var router = Router()
-    var server = createServer(router)
+    const router = Router()
+    const server = createServer(router)
 
     router.get('/', saw)
     router.get('/users', saw)
@@ -53,8 +53,8 @@ describe('OPTIONS', function () {
   })
 
   it('should not respond if no matching path', function (done) {
-    var router = Router()
-    var server = createServer(router)
+    const router = Router()
+    const server = createServer(router)
 
     router.get('/users', saw)
 
@@ -64,8 +64,8 @@ describe('OPTIONS', function () {
   })
 
   it('should do nothing with explicit options route', function (done) {
-    var router = Router()
-    var server = createServer(router)
+    const router = Router()
+    const server = createServer(router)
 
     router.get('/users', saw)
     router.options('/users', saw)
@@ -77,8 +77,8 @@ describe('OPTIONS', function () {
 
   describe('when error occurs in respone handler', function () {
     it('should pass error to callback', function (done) {
-      var router = Router()
-      var server = createServer(function hander (req, res, next) {
+      const router = Router()
+      const server = createServer(function hander (req, res, next) {
         res.writeHead(200)
         router(req, res, function (err) {
           res.end(String(Boolean(err)))
@@ -95,14 +95,14 @@ describe('OPTIONS', function () {
 })
 
 function saw (req, res) {
-  var msg = 'saw ' + req.method + ' ' + req.url
+  const msg = 'saw ' + req.method + ' ' + req.url
   res.statusCode = 200
   res.setHeader('Content-Type', 'text/plain')
   res.end(msg)
 }
 
 function sethit (num) {
-  var name = 'x-fn-' + String(num)
+  const name = 'x-fn-' + String(num)
   return function hit (req, res, next) {
     res.setHeader(name, 'hit')
     next()

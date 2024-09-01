@@ -1,42 +1,42 @@
+const { it, describe } = require('mocha')
+const series = require('run-series')
+const Router = require('..')
+const utils = require('./support/utils')
 
-var series = require('run-series')
-var Router = require('..')
-var utils = require('./support/utils')
+const assert = utils.assert
+const createHitHandle = utils.createHitHandle
+const shouldHitHandle = utils.shouldHitHandle
+const shouldNotHitHandle = utils.shouldNotHitHandle
+const createServer = utils.createServer
+const request = utils.request
 
-var assert = utils.assert
-var createHitHandle = utils.createHitHandle
-var shouldHitHandle = utils.shouldHitHandle
-var shouldNotHitHandle = utils.shouldNotHitHandle
-var createServer = utils.createServer
-var request = utils.request
-
-var describePromises = global.Promise ? describe : describe.skip
+const describePromises = global.Promise ? describe : describe.skip
 
 describe('Router', function () {
   describe('.param(name, fn)', function () {
     it('should reject missing name', function () {
-      var router = new Router()
+      const router = new Router()
       assert.throws(router.param.bind(router), /argument name is required/)
     })
 
     it('should reject bad name', function () {
-      var router = new Router()
+      const router = new Router()
       assert.throws(router.param.bind(router, 42), /argument name must be a string/)
     })
 
     it('should reject missing fn', function () {
-      var router = new Router()
+      const router = new Router()
       assert.throws(router.param.bind(router, 'id'), /argument fn is required/)
     })
 
     it('should reject bad fn', function () {
-      var router = new Router()
+      const router = new Router()
       assert.throws(router.param.bind(router, 'id', 42), /argument fn must be a function/)
     })
 
     it('should map logic for a path param', function (done) {
-      var router = new Router()
-      var server = createServer(router)
+      const router = new Router()
+      const server = createServer(router)
 
       router.param('id', function parseId (req, res, next, val) {
         req.params.id = Number(val)
@@ -63,8 +63,8 @@ describe('Router', function () {
     })
 
     it('should allow chaining', function (done) {
-      var router = new Router()
-      var server = createServer(router)
+      const router = new Router()
+      const server = createServer(router)
 
       router.param('id', function parseId (req, res, next, val) {
         req.params.id = Number(val)
@@ -87,8 +87,8 @@ describe('Router', function () {
     })
 
     it('should automatically decode path value', function (done) {
-      var router = new Router()
-      var server = createServer(router)
+      const router = new Router()
+      const server = createServer(router)
 
       router.param('user', function parseUser (req, res, next, user) {
         req.user = user
@@ -106,8 +106,8 @@ describe('Router', function () {
     })
 
     it('should 400 on invalid path value', function (done) {
-      var router = new Router()
-      var server = createServer(router)
+      const router = new Router()
+      const server = createServer(router)
 
       router.param('user', function parseUser (req, res, next, user) {
         req.user = user
@@ -125,8 +125,8 @@ describe('Router', function () {
     })
 
     it('should only invoke fn when necessary', function (done) {
-      var router = new Router()
-      var server = createServer(router)
+      const router = new Router()
+      const server = createServer(router)
 
       router.param('id', function parseId (req, res, next, val) {
         res.setHeader('x-id', val)
@@ -156,8 +156,8 @@ describe('Router', function () {
     })
 
     it('should only invoke fn once per request', function (done) {
-      var router = new Router()
-      var server = createServer(router)
+      const router = new Router()
+      const server = createServer(router)
 
       router.param('user', function parseUser (req, res, next, user) {
         req.count = (req.count || 0) + 1
@@ -178,8 +178,8 @@ describe('Router', function () {
     })
 
     it('should keep changes to req.params value', function (done) {
-      var router = new Router()
-      var server = createServer(router)
+      const router = new Router()
+      const server = createServer(router)
 
       router.param('id', function parseUser (req, res, next, val) {
         req.count = (req.count || 0) + 1
@@ -202,8 +202,8 @@ describe('Router', function () {
     })
 
     it('should invoke fn if path value differs', function (done) {
-      var router = new Router()
-      var server = createServer(router)
+      const router = new Router()
+      const server = createServer(router)
 
       router.param('user', function parseUser (req, res, next, user) {
         req.count = (req.count || 0) + 1
@@ -225,8 +225,8 @@ describe('Router', function () {
     })
 
     it('should catch exception in fn', function (done) {
-      var router = new Router()
-      var server = createServer(router)
+      const router = new Router()
+      const server = createServer(router)
 
       router.param('user', function parseUser (req, res, next, user) {
         throw new Error('boom')
@@ -243,8 +243,8 @@ describe('Router', function () {
     })
 
     it('should catch exception in chained fn', function (done) {
-      var router = new Router()
-      var server = createServer(router)
+      const router = new Router()
+      const server = createServer(router)
 
       router.param('user', function parseUser (req, res, next, user) {
         process.nextTick(next)
@@ -266,8 +266,8 @@ describe('Router', function () {
 
     describePromises('promise support', function () {
       it('should pass rejected promise value', function (done) {
-        var router = new Router()
-        var server = createServer(router)
+        const router = new Router()
+        const server = createServer(router)
 
         router.param('user', function parseUser (req, res, next, user) {
           return Promise.reject(new Error('boom'))
@@ -284,8 +284,8 @@ describe('Router', function () {
       })
 
       it('should pass rejected promise without value', function (done) {
-        var router = new Router()
-        var server = createServer(router)
+        const router = new Router()
+        const server = createServer(router)
 
         router.use(function createError (req, res, next) {
           return Promise.reject() // eslint-disable-line prefer-promise-reject-errors
@@ -308,11 +308,11 @@ describe('Router', function () {
 
     describe('next("route")', function () {
       it('should cause route with param to be skipped', function (done) {
-        var router = new Router()
-        var server = createServer(router)
+        const router = new Router()
+        const server = createServer(router)
 
         router.param('id', function parseId (req, res, next, val) {
-          var id = Number(val)
+          const id = Number(val)
 
           if (isNaN(id)) {
             return next('route')
@@ -353,8 +353,8 @@ describe('Router', function () {
       })
 
       it('should invoke fn if path value differs', function (done) {
-        var router = new Router()
-        var server = createServer(router)
+        const router = new Router()
+        const server = createServer(router)
 
         router.param('user', function parseUser (req, res, next, user) {
           req.count = (req.count || 0) + 1
@@ -381,7 +381,7 @@ describe('Router', function () {
 })
 
 function sethit (num) {
-  var name = 'x-fn-' + String(num)
+  const name = 'x-fn-' + String(num)
   return function hit (req, res, next) {
     res.setHeader(name, 'hit')
     next()
@@ -389,7 +389,7 @@ function sethit (num) {
 }
 
 function saw (req, res) {
-  var msg = 'saw ' + req.method + ' ' + req.url
+  const msg = 'saw ' + req.method + ' ' + req.url
   res.statusCode = 200
   res.setHeader('Content-Type', 'text/plain')
   res.end(msg)

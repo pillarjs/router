@@ -1,14 +1,14 @@
+const { it, describe } = require('mocha')
+const Router = require('..')
+const utils = require('./support/utils')
 
-var Router = require('..')
-var utils = require('./support/utils')
-
-var createServer = utils.createServer
-var request = utils.request
+const createServer = utils.createServer
+const request = utils.request
 
 describe('HEAD', function () {
   it('should invoke get without head', function (done) {
-    var router = Router()
-    var server = createServer(router)
+    const router = Router()
+    const server = createServer(router)
 
     router.get('/users', sethit(1), saw)
 
@@ -20,8 +20,8 @@ describe('HEAD', function () {
   })
 
   it('should invoke head if prior to get', function (done) {
-    var router = Router()
-    var server = createServer(router)
+    const router = Router()
+    const server = createServer(router)
 
     router.head('/users', sethit(1), saw)
     router.get('/users', sethit(2), saw)
@@ -35,14 +35,14 @@ describe('HEAD', function () {
 })
 
 function saw (req, res) {
-  var msg = 'saw ' + req.method + ' ' + req.url
+  const msg = 'saw ' + req.method + ' ' + req.url
   res.statusCode = 200
   res.setHeader('Content-Type', 'text/plain')
   res.end(msg)
 }
 
 function sethit (num) {
-  var name = 'x-fn-' + String(num)
+  const name = 'x-fn-' + String(num)
   return function hit (req, res, next) {
     res.setHeader(name, 'hit')
     next()

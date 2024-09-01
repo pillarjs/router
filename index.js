@@ -12,21 +12,21 @@
  * @private
  */
 
-var flatten = require('array-flatten').flatten
-var isPromise = require('is-promise')
-var Layer = require('./lib/layer')
-var methods = require('methods')
-var mixin = require('utils-merge')
-var parseUrl = require('parseurl')
-var Route = require('./lib/route')
-var setPrototypeOf = require('setprototypeof')
+const flatten = require('array-flatten').flatten
+const isPromise = require('is-promise')
+const Layer = require('./lib/layer')
+const methods = require('methods')
+const mixin = require('utils-merge')
+const parseUrl = require('parseurl')
+const Route = require('./lib/route')
+const setPrototypeOf = require('setprototypeof')
 
 /**
  * Module variables.
  * @private
  */
 
-var slice = Array.prototype.slice
+const slice = Array.prototype.slice
 
 /**
  * Expose `Router`.
@@ -53,7 +53,7 @@ function Router (options) {
     return new Router(options)
   }
 
-  var opts = options || {}
+  const opts = options || {}
 
   function router (req, res, next) {
     router.handle(req, res, next)
@@ -128,7 +128,7 @@ Router.prototype.param = function param (name, fn) {
     throw new TypeError('argument fn must be a function')
   }
 
-  var params = this.params[name]
+  let params = this.params[name]
 
   if (!params) {
     params = this.params[name] = []
@@ -150,22 +150,22 @@ Router.prototype.handle = function handle (req, res, callback) {
     throw new TypeError('argument callback is required')
   }
 
-  var idx = 0
-  var methods
-  var protohost = getProtohost(req.url) || ''
-  var removed = ''
-  var self = this
-  var slashAdded = false
-  var sync = 0
-  var paramcalled = {}
+  let idx = 0
+  let methods
+  const protohost = getProtohost(req.url) || ''
+  let removed = ''
+  const self = this
+  let slashAdded = false
+  let sync = 0
+  const paramcalled = {}
 
   // middleware and routes
-  var stack = this.stack
+  const stack = this.stack
 
   // manage inter-router variables
-  var parentParams = req.params
-  var parentUrl = req.baseUrl || ''
-  var done = restore(callback, req, 'baseUrl', 'next', 'params')
+  const parentParams = req.params
+  const parentUrl = req.baseUrl || ''
+  let done = restore(callback, req, 'baseUrl', 'next', 'params')
 
   // setup next layer
   req.next = next
@@ -183,7 +183,7 @@ Router.prototype.handle = function handle (req, res, callback) {
   next()
 
   function next (err) {
-    var layerError = err === 'route'
+    let layerError = err === 'route'
       ? null
       : err
 
@@ -218,16 +218,16 @@ Router.prototype.handle = function handle (req, res, callback) {
     }
 
     // get pathname of request
-    var path = getPathname(req)
+    const path = getPathname(req)
 
     if (path == null) {
       return done(layerError)
     }
 
     // find next matching layer
-    var layer
-    var match
-    var route
+    let layer
+    let match
+    let route
 
     while (match !== true && idx < stack.length) {
       layer = stack[idx++]
@@ -254,8 +254,8 @@ Router.prototype.handle = function handle (req, res, callback) {
         continue
       }
 
-      var method = req.method
-      var hasMethod = route._handlesMethod(method)
+      const method = req.method
+      const hasMethod = route._handlesMethod(method)
 
       // build up automatic options response
       if (!hasMethod && method === 'OPTIONS' && methods) {
@@ -283,7 +283,7 @@ Router.prototype.handle = function handle (req, res, callback) {
     req.params = self.mergeParams
       ? mergeParams(layer.params, parentParams)
       : layer.params
-    var layerPath = layer.path
+    const layerPath = layer.path
 
     // this should be done for the layer
     processParams(self.params, layer, paramcalled, req, res, function (err) {
@@ -308,7 +308,7 @@ Router.prototype.handle = function handle (req, res, callback) {
       }
 
       // Validate path breaks on a path separator
-      var c = path[layerPath.length]
+      const c = path[layerPath.length]
       if (c && c !== '/') {
         next(layerError)
         return
@@ -355,13 +355,13 @@ Router.prototype.handle = function handle (req, res, callback) {
  */
 
 Router.prototype.use = function use (handler) {
-  var offset = 0
-  var path = '/'
+  let offset = 0
+  let path = '/'
 
   // default path to '/'
   // disambiguate router.use([handler])
   if (typeof handler !== 'function') {
-    var arg = handler
+    let arg = handler
 
     while (Array.isArray(arg) && arg.length !== 0) {
       arg = arg[0]
@@ -374,21 +374,21 @@ Router.prototype.use = function use (handler) {
     }
   }
 
-  var callbacks = flatten(slice.call(arguments, offset))
+  const callbacks = flatten(slice.call(arguments, offset))
 
   if (callbacks.length === 0) {
     throw new TypeError('argument handler is required')
   }
 
-  for (var i = 0; i < callbacks.length; i++) {
-    var fn = callbacks[i]
+  for (let i = 0; i < callbacks.length; i++) {
+    const fn = callbacks[i]
 
     if (typeof fn !== 'function') {
       throw new TypeError('argument handler must be a function')
     }
 
     // add the middleware
-    var layer = new Layer(path, {
+    const layer = new Layer(path, {
       sensitive: this.caseSensitive,
       strict: false,
       end: false
@@ -416,9 +416,9 @@ Router.prototype.use = function use (handler) {
  */
 
 Router.prototype.route = function route (path) {
-  var route = new Route(path)
+  const route = new Route(path)
 
-  var layer = new Layer(path, {
+  const layer = new Layer(path, {
     sensitive: this.caseSensitive,
     strict: this.strict,
     end: true
@@ -437,7 +437,7 @@ Router.prototype.route = function route (path) {
 // create Router#VERB functions
 methods.concat('all').forEach(function (method) {
   Router.prototype[method] = function (path) {
-    var route = this.route(path)
+    const route = this.route(path)
     route[method].apply(route, slice.call(arguments, 1))
     return this
   }
@@ -488,11 +488,11 @@ function getProtohost (url) {
     return undefined
   }
 
-  var searchIndex = url.indexOf('?')
-  var pathLength = searchIndex !== -1
+  const searchIndex = url.indexOf('?')
+  const pathLength = searchIndex !== -1
     ? searchIndex
     : url.length
-  var fqdnIndex = url.substring(0, pathLength).indexOf('://')
+  const fqdnIndex = url.substring(0, pathLength).indexOf('://')
 
   return fqdnIndex !== -1
     ? url.substring(0, url.indexOf('/', 3 + fqdnIndex))
@@ -527,15 +527,15 @@ function mergeParams (params, parent) {
   }
 
   // make copy of parent for base
-  var obj = mixin({}, parent)
+  const obj = mixin({}, parent)
 
   // simple non-numeric merging
   if (!(0 in params) || !(0 in parent)) {
     return mixin(obj, params)
   }
 
-  var i = 0
-  var o = 0
+  let i = 0
+  let o = 0
 
   // determine numeric gap in params
   while (i in params) {
@@ -568,20 +568,20 @@ function mergeParams (params, parent) {
 
 function processParams (params, layer, called, req, res, done) {
   // captured parameters from the layer, keys and values
-  var keys = layer.keys
+  const keys = layer.keys
 
   // fast track
   if (!keys || keys.length === 0) {
     return done()
   }
 
-  var i = 0
-  var name
-  var paramIndex = 0
-  var key
-  var paramVal
-  var paramCallbacks
-  var paramCalled
+  let i = 0
+  let name
+  let paramIndex = 0
+  let key
+  let paramVal
+  let paramCallbacks
+  let paramCalled
 
   // process params in order
   // param callbacks can be async
@@ -626,7 +626,7 @@ function processParams (params, layer, called, req, res, done) {
 
   // single param callbacks
   function paramCallback (err) {
-    var fn = paramCallbacks[paramIndex++]
+    const fn = paramCallbacks[paramIndex++]
 
     // store updated value
     paramCalled.value = req.params[key.name]
@@ -641,7 +641,7 @@ function processParams (params, layer, called, req, res, done) {
     if (!fn) return param()
 
     try {
-      var ret = fn(req, res, paramCallback, paramVal, key.name)
+      const ret = fn(req, res, paramCallback, paramVal, key.name)
       if (isPromise(ret)) {
         ret.then(null, function (error) {
           paramCallback(error || new Error('Rejected promise'))
@@ -662,17 +662,17 @@ function processParams (params, layer, called, req, res, done) {
  */
 
 function restore (fn, obj) {
-  var props = new Array(arguments.length - 2)
-  var vals = new Array(arguments.length - 2)
+  const props = new Array(arguments.length - 2)
+  const vals = new Array(arguments.length - 2)
 
-  for (var i = 0; i < props.length; i++) {
+  for (let i = 0; i < props.length; i++) {
     props[i] = arguments[i + 2]
     vals[i] = obj[props[i]]
   }
 
   return function () {
     // restore vals
-    for (var i = 0; i < props.length; i++) {
+    for (let i = 0; i < props.length; i++) {
       obj[props[i]] = vals[i]
     }
 
@@ -687,15 +687,15 @@ function restore (fn, obj) {
  */
 
 function sendOptionsResponse (res, methods) {
-  var options = Object.create(null)
+  const options = Object.create(null)
 
   // build unique method map
-  for (var i = 0; i < methods.length; i++) {
+  for (let i = 0; i < methods.length; i++) {
     options[methods[i]] = true
   }
 
   // construct the allow list
-  var allow = Object.keys(options).sort().join(', ')
+  const allow = Object.keys(options).sort().join(', ')
 
   // send response
   res.setHeader('Allow', allow)
@@ -727,10 +727,10 @@ function trySendOptionsResponse (res, methods, next) {
 
 function wrap (old, fn) {
   return function proxy () {
-    var args = new Array(arguments.length + 1)
+    const args = new Array(arguments.length + 1)
 
     args[0] = old
-    for (var i = 0, len = arguments.length; i < len; i++) {
+    for (let i = 0, len = arguments.length; i < len; i++) {
       args[i + 1] = arguments[i]
     }
 
