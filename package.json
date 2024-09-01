@@ -18,18 +18,13 @@
     "utils-merge": "1.0.1"
   },
   "devDependencies": {
-    "eslint": "8.34.0",
-    "eslint-config-standard": "14.1.1",
-    "eslint-plugin-import": "2.26.0",
-    "eslint-plugin-markdown": "3.0.0",
-    "eslint-plugin-node": "11.1.0",
-    "eslint-plugin-promise": "5.2.0",
-    "eslint-plugin-standard": "4.1.0",
+    "after": "0.8.2",
     "finalhandler": "1.2.0",
     "mocha": "10.2.0",
     "nyc": "15.1.0",
     "run-series": "^1.1.9",
     "safe-buffer": "5.2.1",
+    "standard": "^17.1.0",
     "supertest": "6.3.3"
   },
   "files": [
@@ -44,7 +39,7 @@
     "node": ">= 0.10"
   },
   "scripts": {
-    "lint": "eslint .",
+    "lint": "standard",
     "test": "mocha --reporter spec --bail --check-leaks test/",
     "test-ci": "nyc --reporter=lcov --reporter=text npm test",
     "test-cov": "nyc --reporter=text npm test",
