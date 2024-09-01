@@ -1,7 +1,7 @@
 
-var after = require('after')
 var Buffer = require('safe-buffer').Buffer
 var methods = require('methods')
+var series = require('run-series')
 var Router = require('..')
 var utils = require('./support/utils')
 
@@ -44,90 +44,107 @@ describe('Router', function () {
     })
 
     it('should respond to all methods', function (done) {
-      var cb = after(methods.length, done)
       var router = new Router()
       var server = createServer(router)
       router.all('/', helloWorld)
 
-      methods.forEach(function (method) {
-        if (method === 'connect') {
-          // CONNECT is tricky and supertest doesn't support it
-          return cb()
+      series(methods.map(function (method) {
+        return function (cb) {
+          if (method === 'connect') {
+            // CONNECT is tricky and supertest doesn't support it
+            return cb()
+          }
+          if (method === 'query' && process.version.startsWith('v21')) {
+            return cb()
+          }
+
+          var body = method !== 'head'
+            ? shouldHaveBody(Buffer.from('hello, world'))
+            : shouldNotHaveBody()
+
+          request(server)[method]('/')
+            .expect(200)
+            .expect(body)
+            .end(cb)
         }
-
-        var body = method !== 'head'
-          ? shouldHaveBody(Buffer.from('hello, world'))
-          : shouldNotHaveBody()
-
-        request(server)[method]('/')
-          .expect(200)
-          .expect(body)
-          .end(cb)
-      })
+      }), done)
     })
 
     it('should support array of paths', function (done) {
-      var cb = after(3, done)
       var router = new Router()
       var server = createServer(router)
 
       router.all(['/foo', '/bar'], saw)
-
-      request(server)
-        .get('/')
-        .expect(404, cb)
-
-      request(server)
-        .get('/foo')
-        .expect(200, 'saw GET /foo', cb)
-
-      request(server)
-        .get('/bar')
-        .expect(200, 'saw GET /bar', cb)
+      series([
+        function (cb) {
+          request(server)
+            .get('/')
+            .expect(404, cb)
+        },
+        function (cb) {
+          request(server)
+            .get('/foo')
+            .expect(200, 'saw GET /foo', cb)
+        },
+        function (cb) {
+          request(server)
+            .get('/bar')
+            .expect(200, 'saw GET /bar', cb)
+        }
+      ], done)
     })
 
     it('should support regexp path', function (done) {
-      var cb = after(3, done)
       var router = new Router()
       var server = createServer(router)
 
       router.all(/^\/[a-z]oo$/, saw)
-
-      request(server)
-        .get('/')
-        .expect(404, cb)
-
-      request(server)
-        .get('/foo')
-        .expect(200, 'saw GET /foo', cb)
-
-      request(server)
-        .get('/zoo')
-        .expect(200, 'saw GET /zoo', cb)
+      series([
+        function (cb) {
+          request(server)
+            .get('/')
+            .expect(404, cb)
+        },
+        function (cb) {
+          request(server)
+            .get('/foo')
+            .expect(200, 'saw GET /foo', cb)
+        },
+        function (cb) {
+          request(server)
+            .get('/zoo')
+            .expect(200, 'saw GET /zoo', cb)
+        }
+      ], done)
     })
 
     it('should support parameterized path', function (done) {
-      var cb = after(4, done)
       var router = new Router()
       var server = createServer(router)
 
       router.all('/:thing', saw)
-
-      request(server)
-        .get('/')
-        .expect(404, cb)
-
-      request(server)
-        .get('/foo')
-        .expect(200, 'saw GET /foo', cb)
-
-      request(server)
-        .get('/bar')
-        .expect(200, 'saw GET /bar', cb)
-
-      request(server)
-        .get('/foo/bar')
-        .expect(404, cb)
+      series([
+        function (cb) {
+          request(server)
+            .get('/')
+            .expect(404, cb)
+        },
+        function (cb) {
+          request(server)
+            .get('/foo')
+            .expect(200, 'saw GET /foo', cb)
+        },
+        function (cb) {
+          request(server)
+            .get('/bar')
+            .expect(200, 'saw GET /bar', cb)
+        },
+        function (cb) {
+          request(server)
+            .get('/foo/bar')
+            .expect(404, cb)
+        }
+      ], done)
     })
 
     it('should not stack overflow with many registered routes', function (done) {
@@ -166,113 +183,134 @@ describe('Router', function () {
 
     describe('with "caseSensitive" option', function () {
       it('should not match paths case-sensitively by default', function (done) {
-        var cb = after(3, done)
         var router = new Router()
         var server = createServer(router)
 
         router.all('/foo/bar', saw)
-
-        request(server)
-          .get('/foo/bar')
-          .expect(200, 'saw GET /foo/bar', cb)
-
-        request(server)
-          .get('/FOO/bar')
-          .expect(200, 'saw GET /FOO/bar', cb)
-
-        request(server)
-          .get('/FOO/BAR')
-          .expect(200, 'saw GET /FOO/BAR', cb)
+        series([
+          function (cb) {
+            request(server)
+              .get('/foo/bar')
+              .expect(200, 'saw GET /foo/bar', cb)
+          },
+          function (cb) {
+            request(server)
+              .get('/FOO/bar')
+              .expect(200, 'saw GET /FOO/bar', cb)
+          },
+          function (cb) {
+            request(server)
+              .get('/FOO/BAR')
+              .expect(200, 'saw GET /FOO/BAR', cb)
+          }
+        ], done)
       })
 
       it('should not match paths case-sensitively when false', function (done) {
-        var cb = after(3, done)
         var router = new Router({ caseSensitive: false })
         var server = createServer(router)
 
         router.all('/foo/bar', saw)
-
-        request(server)
-          .get('/foo/bar')
-          .expect(200, 'saw GET /foo/bar', cb)
-
-        request(server)
-          .get('/FOO/bar')
-          .expect(200, 'saw GET /FOO/bar', cb)
-
-        request(server)
-          .get('/FOO/BAR')
-          .expect(200, 'saw GET /FOO/BAR', cb)
+        series([
+          function (cb) {
+            request(server)
+              .get('/foo/bar')
+              .expect(200, 'saw GET /foo/bar', cb)
+          },
+          function (cb) {
+            request(server)
+              .get('/FOO/bar')
+              .expect(200, 'saw GET /FOO/bar', cb)
+          },
+          function (cb) {
+            request(server)
+              .get('/FOO/BAR')
+              .expect(200, 'saw GET /FOO/BAR', cb)
+          }
+        ], done)
       })
 
       it('should match paths case-sensitively when true', function (done) {
-        var cb = after(3, done)
         var router = new Router({ caseSensitive: true })
         var server = createServer(router)
 
         router.all('/foo/bar', saw)
-
-        request(server)
-          .get('/foo/bar')
-          .expect(200, 'saw GET /foo/bar', cb)
-
-        request(server)
-          .get('/FOO/bar')
-          .expect(404, cb)
-
-        request(server)
-          .get('/FOO/BAR')
-          .expect(404, cb)
+        series([
+          function (cb) {
+            request(server)
+              .get('/foo/bar')
+              .expect(200, 'saw GET /foo/bar', cb)
+          },
+          function (cb) {
+            request(server)
+              .get('/FOO/bar')
+              .expect(404, cb)
+          },
+          function (cb) {
+            request(server)
+              .get('/FOO/BAR')
+              .expect(404, cb)
+          }
+        ], done)
       })
     })
 
     describe('with "strict" option', function () {
       it('should accept optional trailing slashes by default', function (done) {
-        var cb = after(2, done)
         var router = new Router()
         var server = createServer(router)
 
         router.all('/foo', saw)
-
-        request(server)
-          .get('/foo')
-          .expect(200, 'saw GET /foo', cb)
-
-        request(server)
-          .get('/foo/')
-          .expect(200, 'saw GET /foo/', cb)
+        series([
+          function (cb) {
+            request(server)
+              .get('/foo')
+              .expect(200, 'saw GET /foo', cb)
+          },
+          function (cb) {
+            request(server)
+              .get('/foo/')
+              .expect(200, 'saw GET /foo/', cb)
+          }
+        ], done)
       })
 
       it('should accept optional trailing slashes when false', function (done) {
-        var cb = after(2, done)
         var router = new Router({ strict: false })
         var server = createServer(router)
 
         router.all('/foo', saw)
-
-        request(server)
-          .get('/foo')
-          .expect(200, 'saw GET /foo', cb)
-
-        request(server)
-          .get('/foo/')
-          .expect(200, 'saw GET /foo/', cb)
+        series([
+          function (cb) {
+            request(server)
+              .get('/foo')
+              .expect(200, 'saw GET /foo', cb)
+          },
+          function (cb) {
+            request(server)
+              .get('/foo/')
+              .expect(200, 'saw GET /foo/', cb)
+          }
+        ], done)
       })
 
       it('should not accept optional trailing slashes when true', function (done) {
-        var cb = after(2, done)
         var router = new Router({ strict: true })
         var server = createServer(router)
 
         router.all('/foo', saw)
-
-        request(server)
-          .get('/foo')
-          .expect(200, 'saw GET /foo', cb)
-
-        request(server)
-          .get('/foo/')
-          .expect(404, cb)
+        series([
+          function (cb) {
+            request(server)
+              .get('/foo')
+              .expect(200, 'saw GET /foo', cb)
+          },
+          function (cb) {
+            request(server)
+              .get('/foo/')
+              .expect(404, cb)
+          }
+        ], done)
       })
     })
   })
@@ -280,6 +318,9 @@ describe('Router', function () {
   methods.slice().sort().forEach(function (method) {
     if (method === 'connect') {
       // CONNECT is tricky and supertest doesn't support it
+      return
+    }
+    if (method === 'query' && process.version.startsWith('v21')) {
       return
     }
 
@@ -311,83 +352,97 @@ describe('Router', function () {
       })
 
       it('should support array of paths', function (done) {
-        var cb = after(3, done)
         var router = new Router()
         var server = createServer(router)
 
         router[method](['/foo', '/bar'], createHitHandle(1), helloWorld)
-
-        request(server)[method]('/')
-          .expect(404)
-          .expect(shouldNotHitHandle(1))
-          .end(cb)
-
-        request(server)[method]('/foo')
-          .expect(200)
-          .expect(shouldHitHandle(1))
-          .expect(body)
-          .end(cb)
-
-        request(server)[method]('/bar')
-          .expect(200)
-          .expect(shouldHitHandle(1))
-          .expect(body)
-          .end(cb)
+        series([
+          function (cb) {
+            request(server)[method]('/')
+              .expect(404)
+              .expect(shouldNotHitHandle(1))
+              .end(cb)
+          },
+          function (cb) {
+            request(server)[method]('/foo')
+              .expect(200)
+              .expect(shouldHitHandle(1))
+              .expect(body)
+              .end(cb)
+          },
+          function (cb) {
+            request(server)[method]('/bar')
+              .expect(200)
+              .expect(shouldHitHandle(1))
+              .expect(body)
+              .end(cb)
+          }
+        ], done)
       })
 
       it('should support regexp path', function (done) {
-        var cb = after(3, done)
         var router = new Router()
         var server = createServer(router)
 
         router[method](/^\/[a-z]oo$/, createHitHandle(1), helloWorld)
-
-        request(server)[method]('/')
-          .expect(404)
-          .expect(shouldNotHitHandle(1))
-          .end(cb)
-
-        request(server)[method]('/foo')
-          .expect(200)
-          .expect(shouldHitHandle(1))
-          .expect(body)
-          .end(cb)
-
-        request(server)[method]('/zoo')
-          .expect(200)
-          .expect(shouldHitHandle(1))
-          .expect(body)
-          .end(cb)
+        series([
+          function (cb) {
+            request(server)[method]('/')
+              .expect(404)
+              .expect(shouldNotHitHandle(1))
+              .end(cb)
+          },
+          function (cb) {
+            request(server)[method]('/foo')
+              .expect(200)
+              .expect(shouldHitHandle(1))
+              .expect(body)
+              .end(cb)
+          },
+          function (cb) {
+            request(server)[method]('/zoo')
+              .expect(200)
+              .expect(shouldHitHandle(1))
+              .expect(body)
+              .end(cb)
+          }
+        ], done)
       })
 
       it('should support parameterized path', function (done) {
-        var cb = after(4, done)
         var router = new Router()
         var server = createServer(router)
 
         router[method]('/:thing', createHitHandle(1), helloWorld)
 
-        request(server)[method]('/')
-          .expect(404)
-          .expect(shouldNotHitHandle(1))
-          .end(cb)
-
-        request(server)[method]('/foo')
-          .expect(200)
-          .expect(shouldHitHandle(1))
-          .expect(body)
-          .end(cb)
-
-        request(server)[method]('/bar')
-          .expect(200)
-          .expect(shouldHitHandle(1))
-          .expect(body)
-          .end(cb)
-
-        request(server)[method]('/foo/bar')
-          .expect(404)
-          .expect(shouldNotHitHandle(1))
-          .end(cb)
+        series([
+          function (cb) {
+            request(server)[method]('/')
+              .expect(404)
+              .expect(shouldNotHitHandle(1))
+              .end(cb)
+          },
+          function (cb) {
+            request(server)[method]('/foo')
+              .expect(200)
+              .expect(shouldHitHandle(1))
+              .expect(body)
+              .end(cb)
+          },
+          function (cb) {
+            request(server)[method]('/bar')
+              .expect(200)
+              .expect(shouldHitHandle(1))
+              .expect(body)
+              .end(cb)
+          },
+          function (cb) {
+            request(server)[method]('/foo/bar')
+              .expect(404)
+              .expect(shouldNotHitHandle(1))
+              .end(cb)
+          }
+        ], done)
       })
 
       it('should accept multiple arguments', function (done) {
@@ -477,27 +532,33 @@ describe('Router', function () {
     })
 
     it('should invoke function for all requests', function (done) {
-      var cb = after(4, done)
       var router = new Router()
       var server = createServer(router)
 
       router.use(saw)
 
-      request(server)
-        .get('/')
-        .expect(200, 'saw GET /', cb)
-
-      request(server)
-        .put('/')
-        .expect(200, 'saw PUT /', cb)
-
-      request(server)
-        .post('/foo')
-        .expect(200, 'saw POST /foo', cb)
-
-      rawrequest(server)
-        .options('*')
-        .expect(200, 'saw OPTIONS *', cb)
+      series([
+        function (cb) {
+          request(server)
+            .get('/')
+            .expect(200, 'saw GET /', cb)
+        },
+        function (cb) {
+          request(server)
+            .put('/')
+            .expect(200, 'saw PUT /', cb)
+        },
+        function (cb) {
+          request(server)
+            .post('/foo')
+            .expect(200, 'saw POST /foo', cb)
+        },
+        function (cb) {
+          rawrequest(server)
+            .options('*')
+            .expect(200, 'saw OPTIONS *', cb)
+        }
+      ], done)
     })
 
     it('should not invoke for blank URLs', function (done) {
@@ -870,91 +931,111 @@ describe('Router', function () {
     })
 
     it('should invoke when req.url starts with path', function (done) {
-      var cb = after(3, done)
       var router = new Router()
       var server = createServer(router)
 
       router.use('/foo', saw)
-
-      request(server)
-        .get('/')
-        .expect(404, cb)
-
-      request(server)
-        .post('/foo')
-        .expect(200, 'saw POST /', cb)
-
-      request(server)
-        .post('/foo/bar')
-        .expect(200, 'saw POST /bar', cb)
+      series([
+        function (cb) {
+          request(server)
+            .get('/')
+            .expect(404, cb)
+        },
+        function (cb) {
+          request(server)
+            .post('/foo')
+            .expect(200, 'saw POST /', cb)
+        },
+        function (cb) {
+          request(server)
+            .post('/foo/bar')
+            .expect(200, 'saw POST /bar', cb)
+        }
+      ], done)
     })
 
     it('should match if path has trailing slash', function (done) {
-      var cb = after(3, done)
       var router = new Router()
       var server = createServer(router)
 
       router.use('/foo/', saw)
 
-      request(server)
-        .get('/')
-        .expect(404, cb)
-
-      request(server)
-        .post('/foo')
-        .expect(200, 'saw POST /', cb)
-
-      request(server)
-        .post('/foo/bar')
-        .expect(200, 'saw POST /bar', cb)
+      series([
+        function (cb) {
+          request(server)
+            .get('/')
+            .expect(404, cb)
+        },
+        function (cb) {
+          request(server)
+            .post('/foo')
+            .expect(200, 'saw POST /', cb)
+        },
+        function (cb) {
+          request(server)
+            .post('/foo/bar')
+            .expect(200, 'saw POST /bar', cb)
+        }
+      ], done)
     })
 
     it('should support array of paths', function (done) {
-      var cb = after(3, done)
       var router = new Router()
       var server = createServer(router)
 
       router.use(['/foo/', '/bar'], saw)
 
-      request(server)
-        .get('/')
-        .expect(404, cb)
-
-      request(server)
-        .get('/foo')
-        .expect(200, 'saw GET /', cb)
-
-      request(server)
-        .get('/bar')
-        .expect(200, 'saw GET /', cb)
+      series([
+        function (cb) {
+          request(server)
+            .get('/')
+            .expect(404, cb)
+        },
+        function (cb) {
+          request(server)
+            .get('/foo')
+            .expect(200, 'saw GET /', cb)
+        },
+        function (cb) {
+          request(server)
+            .get('/bar')
+            .expect(200, 'saw GET /', cb)
+        }
+      ], done)
     })
 
     it('should support regexp path', function (done) {
-      var cb = after(5, done)
       var router = new Router()
       var server = createServer(router)
 
       router.use(/^\/[a-z]oo/, saw)
-
-      request(server)
-        .get('/')
-        .expect(404, cb)
-
-      request(server)
-        .get('/foo')
-        .expect(200, 'saw GET /', cb)
-
-      request(server)
-        .get('/fooo')
-        .expect(404, cb)
-
-      request(server)
-        .get('/zoo/bear')
-        .expect(200, 'saw GET /bear', cb)
-
-      request(server)
-        .get('/get/zoo')
-        .expect(404, cb)
+      series([
+        function (cb) {
+          request(server)
+            .get('/')
+            .expect(404, cb)
+        },
+        function (cb) {
+          request(server)
+            .get('/foo')
+            .expect(200, 'saw GET /', cb)
+        },
+        function (cb) {
+          request(server)
+            .get('/fooo')
+            .expect(404, cb)
+        },
+        function (cb) {
+          request(server)
+            .get('/zoo/bear')
+            .expect(200, 'saw GET /bear', cb)
+        },
+        function (cb) {
+          request(server)
+            .get('/get/zoo')
+            .expect(404, cb)
+        }
+      ], done)
     })
 
     it('should ensure regexp matches path prefix', function (done) {
@@ -975,27 +1056,32 @@ describe('Router', function () {
     })
 
     it('should support parameterized path', function (done) {
-      var cb = after(4, done)
       var router = new Router()
       var server = createServer(router)
 
       router.use('/:thing', saw)
-
-      request(server)
-        .get('/')
-        .expect(404, cb)
-
-      request(server)
-        .get('/foo')
-        .expect(200, 'saw GET /', cb)
-
-      request(server)
-        .get('/bar')
-        .expect(200, 'saw GET /', cb)
-
-      request(server)
-        .get('/foo/bar')
-        .expect(200, 'saw GET /bar', cb)
+      series([
+        function (cb) {
+          request(server)
+            .get('/')
+            .expect(404, cb)
+        },
+        function (cb) {
+          request(server)
+            .get('/foo')
+            .expect(200, 'saw GET /', cb)
+        },
+        function (cb) {
+          request(server)
+            .get('/bar')
+            .expect(200, 'saw GET /', cb)
+        },
+        function (cb) {
+          request(server)
+            .get('/foo/bar')
+            .expect(200, 'saw GET /bar', cb)
+        }
+      ], done)
     })
 
     it('should accept multiple arguments', function (done) {
@@ -1013,113 +1099,134 @@ describe('Router', function () {
 
     describe('with "caseSensitive" option', function () {
       it('should not match paths case-sensitively by default', function (done) {
-        var cb = after(3, done)
         var router = new Router()
         var server = createServer(router)
 
         router.use('/foo', saw)
-
-        request(server)
-          .get('/foo/bar')
-          .expect(200, 'saw GET /bar', cb)
-
-        request(server)
-          .get('/FOO/bar')
-          .expect(200, 'saw GET /bar', cb)
-
-        request(server)
-          .get('/FOO/BAR')
-          .expect(200, 'saw GET /BAR', cb)
+        series([
+          function (cb) {
+            request(server)
+              .get('/foo/bar')
+              .expect(200, 'saw GET /bar', cb)
+          },
+          function (cb) {
+            request(server)
+              .get('/FOO/bar')
+              .expect(200, 'saw GET /bar', cb)
+          },
+          function (cb) {
+            request(server)
+              .get('/FOO/BAR')
+              .expect(200, 'saw GET /BAR', cb)
+          }
+        ], done)
       })
 
       it('should not match paths case-sensitively when false', function (done) {
-        var cb = after(3, done)
         var router = new Router({ caseSensitive: false })
         var server = createServer(router)
 
         router.use('/foo', saw)
-
-        request(server)
-          .get('/foo/bar')
-          .expect(200, 'saw GET /bar', cb)
-
-        request(server)
-          .get('/FOO/bar')
-          .expect(200, 'saw GET /bar', cb)
-
-        request(server)
-          .get('/FOO/BAR')
-          .expect(200, 'saw GET /BAR', cb)
+        series([
+          function (cb) {
+            request(server)
+              .get('/foo/bar')
+              .expect(200, 'saw GET /bar', cb)
+          },
+          function (cb) {
+            request(server)
+              .get('/FOO/bar')
+              .expect(200, 'saw GET /bar', cb)
+          },
+          function (cb) {
+            request(server)
+              .get('/FOO/BAR')
+              .expect(200, 'saw GET /BAR', cb)
+          }
+        ], done)
       })
 
       it('should match paths case-sensitively when true', function (done) {
-        var cb = after(3, done)
         var router = new Router({ caseSensitive: true })
         var server = createServer(router)
 
         router.use('/foo', saw)
-
-        request(server)
-          .get('/foo/bar')
-          .expect(200, 'saw GET /bar', cb)
-
-        request(server)
-          .get('/FOO/bar')
-          .expect(404, cb)
-
-        request(server)
-          .get('/FOO/BAR')
-          .expect(404, cb)
+        series([
+          function (cb) {
+            request(server)
+              .get('/foo/bar')
+              .expect(200, 'saw GET /bar', cb)
+          },
+          function (cb) {
+            request(server)
+              .get('/FOO/bar')
+              .expect(404, cb)
+          },
+          function (cb) {
+            request(server)
+              .get('/FOO/BAR')
+              .expect(404, cb)
+          }
+        ], done)
       })
     })
 
     describe('with "strict" option', function () {
       it('should accept optional trailing slashes by default', function (done) {
-        var cb = after(2, done)
         var router = new Router()
         var server = createServer(router)
 
         router.use('/foo', saw)
-
-        request(server)
-          .get('/foo')
-          .expect(200, 'saw GET /', cb)
-
-        request(server)
-          .get('/foo/')
-          .expect(200, 'saw GET /', cb)
+        series([
+          function (cb) {
+            request(server)
+              .get('/foo')
+              .expect(200, 'saw GET /', cb)
+          },
+          function (cb) {
+            request(server)
+              .get('/foo/')
+              .expect(200, 'saw GET /', cb)
+          }
+        ], done)
       })
 
       it('should accept optional trailing slashes when false', function (done) {
-        var cb = after(2, done)
         var router = new Router({ strict: false })
         var server = createServer(router)
 
         router.use('/foo', saw)
-
-        request(server)
-          .get('/foo')
-          .expect(200, 'saw GET /', cb)
-
-        request(server)
-          .get('/foo/')
-          .expect(200, 'saw GET /', cb)
+        series([
+          function (cb) {
+            request(server)
+              .get('/foo')
+              .expect(200, 'saw GET /', cb)
+          },
+          function (cb) {
+            request(server)
+              .get('/foo/')
+              .expect(200, 'saw GET /', cb)
+          }
+        ], done)
       })
 
       it('should accept optional trailing slashes when true', function (done) {
-        var cb = after(2, done)
         var router = new Router({ strict: true })
         var server = createServer(router)
 
         router.use('/foo', saw)
-
-        request(server)
-          .get('/foo')
-          .expect(200, 'saw GET /', cb)
-
-        request(server)
-          .get('/foo/')
-          .expect(200, 'saw GET /', cb)
+        series([
+          function (cb) {
+            request(server)
+              .get('/foo')
+              .expect(200, 'saw GET /', cb)
+          },
+          function (cb) {
+            request(server)
+              .get('/foo/')
+              .expect(200, 'saw GET /', cb)
+          }
+        ], done)
       })
     })
 
