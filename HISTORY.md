@@ -1,7 +1,15 @@
-unreleased
-=========================
+2.0.0 / 2024-09-09
+==================
 
 * Drop support for node <18
+* deps: path-to-regexp@^8.0.0
+  - Drop support for partial capture group `router.route('/user(s?)/:user/:op')` but still have optional non-capture `/user{s}/:user/:op`
+  - `:name?` becomes `{:name}`
+  - `:name*` becomes `*name`. 
+  - The splat change also changes splat from strings to an array of strings
+  - Optional splats become `{*name}`
+  - `:name+` becomes `*name` and thus equivalent to `*name` so I dropped those tests
+  - Strings as regular expressions are fully removed, need to be converted to native regular expressions
 
 2.0.0-beta.2 / 2024-03-20
 =========================
