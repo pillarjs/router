@@ -22,8 +22,8 @@ $ npm install router
 
 ```js
 var finalhandler = require('finalhandler')
-var http         = require('http')
-var Router       = require('router')
+var http = require('http')
+var Router = require('router')
 
 var router = Router()
 router.get('/', function (req, res) {
@@ -31,7 +31,7 @@ router.get('/', function (req, res) {
   res.end('Hello World!')
 })
 
-var server = http.createServer(function(req, res) {
+var server = http.createServer(function (req, res) {
   router(req, res, finalhandler(req, res))
 })
 
@@ -66,6 +66,8 @@ consider it one for handling `OPTIONS` requests.
 * Note: If a `path` is specified, that `path` is stripped from the start of
   `req.url`.
 
+<!-- eslint-disable no-undef -->
+
 ```js
 router.use(function (req, res, next) {
   // do your things
@@ -89,6 +91,8 @@ the routing functionality in `router`.
 Method middleware and handlers follow usual [middleware](#middleware) behavior,
 except they will only be called when the method and path match the request.
 
+<!-- eslint-disable no-undef -->
+
 ```js
 // handle a `GET` request
 router.get('/', function (req, res) {
@@ -111,10 +115,17 @@ Maps the specified path parameter `name` to a specialized param-capturing middle
 
 This function positions the middleware in the same stack as `.use`.
 
+The function can optionally return a `Promise` object. If a `Promise` object
+is returned from the function, the router will attach an `onRejected` callback
+using `.then`. If the promise is rejected, `next` will be called with the
+rejected value, or an error if the value is falsy.
+
 Parameter mapping is used to provide pre-conditions to routes
 which use normalized placeholders. For example a _:user_id_ parameter
 could automatically load a user's information from the database without
 any additional code:
+
+<!-- eslint-disable no-undef -->
 
 ```js
 router.param('user_id', function (req, res, next, id) {
@@ -142,6 +153,8 @@ Routes can be used to handle http `methods` with their own, optional middleware.
 Using `router.route(path)` is a recommended approach to avoiding duplicate
 route naming and thus typo errors.
 
+<!-- eslint-disable no-undef, no-unused-vars -->
+
 ```js
 var api = router.route('/api/')
 ```
@@ -155,6 +168,8 @@ Represents a single route as an instance that can be used to handle http
 
 These are functions which you can directly call on a route to register a new
 `handler` for the `method` on the route.
+
+<!-- eslint-disable no-undef -->
 
 ```js
 // handle a `GET` request
@@ -173,12 +188,14 @@ Adds a handler for all HTTP methods to this route.
 The handler can behave like middleware and call `next` to continue processing
 rather than responding.
 
+<!-- eslint-disable no-undef -->
+
 ```js
 router.route('/')
   .all(function (req, res, next) {
     next()
   })
-  .all(check_something)
+  .all(checkSomething)
   .get(function (req, res) {
     res.setHeader('Content-Type', 'text/plain; charset=utf-8')
     res.end('Hello World!')
@@ -195,6 +212,11 @@ format is with three parameters - "req", "res" and "next".
 - `res`  - This is a [HTTP server response](https://nodejs.org/api/http.html#http_class_http_serverresponse) instance.
 - `next` - Calling this function that tells `router` to proceed to the next matching middleware or method handler. It accepts an error as the first argument.
 
+The function can optionally return a `Promise` object. If a `Promise` object
+is returned from the function, the router will attach an `onRejected` callback
+using `.then`. If the promise is rejected, `next` will be called with the
+rejected value, or an error if the value is falsy.
+
 Middleware and method handlers can also be defined with four arguments. When
 the function has four parameters defined, the first argument is an error and
 subsequent arguments remain, becoming - "err", "req", "res", "next". These
@@ -202,13 +224,15 @@ functions are "error handling middleware", and can be used for handling
 errors that occurred in previous handlers (E.g. from calling `next(err)`).
 This is most used when you want to define arbitrary rendering of errors.
 
+<!-- eslint-disable no-undef -->
+
 ```js
 router.get('/error_route', function (req, res, next) {
   return next(new Error('Bad Request'))
 })
 
 router.use(function (err, req, res, next) {
-  res.end(err.message) //=> "Bad Request"
+  res.end(err.message) //= > "Bad Request"
 })
 ```
 
@@ -220,18 +244,18 @@ bypassed - only error handling middleware will be invoked with an error.
 
 ```js
 // import our modules
-var http         = require('http')
-var Router       = require('router')
+var http = require('http')
+var Router = require('router')
 var finalhandler = require('finalhandler')
-var compression  = require('compression')
-var bodyParser   = require('body-parser')
+var compression = require('compression')
+var bodyParser = require('body-parser')
 
 // store our message to display
-var message = "Hello World!"
+var message = 'Hello World!'
 
 // initialize the router & server and add a final callback.
 var router = Router()
-var server = http.createServer(function onRequest(req, res) {
+var server = http.createServer(function onRequest (req, res) {
   router(req, res, finalhandler(req, res))
 })
 
@@ -285,8 +309,8 @@ curl http://127.0.0.1:8080/api/set-message -X PATCH -H "Content-Type: applicatio
 ### Example using mergeParams
 
 ```js
-var http         = require('http')
-var Router       = require('router')
+var http = require('http')
+var Router = require('router')
 var finalhandler = require('finalhandler')
 
 // this example is about the mergeParams option
@@ -294,8 +318,7 @@ var opts = { mergeParams: true }
 
 // make a router with out special options
 var router = Router(opts)
-var server = http.createServer(function onRequest(req, res) {
-
+var server = http.createServer(function onRequest (req, res) {
   // set something to be passed into the router
   req.params = { type: 'kitten' }
 
@@ -351,7 +374,7 @@ var Router = require('router')
 
 // create the router and server
 var router = new Router()
-var server = http.createServer(function onRequest(req, res) {
+var server = http.createServer(function onRequest (req, res) {
   router(req, res, finalhandler(req, res))
 })
 

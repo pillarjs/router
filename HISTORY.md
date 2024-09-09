@@ -1,3 +1,52 @@
+unreleased
+=========================
+
+* Drop support for node <18
+
+2.0.0-beta.2 / 2024-03-20
+=========================
+
+This incorporates all changes after 1.3.5 up to 1.3.8.
+
+  * Add support for returned, rejected Promises to `router.param`
+
+2.0.0-beta.1 / 2020-03-29
+=========================
+
+This incorporates all changes after 1.3.3 up to 1.3.5.
+
+  * Internalize private `router.process_params` method
+  * Remove `debug` dependency
+  * deps: array-flatten@3.0.0
+  * deps: parseurl@~1.3.3
+  * deps: path-to-regexp@3.2.0
+    - Add new `?`, `*`, and `+` parameter modifiers.
+    - Matching group expressions are only RegExp syntax.
+      `(*)` is no longer valid and must be written as `(.*)`, for example.
+    - Named matching groups no longer available by position in `req.params`.
+      `/:foo(.*)` only captures as `req.params.foo` and not available as
+      `req.params[0]`.
+    - Regular expressions can only be used in a matching group.
+      `/\\d+` is no longer valid and must be written as `/(\\d+)`.
+    - Matching groups are now literal regular expressions.
+      `:foo` named captures can no longer be included inside a capture group.
+    - Special `*` path segment behavior removed.
+      `/foo/*/bar` will match a literal `*` as the middle segment.
+  * deps: setprototypeof@1.2.0
+
+2.0.0-alpha.1 / 2018-07-27
+==========================
+
+  * Add basic support for returned, rejected Promises
+    - Rejected Promises from middleware functions `next(error)`
+  * Drop support for Node.js below 0.10
+  * deps: debug@3.1.0
+    - Add `DEBUG_HIDE_DATE` environment variable
+    - Change timer to per-namespace instead of global
+    - Change non-TTY date format
+    - Remove `DEBUG_FD` environment variable support
+    - Support 256 namespace colors
+
 1.3.8 / 2023-02-24
 ==================
 
