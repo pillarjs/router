@@ -1,14 +1,14 @@
-const { it, describe } = require('mocha')
-const Router = require('..')
-const utils = require('./support/utils')
 
-const createServer = utils.createServer
-const rawrequest = utils.rawrequest
+var Router = require('..')
+var utils = require('./support/utils')
+
+var createServer = utils.createServer
+var rawrequest = utils.rawrequest
 
 describe('FQDN url', function () {
   it('should not obscure FQDNs', function (done) {
-    const router = new Router()
-    const server = createServer(router)
+    var router = new Router()
+    var server = createServer(router)
 
     router.use(saw)
 
@@ -18,8 +18,8 @@ describe('FQDN url', function () {
   })
 
   it('should strip/restore FQDN req.url', function (done) {
-    const router = new Router()
-    const server = createServer(router)
+    var router = new Router()
+    var server = createServer(router)
 
     router.use('/blog', setsaw(1))
     router.use(saw)
@@ -31,8 +31,8 @@ describe('FQDN url', function () {
   })
 
   it('should ignore FQDN in search', function (done) {
-    const router = new Router()
-    const server = createServer(router)
+    var router = new Router()
+    var server = createServer(router)
 
     router.use('/proxy', setsaw(1))
     router.use(saw)
@@ -44,8 +44,8 @@ describe('FQDN url', function () {
   })
 
   it('should ignore FQDN in path', function (done) {
-    const router = new Router()
-    const server = createServer(router)
+    var router = new Router()
+    var server = createServer(router)
 
     router.use('/proxy', setsaw(1))
     router.use(saw)
@@ -57,16 +57,16 @@ describe('FQDN url', function () {
   })
 })
 
-function setsaw (num) {
-  const name = 'x-saw-' + String(num)
-  return function hit (req, res, next) {
+function setsaw(num) {
+  var name = 'x-saw-' + String(num)
+  return function hit(req, res, next) {
     res.setHeader(name, req.method + ' ' + req.url)
     next()
   }
 }
 
-function saw (req, res) {
-  const msg = 'saw ' + req.method + ' ' + req.url
+function saw(req, res) {
+  var msg = 'saw ' + req.method + ' ' + req.url
   res.statusCode = 200
   res.setHeader('Content-Type', 'text/plain')
   res.end(msg)

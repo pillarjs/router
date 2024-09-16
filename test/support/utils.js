@@ -1,9 +1,10 @@
-const assert = require('assert')
-const Buffer = require('safe-buffer').Buffer
-const finalhandler = require('finalhandler')
-const http = require('http')
-const methods = require('methods')
-const request = require('supertest')
+
+var assert = require('assert')
+var Buffer = require('safe-buffer').Buffer
+var finalhandler = require('finalhandler')
+var http = require('http')
+var methods = require('methods')
+var request = require('supertest')
 
 exports.assert = assert
 exports.createHitHandle = createHitHandle
@@ -15,37 +16,37 @@ exports.shouldNotHaveBody = shouldNotHaveBody
 exports.shouldHitHandle = shouldHitHandle
 exports.shouldNotHitHandle = shouldNotHitHandle
 
-function createHitHandle (num) {
-  const name = 'x-fn-' + String(num)
-  return function hit (req, res, next) {
+function createHitHandle(num) {
+  var name = 'x-fn-' + String(num)
+  return function hit(req, res, next) {
     res.setHeader(name, 'hit')
     next()
   }
 }
 
-function createServer (router) {
-  return http.createServer(function onRequest (req, res) {
+function createServer(router) {
+  return http.createServer(function onRequest(req, res) {
     router(req, res, finalhandler(req, res))
   })
 }
 
-function rawrequest (server) {
-  const _headers = {}
-  let _method
-  let _path
-  const _test = {}
+function rawrequest(server) {
+  var _headers = {}
+  var _method
+  var _path
+  var _test = {}
 
   methods.forEach(function (method) {
     _test[method] = go.bind(null, method)
   })
 
-  function expect (status, body, callback) {
+  function expect(status, body, callback) {
     if (arguments.length === 2) {
       _headers[status.toLowerCase()] = body
       return this
     }
 
-    let _server
+    var _server
 
     if (!server.address()) {
       _server = server.listen(0, onListening)
@@ -55,25 +56,25 @@ function rawrequest (server) {
     onListening.call(server)
 
     function onListening () {
-      const addr = this.address()
-      const port = addr.port
+      var addr = this.address()
+      var port = addr.port
 
-      const req = http.request({
+      var req = http.request({
         host: '127.0.0.1',
         method: _method,
         path: _path,
-        port
+        port: port
       })
-      req.on('response', function (res) {
-        let buf = ''
+      req.on('response', function(res){
+        var buf = ''
 
         res.setEncoding('utf8')
-        res.on('data', function (s) { buf += s })
-        res.on('end', function () {
-          let err = null
+        res.on('data', function(s){ buf += s })
+        res.on('end', function(){
+          var err = null
 
           try {
-            for (const key in _headers) {
+            for (var key in _headers) {
               assert.equal(res.headers[key], _headers[key])
             }
 
@@ -99,7 +100,7 @@ function rawrequest (server) {
     _path = path
 
     return {
-      expect
+      expect: expect
     }
   }
 
@@ -108,7 +109,7 @@ function rawrequest (server) {
 
 function shouldHaveBody (buf) {
   return function (res) {
-    const body = !Buffer.isBuffer(res.body)
+    var body = !Buffer.isBuffer(res.body)
       ? Buffer.from(res.text)
       : res.body
     assert.ok(body, 'response has body')
@@ -116,8 +117,8 @@ function shouldHaveBody (buf) {
   }
 }
 
-function shouldHitHandle (num) {
-  const header = 'x-fn-' + String(num)
+function shouldHitHandle(num) {
+  var header = 'x-fn-' + String(num)
   return function (res) {
     assert.equal(res.headers[header], 'hit', 'should hit handle ' + num)
   }
@@ -129,11 +130,11 @@ function shouldNotHaveBody () {
   }
 }
 
-function shouldNotHitHandle (num) {
+function shouldNotHitHandle(num) {
   return shouldNotHaveHeader('x-fn-' + String(num))
 }
 
-function shouldNotHaveHeader (header) {
+function shouldNotHaveHeader(header) {
   return function (res) {
     assert.ok(!(header.toLowerCase() in res.headers), 'should not have header ' + header)
   }
