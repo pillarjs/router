@@ -12,7 +12,6 @@
  * @private
  */
 
-const flatten = require('array-flatten').flatten
 const isPromise = require('is-promise')
 const Layer = require('./lib/layer')
 const methods = require('methods')
@@ -26,6 +25,7 @@ const Route = require('./lib/route')
  */
 
 const slice = Array.prototype.slice
+const flatten = Array.prototype.flat
 
 /**
  * Expose `Router`.
@@ -373,7 +373,7 @@ Router.prototype.use = function use (handler) {
     }
   }
 
-  const callbacks = flatten(slice.call(arguments, offset))
+  const callbacks = flatten.call(slice.call(arguments, offset), Infinity)
 
   if (callbacks.length === 0) {
     throw new TypeError('argument handler is required')
