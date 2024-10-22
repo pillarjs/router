@@ -1,3 +1,8 @@
+unreleased
+=================
+
+* Use `Array.flat` instead of `array-flatten` package
+
 2.0.0 / 2024-09-09
 ==================
 
