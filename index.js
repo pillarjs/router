@@ -18,7 +18,6 @@ const methods = require('methods')
 const mixin = require('utils-merge')
 const parseUrl = require('parseurl')
 const Route = require('./lib/route')
-const setPrototypeOf = require('setprototypeof')
 
 /**
  * Module variables.
@@ -60,7 +59,7 @@ function Router (options) {
   }
 
   // inherit from the correct prototype
-  setPrototypeOf(router, this)
+  Object.setPrototypeOf(router, this)
 
   router.caseSensitive = opts.caseSensitive
   router.mergeParams = opts.mergeParams
