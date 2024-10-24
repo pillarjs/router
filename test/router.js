@@ -1,7 +1,6 @@
 const { it, describe } = require('mocha')
 const series = require('run-series')
 const Buffer = require('safe-buffer').Buffer
-const methods = require('methods')
 const Router = require('..')
 const utils = require('./support/utils')
 
@@ -14,6 +13,7 @@ const shouldHaveBody = utils.shouldHaveBody
 const shouldHitHandle = utils.shouldHitHandle
 const shouldNotHaveBody = utils.shouldNotHaveBody
 const shouldNotHitHandle = utils.shouldNotHitHandle
+const methods = utils.methods
 
 const describePromises = global.Promise ? describe : describe.skip
 

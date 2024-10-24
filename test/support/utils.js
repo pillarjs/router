@@ -2,8 +2,10 @@ const assert = require('assert')
 const Buffer = require('safe-buffer').Buffer
 const finalhandler = require('finalhandler')
 const http = require('http')
-const methods = require('methods')
+const { METHODS } = require('node:http')
 const request = require('supertest')
+
+const methods = METHODS.map((method) => method.toLowerCase())
 
 exports.assert = assert
 exports.createHitHandle = createHitHandle
@@ -14,6 +16,7 @@ exports.shouldHaveBody = shouldHaveBody
 exports.shouldNotHaveBody = shouldNotHaveBody
 exports.shouldHitHandle = shouldHitHandle
 exports.shouldNotHitHandle = shouldNotHitHandle
+exports.methods = methods
 
 function createHitHandle (num) {
   const name = 'x-fn-' + String(num)
