@@ -14,7 +14,7 @@
 
 const isPromise = require('is-promise')
 const Layer = require('./lib/layer')
-const methods = require('methods')
+const { METHODS } = require('node:http')
 const mixin = require('utils-merge')
 const parseUrl = require('parseurl')
 const Route = require('./lib/route')
@@ -26,6 +26,7 @@ const Route = require('./lib/route')
 
 const slice = Array.prototype.slice
 const flatten = Array.prototype.flat
+const methods = METHODS.map((method) => method.toLowerCase())
 
 /**
  * Expose `Router`.
