@@ -5,6 +5,7 @@ unreleased
 * Use `Array.flat` instead of `array-flatten` package
 * Replace `methods` dependency with standard library
 * deps: parseurl@^1.3.3
+* deps: is-promise@^4.0.0
 * Replace `utils-merge` dependency with `Object.assign`
 
 2.0.0 / 2024-09-09
@@ -14,7 +15,7 @@ unreleased
 * deps: path-to-regexp@^8.0.0
   - Drop support for partial capture group `router.route('/user(s?)/:user/:op')` but still have optional non-capture `/user{s}/:user/:op`
   - `:name?` becomes `{:name}`
-  - `:name*` becomes `*name`. 
+  - `:name*` becomes `*name`.
   - The splat change also changes splat from strings to an array of strings
   - Optional splats become `{*name}`
   - `:name+` becomes `*name` and thus equivalent to `*name` so I dropped those tests
