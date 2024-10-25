@@ -4,6 +4,7 @@ unreleased
 * Remove `Object.setPrototypeOf` polyfill
 * Use `Array.flat` instead of `array-flatten` package
 * Replace `methods` dependency with standard library
+* deps: parseurl@^1.3.3
 
 2.0.0 / 2024-09-09
 ==================
