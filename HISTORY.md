@@ -4,7 +4,7 @@ unreleased
 * Remove `Object.setPrototypeOf` polyfill
 * Use `Array.flat` instead of `array-flatten` package
 * Replace `methods` dependency with standard library
-* Update minimum required `Node.js` version to 16
+* Update minimum required `Node.js` version to 18
 
 2.0.0 / 2024-09-09
 ==================
