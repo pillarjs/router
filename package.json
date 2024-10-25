@@ -33,7 +33,7 @@
     "index.js"
   ],
   "engines": {
-    "node": ">= 0.10"
+    "node": ">= 16"
   },
   "scripts": {
     "lint": "standard",
