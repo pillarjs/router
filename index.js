@@ -12,7 +12,6 @@
  * @private
  */
 
-const isPromise = require('is-promise')
 const Layer = require('./lib/layer')
 const { METHODS } = require('node:http')
 const mixin = require('utils-merge')
@@ -640,7 +639,7 @@ function processParams (params, layer, called, req, res, done) {
 
     try {
       const ret = fn(req, res, paramCallback, paramVal, key)
-      if (isPromise(ret)) {
+      if (ret instanceof Promise) {
         ret.then(null, function (error) {
           paramCallback(error || new Error('Rejected promise'))
         })

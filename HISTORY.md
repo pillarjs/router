@@ -4,6 +4,7 @@ unreleased
 * Remove `Object.setPrototypeOf` polyfill
 * Use `Array.flat` instead of `array-flatten` package
 * Replace `methods` dependency with standard library
+* Replace `is-promise` dependency with `instanceof` check (drops support for non-native promises)
 
 2.0.0 / 2024-09-09
 ==================
