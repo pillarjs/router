@@ -10,8 +10,6 @@ const shouldNotHitHandle = utils.shouldNotHitHandle
 const createServer = utils.createServer
 const request = utils.request
 
-const describePromises = global.Promise ? describe : describe.skip
-
 describe('Router', function () {
   describe('.param(name, fn)', function () {
     it('should reject missing name', function () {
@@ -264,7 +262,7 @@ describe('Router', function () {
         .expect(500, /Error: boom/, done)
     })
 
-    describePromises('promise support', function () {
+    describe('promise support', function () {
       it('should pass rejected promise value', function (done) {
         const router = new Router()
         const server = createServer(router)
