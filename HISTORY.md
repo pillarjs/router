@@ -13,6 +13,7 @@ unreleased
 * deps: parseurl@^1.3.3
 * deps: is-promise@^4.0.0
 * Replace `utils-merge` dependency with `Object.assign`
+* deps: Remove unused dep `after`
 
 2.0.0 / 2024-09-09
 ==================
