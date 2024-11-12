@@ -1,6 +1,7 @@
-unreleased
+2.0.1 / 2024-11-06
 ==================
 
+* Updated `engines` field to Node@18 or higher
 * Remove `Object.setPrototypeOf` polyfill
 * Use `Array.flat` instead of `array-flatten` package
 * Replace `methods` dependency with standard library
