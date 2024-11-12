@@ -1,5 +1,4 @@
 const assert = require('assert')
-const Buffer = require('safe-buffer').Buffer
 const finalhandler = require('finalhandler')
 const http = require('http')
 const { METHODS } = require('node:http')
