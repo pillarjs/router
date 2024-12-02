@@ -13,7 +13,7 @@
     "debug": "2.6.9",
     "methods": "~1.1.2",
     "parseurl": "~1.3.3",
-    "path-to-regexp": "0.1.7",
+    "path-to-regexp": "0.1.11",
     "setprototypeof": "1.2.0",
     "utils-merge": "1.0.1"
   },
