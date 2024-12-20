@@ -5,6 +5,7 @@ unreleased
 * Use `Array.flat` instead of `array-flatten` package
 * Replace `methods` dependency with standard library
 * deps: parseurl@^1.3.3
+* Replace `utils-merge` dependency with `Object.assign`
 
 2.0.0 / 2024-09-09
 ==================
