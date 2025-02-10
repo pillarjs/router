@@ -1,5 +1,4 @@
 const { it, describe } = require('mocha')
-const Buffer = require('safe-buffer').Buffer
 const series = require('run-series')
 const Router = require('..')
 const utils = require('./support/utils')
