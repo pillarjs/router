@@ -1,6 +1,7 @@
 unreleased
 ==================
 
+* Remove `setImmediate` support check
 * Remove `Object.setPrototypeOf` polyfill
 * Use `Array.flat` instead of `array-flatten` package
 * Replace `methods` dependency with standard library
