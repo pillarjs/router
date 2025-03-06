@@ -18,6 +18,7 @@ const { METHODS } = require('node:http')
 const parseUrl = require('parseurl')
 const Route = require('./lib/route')
 const debug = require('debug')('router')
+const deprecate = require('depd')('router')
 
 /**
  * Module variables.
@@ -647,6 +648,10 @@ function processParams (params, layer, called, req, res, done) {
     try {
       const ret = fn(req, res, paramCallback, paramVal, key)
       if (isPromise(ret)) {
+        if (!(ret instanceof Promise)) {
+          deprecate('parameters that are Promise-like are deprecated, use a native Promise instead')
+        }
+
         ret.then(null, function (error) {
           paramCallback(error || new Error('Rejected promise'))
         })
