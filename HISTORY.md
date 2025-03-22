@@ -1,4 +1,4 @@
-unreleased
+2.2.0 / TODO
 ==================
 
 * Remove `setImmediate` support check
