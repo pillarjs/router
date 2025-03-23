@@ -15,7 +15,7 @@
     "path-to-regexp": "^8.0.0"
   },
   "devDependencies": {
-    "finalhandler": "1.2.0",
+    "finalhandler": "^2.1.0",
     "mocha": "10.2.0",
     "nyc": "15.1.0",
     "run-series": "^1.1.9",
