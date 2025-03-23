@@ -4,6 +4,11 @@ unreleased
 * Remove `setImmediate` support check
 * Restore `debug` dependency
 
+3.0.0 / ????-??-??
+==================
+
+* Replace `is-promise` dependency with `instanceof` check (drops support for non-native promises)
+
 2.1.0 / 2025-02-10
 ==================
 
