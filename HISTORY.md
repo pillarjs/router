@@ -3,6 +3,7 @@ unreleased
 
 * Remove `setImmediate` support check
 * Restore `debug` dependency
+* deps: path-to-regexp@^8.2.1
 
 2.1.0 / 2025-02-10
 ==================
