@@ -1,4 +1,4 @@
-unreleased
+2.2.0 / 2025-03-24
 ==================
 
 * Remove `setImmediate` support check
