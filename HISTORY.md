@@ -1,4 +1,4 @@
-2.2.0 / 2025-03-24
+2.2.0 / 2025-03-26
 ==================
 
 * Remove `setImmediate` support check
