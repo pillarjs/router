@@ -1396,6 +1396,641 @@ describe('Router', function () {
     })
   })
 
+  describe('.error(...fn)', function () {
+    it('should reject missing functions', function () {
+      const router = new Router()
+      assert.throws(router.error.bind(router), /argument handler is required/)
+    })
+
+    it('should reject empty array', function () {
+      const router = new Router()
+      assert.throws(router.error.bind(router, []), /argument handler is required/)
+    })
+
+    it('should reject non-functions', function () {
+      const router = new Router()
+      assert.throws(router.error.bind(router, '/', 'hello'), /argument handler must be a function/)
+      assert.throws(router.error.bind(router, '/', 5), /argument handler must be a function/)
+      assert.throws(router.error.bind(router, '/', null), /argument handler must be a function/)
+      assert.throws(router.error.bind(router, '/', new Date()), /argument handler must be a function/)
+    })
+
+    it('should accept functions with arity 3', function (done) {
+      const router = new Router()
+      const server = createServer(router)
+
+      router.use(boomError)
+      router.error(function arity3Handler (err, req, res) {
+        res.statusCode = 500
+        res.setHeader('Content-Type', 'text/plain')
+        res.end('ouch on ' + req.method + ' ' + req.url + ': ' + err.message)
+      })
+
+      request(server)
+        .get('/foo')
+        .expect(500, 'ouch on GET /foo: boom!', done)
+    })
+
+    it('should accept functions with arity 4', function (done) {
+      const router = new Router()
+      const server = createServer(router)
+
+      router.use(boomError)
+      router.error(function arity4Handler (err, req, res, next) {
+        res.statusCode = 500
+        res.setHeader('Content-Type', 'text/plain')
+        res.end('ouch on ' + req.method + ' ' + req.url + ': ' + err.message)
+      })
+
+      request(server)
+        .get('/foo')
+        .expect(500, 'ouch on GET /foo: boom!', done)
+    })
+
+    it('should be chainable', function (done) {
+      const router = new Router()
+      const server = createServer(router)
+
+      router.use(boomError)
+      router.error(function (err, req, res, next) {
+        res.setHeader('x-err-1', err.message)
+        next(err)
+      })
+      router.error(function (err, req, res, next) {
+        res.setHeader('x-err-2', err.message)
+        next(err)
+      })
+      assert.equal(router.error(boomErrorHandler), router)
+
+      request(server)
+        .get('/foo')
+        .expect('x-err-1', 'boom!')
+        .expect('x-err-2', 'boom!')
+        .expect(500, 'ouch on GET /foo: boom!', done)
+    })
+
+    it('should invoke error handler for all requests', function (done) {
+      const router = new Router()
+      const server = createServer(router)
+
+      router.use(boomError).error(boomErrorHandler)
+
+      series([
+        function (cb) {
+          request(server)
+            .get('/')
+            .expect(500, 'ouch on GET /: boom!', cb)
+        },
+        function (cb) {
+          request(server)
+            .put('/')
+            .expect(500, 'ouch on PUT /: boom!', cb)
+        },
+        function (cb) {
+          request(server)
+            .post('/')
+            .expect(500, 'ouch on POST /: boom!', cb)
+        },
+        function (cb) {
+          rawrequest(server)
+            .options('*')
+            .expect(500, 'ouch on OPTIONS *: boom!', cb)
+        }
+      ], done)
+    })
+
+    it('should not invoke for blank URLs', function (done) {
+      const router = new Router()
+      const server = createServer(function hander (req, res, next) {
+        req.url = ''
+        router(req, res, next)
+      })
+
+      router.use(boomError).error(boomErrorHandler)
+
+      request(server)
+        .get('/')
+        .expect(404, done)
+    })
+
+    it('should support another router', function (done) {
+      const inner = new Router()
+      const router = new Router()
+      const server = createServer(router)
+
+      inner.use(boomError).error(boomErrorHandler)
+      router.use(inner)
+
+      request(server)
+        .get('/')
+        .expect(500, 'ouch on GET /: boom!', done)
+    })
+
+    it('should accept multiple arguments', function (done) {
+      const router = new Router()
+      const server = createServer(router)
+
+      router.use(boomError).error(function (err, req, res, next) {
+        res.setHeader('x-err-1', err.message)
+        next(err)
+      }, function (err, req, res, next) {
+        res.setHeader('x-err-2', err.message)
+        next(err)
+      }, boomErrorHandler)
+
+      request(server)
+        .get('/foo')
+        .expect('x-err-1', 'boom!')
+        .expect('x-err-2', 'boom!')
+        .expect(500, 'ouch on GET /foo: boom!', done)
+    })
+
+    it('should accept single array of error handlers', function (done) {
+      const router = new Router()
+      const server = createServer(router)
+
+      router.use(boomError).error([
+        function (err, req, res, next) {
+          res.setHeader('x-err-1', err.message)
+          next(err)
+        },
+        function (err, req, res, next) {
+          res.setHeader('x-err-2', err.message)
+          next(err)
+        },
+        boomErrorHandler
+      ])
+
+      request(server)
+        .get('/foo')
+        .expect('x-err-1', 'boom!')
+        .expect('x-err-2', 'boom!')
+        .expect(500, 'ouch on GET /foo: boom!', done)
+    })
+
+    it('should accept nested arrays of error handlers', function (done) {
+      const router = new Router()
+      const server = createServer(router)
+
+      router.use(boomError).error(
+        [
+          [
+            function (err, req, res, next) {
+              res.setHeader('x-err-1', err.message)
+              next(err)
+            },
+            function (err, req, res, next) {
+              res.setHeader('x-err-2', err.message)
+              next(err)
+            }
+          ],
+          function (err, req, res, next) {
+            res.setHeader('x-err-3', err.message)
+            next(err)
+          }
+        ],
+        boomErrorHandler
+      )
+
+      request(server)
+        .get('/foo')
+        .expect('x-err-1', 'boom!')
+        .expect('x-err-2', 'boom!')
+        .expect('x-err-3', 'boom!')
+        .expect(500, 'ouch on GET /foo: boom!', done)
+    })
+
+    it('should not invoke singular error handler', function (done) {
+      const router = new Router()
+      const server = createServer(router)
+
+      router.error(boomErrorHandler)
+
+      request(server)
+        .get('/')
+        .expect(404, done)
+    })
+
+    it('should not stack overflow with a large sync stack', function (done) {
+      this.timeout(5000) // long-running test
+
+      const router = new Router()
+      const server = createServer(router)
+
+      for (let i = 0; i < 6000; i++) {
+        router.error(function (err, req, res, next) { next(err) })
+      }
+
+      router.use(boomError).error(boomErrorHandler)
+
+      request(server)
+        .get('/')
+        .expect(500, 'ouch on GET /: boom!', done)
+    })
+
+    describe('error handling', function () {
+      it('should invoke error function after next(err)', function (done) {
+        const router = new Router()
+        const server = createServer(router)
+
+        router.use(function handle (req, res, next) {
+          next(new Error('boom!'))
+        })
+
+        router.error(boomErrorHandler)
+
+        request(server)
+          .get('/')
+          .expect(500, 'ouch on GET /: boom!', done)
+      })
+
+      it('should invoke error function after throw err', function (done) {
+        const router = new Router()
+        const server = createServer(router)
+
+        router.use(function handle (req, res, next) {
+          throw new Error('boom!')
+        })
+
+        router.error(boomErrorHandler)
+
+        request(server)
+          .get('/')
+          .expect(500, 'ouch on GET /: boom!', done)
+      })
+
+      it('should not invoke error functions above function', function (done) {
+        const router = new Router()
+        const server = createServer(router)
+
+        // this error handler returns 200
+        router.error(sawError)
+
+        router.use(boomError)
+
+        request(server)
+          .get('/')
+          .expect(500, done)
+      })
+    })
+  })
+
+  describe('.error(path, ...fn)', function () {
+    it('should be chainable', function () {
+      const router = new Router()
+      assert.equal(router.use('/', boomErrorHandler), router)
+    })
+
+    it('should invoke when req.url starts with path', function (done) {
+      const router = new Router()
+      const server = createServer(router)
+
+      router.use('/foo', saw)
+      series([
+        function (cb) {
+          request(server)
+            .get('/')
+            .expect(404, cb)
+        },
+        function (cb) {
+          request(server)
+            .post('/foo')
+            .expect(200, 'saw POST /', cb)
+        },
+        function (cb) {
+          request(server)
+            .post('/foo/bar')
+            .expect(200, 'saw POST /bar', cb)
+        }
+      ], done)
+    })
+
+    it('should match if path has trailing slash', function (done) {
+      const router = new Router()
+      const server = createServer(router)
+
+      router.use('/foo/', saw)
+
+      series([
+        function (cb) {
+          request(server)
+            .get('/')
+            .expect(404, cb)
+        },
+        function (cb) {
+          request(server)
+            .post('/foo')
+            .expect(200, 'saw POST /', cb)
+        },
+        function (cb) {
+          request(server)
+            .post('/foo/bar')
+            .expect(200, 'saw POST /bar', cb)
+        }
+      ], done)
+    })
+
+    it('should support array of paths', function (done) {
+      const router = new Router()
+      const server = createServer(router)
+
+      router.use(['/foo/', '/bar'], saw)
+
+      series([
+        function (cb) {
+          request(server)
+            .get('/')
+            .expect(404, cb)
+        },
+        function (cb) {
+          request(server)
+            .get('/foo')
+            .expect(200, 'saw GET /', cb)
+        },
+        function (cb) {
+          request(server)
+            .get('/bar')
+            .expect(200, 'saw GET /', cb)
+        }
+      ], done)
+    })
+
+    it('should support regexp path', function (done) {
+      const router = new Router()
+      const server = createServer(router)
+
+      router.use(/^\/[a-z]oo$/, saw)
+      series([
+        function (cb) {
+          request(server)
+            .get('/')
+            .expect(404, cb)
+        },
+        function (cb) {
+          request(server)
+            .get('/foo')
+            .expect(200, 'saw GET /', cb)
+        },
+        function (cb) {
+          request(server)
+            .get('/fooo')
+            .expect(404, cb)
+        },
+        function (cb) {
+          request(server)
+            .get('/zoo/bear')
+            .expect(404, cb)
+        },
+        function (cb) {
+          request(server)
+            .get('/get/zoo')
+            .expect(404, cb)
+        }
+      ], done)
+    })
+
+    it('should support regexp path with params', function (done) {
+      const router = new Router()
+      const server = createServer(router)
+
+      router.use(/^\/([a-z]oo)$/, function (req, res, next) {
+        createHitHandle(req.params[0])(req, res, next)
+      }, saw)
+
+      router.use(/^\/([a-z]oo)\/(?<animal>bear)$/, function (req, res, next) {
+        createHitHandle(req.params[0] + req.params.animal)(req, res, next)
+      }, saw)
+
+      series([
+        function (cb) {
+          request(server)
+            .get('/')
+            .expect(404, cb)
+        },
+        function (cb) {
+          request(server)
+            .get('/foo')
+            .expect(shouldHitHandle('foo'))
+            .expect(200, 'saw GET /', cb)
+        },
+        function (cb) {
+          request(server)
+            .get('/zoo')
+            .expect(shouldHitHandle('zoo'))
+            .expect(200, 'saw GET /', cb)
+        },
+        function (cb) {
+          request(server)
+            .get('/fooo')
+            .expect(404, cb)
+        },
+        function (cb) {
+          request(server)
+            .get('/zoo/bear')
+            .expect(shouldHitHandle('zoobear'))
+            .expect(200, cb)
+        },
+        function (cb) {
+          request(server)
+            .get('/get/zoo')
+            .expect(404, cb)
+        }
+      ], done)
+    })
+
+    it('should ensure regexp matches path prefix', function (done) {
+      const router = new Router()
+      const server = createServer(router)
+
+      router.use(/\/api.*/, createHitHandle(1))
+      router.use(/api/, createHitHandle(2))
+      router.use(/\/test/, createHitHandle(3))
+      router.use(helloWorld)
+
+      request(server)
+        .get('/test/api/1234')
+        .expect(shouldNotHitHandle(1))
+        .expect(shouldNotHitHandle(2))
+        .expect(shouldHitHandle(3))
+        .expect(200, done)
+    })
+
+    it('should support parameterized path', function (done) {
+      const router = new Router()
+      const server = createServer(router)
+
+      router.use('/:thing', saw)
+      series([
+        function (cb) {
+          request(server)
+            .get('/')
+            .expect(404, cb)
+        },
+        function (cb) {
+          request(server)
+            .get('/foo')
+            .expect(200, 'saw GET /', cb)
+        },
+        function (cb) {
+          request(server)
+            .get('/bar')
+            .expect(200, 'saw GET /', cb)
+        },
+        function (cb) {
+          request(server)
+            .get('/foo/bar')
+            .expect(200, 'saw GET /bar', cb)
+        }
+      ], done)
+    })
+
+    it('should accept multiple arguments', function (done) {
+      const router = new Router()
+      const server = createServer(router)
+
+      router.use('/foo', createHitHandle(1), createHitHandle(2), helloWorld)
+
+      request(server)
+        .get('/foo')
+        .expect(shouldHitHandle(1))
+        .expect(shouldHitHandle(2))
+        .expect(200, 'hello, world', done)
+    })
+
+    describe('with "caseSensitive" option', function () {
+      it('should not match paths case-sensitively by default', function (done) {
+        const router = new Router()
+        const server = createServer(router)
+
+        router.use('/foo', saw)
+        series([
+          function (cb) {
+            request(server)
+              .get('/foo/bar')
+              .expect(200, 'saw GET /bar', cb)
+          },
+          function (cb) {
+            request(server)
+              .get('/FOO/bar')
+              .expect(200, 'saw GET /bar', cb)
+          },
+          function (cb) {
+            request(server)
+              .get('/FOO/BAR')
+              .expect(200, 'saw GET /BAR', cb)
+          }
+        ], done)
+      })
+
+      it('should not match paths case-sensitively when false', function (done) {
+        const router = new Router({ caseSensitive: false })
+        const server = createServer(router)
+
+        router.use('/foo', saw)
+        series([
+          function (cb) {
+            request(server)
+              .get('/foo/bar')
+              .expect(200, 'saw GET /bar', cb)
+          },
+          function (cb) {
+            request(server)
+              .get('/FOO/bar')
+              .expect(200, 'saw GET /bar', cb)
+          },
+          function (cb) {
+            request(server)
+              .get('/FOO/BAR')
+              .expect(200, 'saw GET /BAR', cb)
+          }
+        ], done)
+      })
+
+      it('should match paths case-sensitively when true', function (done) {
+        const router = new Router({ caseSensitive: true })
+        const server = createServer(router)
+
+        router.use('/foo', saw)
+        series([
+          function (cb) {
+            request(server)
+              .get('/foo/bar')
+              .expect(200, 'saw GET /bar', cb)
+          },
+          function (cb) {
+            request(server)
+              .get('/FOO/bar')
+              .expect(404, cb)
+          },
+          function (cb) {
+            request(server)
+              .get('/FOO/BAR')
+              .expect(404, cb)
+          }
+        ], done)
+      })
+    })
+
+    describe('with "strict" option', function () {
+      it('should accept optional trailing slashes by default', function (done) {
+        const router = new Router()
+        const server = createServer(router)
+
+        router.use('/foo', saw)
+        series([
+          function (cb) {
+            request(server)
+              .get('/foo')
+              .expect(200, 'saw GET /', cb)
+          },
+          function (cb) {
+            request(server)
+              .get('/foo/')
+              .expect(200, 'saw GET /', cb)
+          }
+        ], done)
+      })
+
+      it('should accept optional trailing slashes when false', function (done) {
+        const router = new Router({ strict: false })
+        const server = createServer(router)
+
+        router.use('/foo', saw)
+        series([
+          function (cb) {
+            request(server)
+              .get('/foo')
+              .expect(200, 'saw GET /', cb)
+          },
+          function (cb) {
+            request(server)
+              .get('/foo/')
+              .expect(200, 'saw GET /', cb)
+          }
+        ], done)
+      })
+
+      it('should accept optional trailing slashes when true', function (done) {
+        const router = new Router({ strict: true })
+        const server = createServer(router)
+
+        router.use('/foo', saw)
+        series([
+          function (cb) {
+            request(server)
+              .get('/foo')
+              .expect(200, 'saw GET /', cb)
+          },
+          function (cb) {
+            request(server)
+              .get('/foo/')
+              .expect(200, 'saw GET /', cb)
+          }
+        ], done)
+      })
+    })
+  })
+
   describe('request rewriting', function () {
     it('should support altering req.method', function (done) {
       const router = new Router()
@@ -1449,6 +2084,16 @@ function helloWorld (req, res) {
   res.statusCode = 200
   res.setHeader('Content-Type', 'text/plain')
   res.end('hello, world')
+}
+
+function boomError (req, res) {
+  throw new Error('boom!')
+}
+
+function boomErrorHandler (err, req, res, next) {
+  res.statusCode = 500
+  res.setHeader('Content-Type', 'text/plain')
+  res.end('ouch on ' + req.method + ' ' + req.url + ': ' + err.message)
 }
 
 function setsaw (num) {
