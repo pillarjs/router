@@ -1460,7 +1460,7 @@ describe('Router', function () {
         res.setHeader('x-err-2', err.message)
         next(err)
       })
-      assert.equal(router.error(boomErrorHandler), router)
+      assert.equal(router.error(ouchErrorHandler), router)
 
       request(server)
         .get('/foo')
@@ -1473,7 +1473,8 @@ describe('Router', function () {
       const router = new Router()
       const server = createServer(router)
 
-      router.use(boomError).error(boomErrorHandler)
+      router.use(boomError)
+      router.error(ouchErrorHandler)
 
       series([
         function (cb) {
@@ -1506,37 +1507,26 @@ describe('Router', function () {
         router(req, res, next)
       })
 
-      router.use(boomError).error(boomErrorHandler)
+      router.use(boomError)
+      router.error(ouchErrorHandler)
 
       request(server)
         .get('/')
         .expect(404, done)
     })
 
-    it('should support another router', function (done) {
-      const inner = new Router()
-      const router = new Router()
-      const server = createServer(router)
-
-      inner.use(boomError).error(boomErrorHandler)
-      router.use(inner)
-
-      request(server)
-        .get('/')
-        .expect(500, 'ouch on GET /: boom!', done)
-    })
-
     it('should accept multiple arguments', function (done) {
       const router = new Router()
       const server = createServer(router)
 
-      router.use(boomError).error(function (err, req, res, next) {
+      router.use(boomError)
+      router.error(function (err, req, res, next) {
         res.setHeader('x-err-1', err.message)
         next(err)
       }, function (err, req, res, next) {
         res.setHeader('x-err-2', err.message)
         next(err)
-      }, boomErrorHandler)
+      }, ouchErrorHandler)
 
       request(server)
         .get('/foo')
@@ -1549,7 +1539,8 @@ describe('Router', function () {
       const router = new Router()
       const server = createServer(router)
 
-      router.use(boomError).error([
+      router.use(boomError)
+      router.error([
         function (err, req, res, next) {
           res.setHeader('x-err-1', err.message)
           next(err)
@@ -1558,7 +1549,7 @@ describe('Router', function () {
           res.setHeader('x-err-2', err.message)
           next(err)
         },
-        boomErrorHandler
+        ouchErrorHandler
       ])
 
       request(server)
@@ -1572,7 +1563,8 @@ describe('Router', function () {
       const router = new Router()
       const server = createServer(router)
 
-      router.use(boomError).error(
+      router.use(boomError)
+      router.error(
         [
           [
             function (err, req, res, next) {
@@ -1589,7 +1581,7 @@ describe('Router', function () {
             next(err)
           }
         ],
-        boomErrorHandler
+        ouchErrorHandler
       )
 
       request(server)
@@ -1604,7 +1596,7 @@ describe('Router', function () {
       const router = new Router()
       const server = createServer(router)
 
-      router.error(boomErrorHandler)
+      router.error(ouchErrorHandler)
 
       request(server)
         .get('/')
@@ -1621,7 +1613,8 @@ describe('Router', function () {
         router.error(function (err, req, res, next) { next(err) })
       }
 
-      router.use(boomError).error(boomErrorHandler)
+      router.use(boomError)
+      router.error(ouchErrorHandler)
 
       request(server)
         .get('/')
@@ -1637,7 +1630,7 @@ describe('Router', function () {
           next(new Error('boom!'))
         })
 
-        router.error(boomErrorHandler)
+        router.error(ouchErrorHandler)
 
         request(server)
           .get('/')
@@ -1652,7 +1645,7 @@ describe('Router', function () {
           throw new Error('boom!')
         })
 
-        router.error(boomErrorHandler)
+        router.error(ouchErrorHandler)
 
         request(server)
           .get('/')
@@ -1678,14 +1671,16 @@ describe('Router', function () {
   describe('.error(path, ...fn)', function () {
     it('should be chainable', function () {
       const router = new Router()
-      assert.equal(router.use('/', boomErrorHandler), router)
+      assert.equal(router.error('/', ouchErrorHandler), router)
     })
 
     it('should invoke when req.url starts with path', function (done) {
       const router = new Router()
       const server = createServer(router)
 
-      router.use('/foo', saw)
+      router.use('/foo', boomError)
+      router.error('/foo', ouchErrorHandler)
+
       series([
         function (cb) {
           request(server)
@@ -1695,12 +1690,12 @@ describe('Router', function () {
         function (cb) {
           request(server)
             .post('/foo')
-            .expect(200, 'saw POST /', cb)
+            .expect(500, 'ouch on POST /: boom!', cb)
         },
         function (cb) {
           request(server)
             .post('/foo/bar')
-            .expect(200, 'saw POST /bar', cb)
+            .expect(500, 'ouch on POST /bar: boom!', cb)
         }
       ], done)
     })
@@ -1709,7 +1704,8 @@ describe('Router', function () {
       const router = new Router()
       const server = createServer(router)
 
-      router.use('/foo/', saw)
+      router.use('/foo/', boomError)
+      router.error('/foo/', ouchErrorHandler)
 
       series([
         function (cb) {
@@ -1720,12 +1716,12 @@ describe('Router', function () {
         function (cb) {
           request(server)
             .post('/foo')
-            .expect(200, 'saw POST /', cb)
+            .expect(500, 'ouch on POST /: boom!', cb)
         },
         function (cb) {
           request(server)
             .post('/foo/bar')
-            .expect(200, 'saw POST /bar', cb)
+            .expect(500, 'ouch on POST /bar: boom!', cb)
         }
       ], done)
     })
@@ -1734,7 +1730,8 @@ describe('Router', function () {
       const router = new Router()
       const server = createServer(router)
 
-      router.use(['/foo/', '/bar'], saw)
+      router.use(['/foo/', '/bar'], boomError)
+      router.error(['/foo/', '/bar'], ouchErrorHandler)
 
       series([
         function (cb) {
@@ -1745,12 +1742,12 @@ describe('Router', function () {
         function (cb) {
           request(server)
             .get('/foo')
-            .expect(200, 'saw GET /', cb)
+            .expect(500, 'ouch on GET /: boom!', cb)
         },
         function (cb) {
           request(server)
             .get('/bar')
-            .expect(200, 'saw GET /', cb)
+            .expect(500, 'ouch on GET /: boom!', cb)
         }
       ], done)
     })
@@ -1759,7 +1756,9 @@ describe('Router', function () {
       const router = new Router()
       const server = createServer(router)
 
-      router.use(/^\/[a-z]oo$/, saw)
+      router.use(/^\/[a-z]oo$/, boomError)
+      router.error(/^\/[a-z]oo$/, ouchErrorHandler)
+
       series([
         function (cb) {
           request(server)
@@ -1769,7 +1768,7 @@ describe('Router', function () {
         function (cb) {
           request(server)
             .get('/foo')
-            .expect(200, 'saw GET /', cb)
+            .expect(500, 'ouch on GET /: boom!', cb)
         },
         function (cb) {
           request(server)
@@ -1793,13 +1792,23 @@ describe('Router', function () {
       const router = new Router()
       const server = createServer(router)
 
-      router.use(/^\/([a-z]oo)$/, function (req, res, next) {
-        createHitHandle(req.params[0])(req, res, next)
-      }, saw)
+      router.use(/^\/([a-z]oo)$/, boomError)
+      router.use(/^\/([a-z]oo)\/(?<animal>bear)$/, boomError)
 
-      router.use(/^\/([a-z]oo)\/(?<animal>bear)$/, function (req, res, next) {
+      // these error handlers are trigged by the above `use` calls but silence
+      // the error since they call next() with no params
+      router.error(/^\/([a-z]oo)$/, function (_err, req, res, next) {
+        createHitHandle(req.params[0])(req, res, next)
+      })
+      router.error(/^\/([a-z]oo)\/(?<animal>bear)$/, function (_err, req, res, next) {
         createHitHandle(req.params[0] + req.params.animal)(req, res, next)
-      }, saw)
+      })
+
+      // so we throw another error to trigger the final error handler
+      router.use(/^\/([a-z]oo)$/, boomError)
+      router.use(/^\/([a-z]oo)\/(?<animal>bear)$/, boomError)
+      router.error(/^\/([a-z]oo)$/, ouchErrorHandler)
+      router.use(/^\/([a-z]oo)\/(?<animal>bear)$/, ouchErrorHandler)
 
       series([
         function (cb) {
@@ -1811,13 +1820,13 @@ describe('Router', function () {
           request(server)
             .get('/foo')
             .expect(shouldHitHandle('foo'))
-            .expect(200, 'saw GET /', cb)
+            .expect(500, 'ouch on GET /: boom!', cb)
         },
         function (cb) {
           request(server)
             .get('/zoo')
             .expect(shouldHitHandle('zoo'))
-            .expect(200, 'saw GET /', cb)
+            .expect(500, 'ouch on GET /: boom!', cb)
         },
         function (cb) {
           request(server)
@@ -1828,7 +1837,7 @@ describe('Router', function () {
           request(server)
             .get('/zoo/bear')
             .expect(shouldHitHandle('zoobear'))
-            .expect(200, cb)
+            .expect(500, cb)
         },
         function (cb) {
           request(server)
@@ -1842,24 +1851,38 @@ describe('Router', function () {
       const router = new Router()
       const server = createServer(router)
 
-      router.use(/\/api.*/, createHitHandle(1))
-      router.use(/api/, createHitHandle(2))
-      router.use(/\/test/, createHitHandle(3))
-      router.use(helloWorld)
+      router.use(/\/api.*/, boomError)
+      router.error(/\/api.*/, function (_err, req, res, next) {
+        createHitHandle(1)(req, res, next)
+      })
+
+      router.use(/api/, boomError)
+      router.error(/api/, function (_err, req, res, next) {
+        createHitHandle(2)(req, res, next)
+      })
+
+      router.use(/\/test/, boomError)
+      router.error(/\/test/, function (_err, req, res, next) {
+        createHitHandle(3)(req, res, next)
+      })
+
+      router.use(boomError)
+      router.error(ouchErrorHandler)
 
       request(server)
         .get('/test/api/1234')
         .expect(shouldNotHitHandle(1))
         .expect(shouldNotHitHandle(2))
         .expect(shouldHitHandle(3))
-        .expect(200, done)
+        .expect(500, 'ouch on GET /test/api/1234: boom!', done)
     })
 
     it('should support parameterized path', function (done) {
       const router = new Router()
       const server = createServer(router)
 
-      router.use('/:thing', saw)
+      router.use('/:thing', boomError)
+      router.error('/:thing', ouchErrorHandler)
       series([
         function (cb) {
           request(server)
@@ -1869,17 +1892,17 @@ describe('Router', function () {
         function (cb) {
           request(server)
             .get('/foo')
-            .expect(200, 'saw GET /', cb)
+            .expect(500, 'ouch on GET /: boom!', cb)
         },
         function (cb) {
           request(server)
             .get('/bar')
-            .expect(200, 'saw GET /', cb)
+            .expect(500, 'ouch on GET /: boom!', cb)
         },
         function (cb) {
           request(server)
             .get('/foo/bar')
-            .expect(200, 'saw GET /bar', cb)
+            .expect(500, 'ouch on GET /bar: boom!', cb)
         }
       ], done)
     })
@@ -1888,13 +1911,20 @@ describe('Router', function () {
       const router = new Router()
       const server = createServer(router)
 
-      router.use('/foo', createHitHandle(1), createHitHandle(2), helloWorld)
+      router.use('/foo', boomError)
+      router.error('/foo', function (err, req, res, next) {
+        res.setHeader('x-err-1', err.message)
+        next(err)
+      }, function (err, req, res, next) {
+        res.setHeader('x-err-2', err.message)
+        next(err)
+      }, ouchErrorHandler)
 
       request(server)
         .get('/foo')
-        .expect(shouldHitHandle(1))
-        .expect(shouldHitHandle(2))
-        .expect(200, 'hello, world', done)
+        .expect('x-err-1', 'boom!')
+        .expect('x-err-2', 'boom!')
+        .expect(500, 'ouch on GET /: boom!', done)
     })
 
     describe('with "caseSensitive" option', function () {
@@ -1902,22 +1932,23 @@ describe('Router', function () {
         const router = new Router()
         const server = createServer(router)
 
-        router.use('/foo', saw)
+        router.use('/foo', boomError)
+        router.error('/foo', ouchErrorHandler)
         series([
           function (cb) {
             request(server)
               .get('/foo/bar')
-              .expect(200, 'saw GET /bar', cb)
+              .expect(500, 'ouch on GET /bar: boom!', cb)
           },
           function (cb) {
             request(server)
               .get('/FOO/bar')
-              .expect(200, 'saw GET /bar', cb)
+              .expect(500, 'ouch on GET /bar: boom!', cb)
           },
           function (cb) {
             request(server)
               .get('/FOO/BAR')
-              .expect(200, 'saw GET /BAR', cb)
+              .expect(500, 'ouch on GET /BAR: boom!', cb)
           }
         ], done)
       })
@@ -1926,22 +1957,23 @@ describe('Router', function () {
         const router = new Router({ caseSensitive: false })
         const server = createServer(router)
 
-        router.use('/foo', saw)
+        router.use('/foo', boomError)
+        router.error('/foo', ouchErrorHandler)
         series([
           function (cb) {
             request(server)
               .get('/foo/bar')
-              .expect(200, 'saw GET /bar', cb)
+              .expect(500, 'ouch on GET /bar: boom!', cb)
           },
           function (cb) {
             request(server)
               .get('/FOO/bar')
-              .expect(200, 'saw GET /bar', cb)
+              .expect(500, 'ouch on GET /bar: boom!', cb)
           },
           function (cb) {
             request(server)
               .get('/FOO/BAR')
-              .expect(200, 'saw GET /BAR', cb)
+              .expect(500, 'ouch on GET /BAR: boom!', cb)
           }
         ], done)
       })
@@ -1950,12 +1982,13 @@ describe('Router', function () {
         const router = new Router({ caseSensitive: true })
         const server = createServer(router)
 
-        router.use('/foo', saw)
+        router.use('/foo', boomError)
+        router.error('/foo', ouchErrorHandler)
         series([
           function (cb) {
             request(server)
               .get('/foo/bar')
-              .expect(200, 'saw GET /bar', cb)
+              .expect(500, 'ouch on GET /bar: boom!', cb)
           },
           function (cb) {
             request(server)
@@ -1976,17 +2009,18 @@ describe('Router', function () {
         const router = new Router()
         const server = createServer(router)
 
-        router.use('/foo', saw)
+        router.use('/foo', boomError)
+        router.error('/foo', ouchErrorHandler)
         series([
           function (cb) {
             request(server)
               .get('/foo')
-              .expect(200, 'saw GET /', cb)
+              .expect(500, 'ouch on GET /: boom!', cb)
           },
           function (cb) {
             request(server)
               .get('/foo/')
-              .expect(200, 'saw GET /', cb)
+              .expect(500, 'ouch on GET /: boom!', cb)
           }
         ], done)
       })
@@ -1995,17 +2029,18 @@ describe('Router', function () {
         const router = new Router({ strict: false })
         const server = createServer(router)
 
-        router.use('/foo', saw)
+        router.use('/foo', boomError)
+        router.error('/foo', ouchErrorHandler)
         series([
           function (cb) {
             request(server)
               .get('/foo')
-              .expect(200, 'saw GET /', cb)
+              .expect(500, 'ouch on GET /: boom!', cb)
           },
           function (cb) {
             request(server)
               .get('/foo/')
-              .expect(200, 'saw GET /', cb)
+              .expect(500, 'ouch on GET /: boom!', cb)
           }
         ], done)
       })
@@ -2014,17 +2049,18 @@ describe('Router', function () {
         const router = new Router({ strict: true })
         const server = createServer(router)
 
-        router.use('/foo', saw)
+        router.use('/foo', boomError)
+        router.error('/foo', ouchErrorHandler)
         series([
           function (cb) {
             request(server)
               .get('/foo')
-              .expect(200, 'saw GET /', cb)
+              .expect(500, 'ouch on GET /: boom!', cb)
           },
           function (cb) {
             request(server)
               .get('/foo/')
-              .expect(200, 'saw GET /', cb)
+              .expect(500, 'ouch on GET /: boom!', cb)
           }
         ], done)
       })
@@ -2090,7 +2126,7 @@ function boomError (req, res) {
   throw new Error('boom!')
 }
 
-function boomErrorHandler (err, req, res, next) {
+function ouchErrorHandler (err, req, res, next) {
   res.statusCode = 500
   res.setHeader('Content-Type', 'text/plain')
   res.end('ouch on ' + req.method + ' ' + req.url + ': ' + err.message)
