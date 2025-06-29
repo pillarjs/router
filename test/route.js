@@ -254,7 +254,10 @@ describe('Router', function () {
         // CONNECT is tricky and supertest doesn't support it
         return
       }
-      if (method === 'query' && process.version.startsWith('v21')) {
+
+      // Skipping HTTP QUERY tests below Node 22, QUERY wasn't fully supported by Node until 22
+      const majorVersion = Number(process.versions.node.split('.')[0]);
+      if (method === 'query' && majorVersion < 22) {
         return
       }
 
