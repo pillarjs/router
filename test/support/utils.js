@@ -143,7 +143,7 @@ function shouldNotHaveHeader (header) {
 }
 
 // Skipping HTTP QUERY tests below Node 22, QUERY wasn't fully supported by Node until 22
-function shouldSkipQueryHttpMethod() {
-  const majorVersion = Number(process.versions.node.split('.')[0]);
-  return majorVersion < 22;
+function shouldSkipQueryHttpMethod () {
+  const majorVersion = Number(process.versions.node.split('.')[0])
+  return majorVersion < 22
 }

@@ -319,7 +319,7 @@ describe('Router', function () {
       // CONNECT is tricky and supertest doesn't support it
       return
     }
-    
+
     if (shouldSkipQueryHttpMethod()) {
       return
     }
