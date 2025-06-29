@@ -15,6 +15,7 @@ exports.shouldHaveBody = shouldHaveBody
 exports.shouldNotHaveBody = shouldNotHaveBody
 exports.shouldHitHandle = shouldHitHandle
 exports.shouldNotHitHandle = shouldNotHitHandle
+exports.shouldSkipQueryHttpMethod = shouldSkipQueryHttpMethod
 exports.methods = methods
 
 function createHitHandle (num) {
@@ -139,4 +140,10 @@ function shouldNotHaveHeader (header) {
   return function (res) {
     assert.ok(!(header.toLowerCase() in res.headers), 'should not have header ' + header)
   }
+}
+
+// Skipping HTTP QUERY tests below Node 22, QUERY wasn't fully supported by Node until 22
+function shouldSkipQueryHttpMethod() {
+  const majorVersion = Number(process.versions.node.split('.')[0]);
+  return majorVersion < 22;
 }

@@ -11,6 +11,7 @@ const shouldHaveBody = utils.shouldHaveBody
 const shouldHitHandle = utils.shouldHitHandle
 const shouldNotHaveBody = utils.shouldNotHaveBody
 const shouldNotHitHandle = utils.shouldNotHitHandle
+const shouldSkipQueryHttpMethod = utils.shouldSkipQueryHttpMethod
 const methods = utils.methods
 
 describe('Router', function () {
@@ -255,9 +256,7 @@ describe('Router', function () {
         return
       }
 
-      // Skipping HTTP QUERY tests below Node 22, QUERY wasn't fully supported by Node until 22
-      const majorVersion = Number(process.versions.node.split('.')[0]);
-      if (method === 'query' && majorVersion < 22) {
+      if (shouldSkipQueryHttpMethod()) {
         return
       }
 
