@@ -316,7 +316,7 @@ var finalhandler = require('finalhandler')
 // this example is about the mergeParams option
 var opts = { mergeParams: true }
 
-// make a router with out special options
+// make a router with our special options
 var router = Router(opts)
 var server = http.createServer(function onRequest (req, res) {
   // set something to be passed into the router
@@ -329,7 +329,7 @@ router.get('/', function (req, res) {
   res.statusCode = 200
   res.setHeader('Content-Type', 'text/plain; charset=utf-8')
 
-  // with respond with the the params that were passed in
+  // with respond with the params that were passed in
   res.end(req.params.type + '\n')
 })
 
