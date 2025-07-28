@@ -445,9 +445,9 @@ Router.prototype.route = function route (path) {
  * List all registered routes.
  *
  * @return {Array} An array of route paths
- * @private
+ * @public
  */
-Router.prototype._mapRoutes = function mapRoutes () {
+Router.prototype.mapRoutes = function mapRoutes () {
   const routes = []
   const stack = this.stack
   const routeMap = new Map()
@@ -524,11 +524,11 @@ function collectRoutes (stack, prefix, routeMap) {
       const methods = Object.keys(layer.route.methods).map((method) => method.toUpperCase())
       if (Array.isArray(layer.pathPatterns)) {
         for (const pathPattern of layer.pathPatterns) {
-          const fullPath = prefix + pathPattern
+          const fullPath = prefix === '/' ? pathPattern : prefix + pathPattern
           addRouteToMap(routeMap, fullPath, methods)
         }
       } else {
-        const fullPath = prefix + layer.pathPatterns
+        const fullPath = prefix === '/' ? layer.pathPatterns : prefix + layer.pathPatterns
         addRouteToMap(routeMap, fullPath, methods)
       }
     }

@@ -4,11 +4,11 @@ const utils = require('./support/utils')
 
 const assert = utils.assert
 
-describe('_mapRoutes', function () {
+describe('mapRoutes', function () {
   it('should return empty array for router with no registered routes', function () {
     const router = new Router()
 
-    assert.deepStrictEqual(router._mapRoutes(), [])
+    assert.deepStrictEqual(router.mapRoutes(), [])
   })
 
   it('should map different route types including strings, regex patterns, and parameter routes', function () {
@@ -21,7 +21,7 @@ describe('_mapRoutes', function () {
     router.get(['/foo', '/bar'], noop)
     router.post('/:id/setting/:thing', noop)
 
-    assert.deepStrictEqual(router._mapRoutes(),
+    assert.deepStrictEqual(router.mapRoutes(),
       [
         { path: '/', methods: ['_ALL'] },
         { path: '/test2/', methods: [] },
@@ -43,7 +43,7 @@ describe('_mapRoutes', function () {
 
     router.put('/test3', noop)
 
-    assert.deepStrictEqual(router._mapRoutes(), [
+    assert.deepStrictEqual(router.mapRoutes(), [
       { path: '/test', methods: ['POST', 'GET'] },
       { path: '/test2', methods: ['POST'] },
       { path: '/test3', methods: ['GET', 'PUT'] }
@@ -66,7 +66,7 @@ describe('_mapRoutes', function () {
     router.use(['/test/', '/test2', '/test3'], inner)
     router.use('/test4/', inner)
 
-    assert.deepStrictEqual(router._mapRoutes(), [
+    assert.deepStrictEqual(router.mapRoutes(), [
       { path: '/test', methods: ['POST', 'GET'] },
       { path: '/test/test', methods: ['GET'] },
       { path: '/test2/test', methods: ['GET'] },
@@ -95,7 +95,7 @@ describe('_mapRoutes', function () {
     router.use(noop)
     router.use('/test1', noop)
 
-    assert.deepStrictEqual(router._mapRoutes(), [
+    assert.deepStrictEqual(router.mapRoutes(), [
       { path: '/t2/t3/t5', methods: ['PUT'] },
       { path: '/t2/t3/^\\/[a-z]oo$/', methods: ['_ALL'] },
       { path: '/t2/t4', methods: ['_ALL'] },
@@ -108,6 +108,20 @@ describe('_mapRoutes', function () {
       { path: '/t7/t3/^\\/[a-z]oo$/', methods: ['_ALL'] },
       { path: '/t7/t4', methods: ['_ALL'] },
       { path: '/t7/', methods: ['GET'] }
+    ])
+  })
+
+  it('should not create double slashes when mounting at root /', function () {
+    const router = new Router()
+    const subRouter = new Router()
+
+    subRouter.get('/api', () => {})
+    router.use('/', subRouter)
+
+    const routes = router.mapRoutes()
+
+    assert.deepStrictEqual(routes, [
+      { path: '/api', methods: ['GET'] }
     ])
   })
 })
