@@ -4,11 +4,11 @@ const utils = require('./support/utils')
 
 const assert = utils.assert
 
-describe('mapRoutes', function () {
+describe('getRoutes', function () {
   it('should return empty array for router with no registered routes', function () {
     const router = new Router()
 
-    assert.deepStrictEqual(router.mapRoutes(), [])
+    assert.deepStrictEqual(router.getRoutes(), [])
   })
 
   it('should map different route types including strings, regex patterns, and parameter routes', function () {
@@ -22,7 +22,7 @@ describe('mapRoutes', function () {
     router.get(['/foo', '/bar'], noop)
     router.post('/:id/setting/:thing', noop)
 
-    assert.deepStrictEqual(router.mapRoutes(),
+    assert.deepStrictEqual(router.getRoutes(),
       [
         { path: '/', methods: ['_ALL'], keys: [], options: { strict: undefined, caseSensitive: undefined } },
         { path: '/test2/', methods: [], keys: [], options: { strict: undefined, caseSensitive: undefined } },
@@ -44,7 +44,7 @@ describe('mapRoutes', function () {
 
     router.put('/test3', noop)
 
-    assert.deepStrictEqual(router.mapRoutes(), [
+    assert.deepStrictEqual(router.getRoutes(), [
       { path: '/test', methods: ['POST', 'GET'], keys: [], options: { strict: undefined, caseSensitive: undefined } },
       { path: '/test2', methods: ['POST'], keys: [], options: { strict: undefined, caseSensitive: undefined } },
       { path: '/test3', methods: ['GET', 'PUT'], keys: [], options: { strict: undefined, caseSensitive: undefined } }
@@ -67,7 +67,7 @@ describe('mapRoutes', function () {
     router.use(['/test/', '/test2', '/test3'], inner)
     router.use('/test4/', inner)
 
-    assert.deepStrictEqual(router.mapRoutes(), [
+    assert.deepStrictEqual(router.getRoutes(), [
       { path: '/test', methods: ['POST', 'GET'], keys: [], options: { strict: undefined, caseSensitive: undefined } },
       { path: '/test/test', methods: ['GET'], keys: [], options: { strict: undefined, caseSensitive: undefined } },
       { path: '/test2/test', methods: ['GET'], keys: [], options: { strict: undefined, caseSensitive: undefined } },
@@ -96,7 +96,7 @@ describe('mapRoutes', function () {
     router.use(noop)
     router.use('/test1', noop)
 
-    assert.deepStrictEqual(router.mapRoutes(), [
+    assert.deepStrictEqual(router.getRoutes(), [
       { path: '/t2/t3/t5', methods: ['PUT'], keys: [], options: { strict: undefined, caseSensitive: undefined } },
       // { path: '/t2/t3/^\\/[a-z]oo$/', methods: ['_ALL'], keys: [],options: { strict: undefined, caseSensitive: undefined } },
       { path: '/t2/t4', methods: ['_ALL'], keys: [], options: { strict: undefined, caseSensitive: undefined } },
@@ -119,7 +119,7 @@ describe('mapRoutes', function () {
     subRouter.get('/api', () => {})
     router.use('/', subRouter)
 
-    const routes = router.mapRoutes()
+    const routes = router.getRoutes()
 
     assert.deepStrictEqual(routes, [
       { path: '/api', methods: ['GET'], keys: [], options: { strict: undefined, caseSensitive: undefined } }
@@ -145,7 +145,7 @@ describe('mapRoutes', function () {
     router.use(noop)
     router.get('/test', noop)
 
-    assert.deepStrictEqual(router.mapRoutes(), [
+    assert.deepStrictEqual(router.getRoutes(), [
       { path: '/t2/t3/t5', methods: ['PUT'], keys: [], options: { strict: false, caseSensitive: false } },
       { path: '/t2/t4', methods: ['_ALL'], keys: [], options: { strict: true, caseSensitive: false } },
       { path: '/t2/', methods: ['GET'], keys: [], options: { strict: true, caseSensitive: false } },
@@ -176,7 +176,7 @@ describe('mapRoutes', function () {
 
     router.use(inner)
 
-    assert.deepStrictEqual(router.mapRoutes(), [
+    assert.deepStrictEqual(router.getRoutes(), [
       { path: '/t2/:t5', methods: ['PUT'], keys: [{ name: 't5', type: 'param' }], options: { strict: true, caseSensitive: true } },
       // The current implementation merges methods for the same path, even if options differ. It shouldn't
       { path: '/t2/:t6', methods: ['POST', 'GET'], keys: [{ name: 't6', type: 'param' }], options: { strict: true, caseSensitive: true } }

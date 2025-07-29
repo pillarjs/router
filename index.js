@@ -448,7 +448,7 @@ Router.prototype.route = function route (path) {
  * @return {Array} An array of route paths
  * @public
  */
-Router.prototype.mapRoutes = function mapRoutes () {
+Router.prototype.getRoutes = function getRoutes () {
   const routes = []
   const stack = this.stack
 
