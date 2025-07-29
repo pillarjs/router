@@ -143,6 +143,47 @@ router.param('user_id', function (req, res, next, id) {
 })
 ```
 
+### route.getRoutes()
+
+Returns an array of all the routes registered on this route, including
+all the methods, key, and the options of instance of router.
+
+```js
+const router = new Router({ strict: true, caseSensitive: true })
+const admin = new Router({ strict: true, caseSensitive: false })
+
+admin.use((req, res, next) => {
+  // some middleware for admin routes
+  next()
+})
+
+admin.get('/', (req, res, next) => {
+  res.end('Hello')
+})
+
+router.use("/admin", admin)
+
+router.all('/:id', function (req, res) {
+  res.end('Hello')
+})
+
+console.log(router.getRoutes())
+// [
+//   {
+//     key: '/admin/',
+//     methods: ['GET'],
+//     keys: [],
+//     options: { strict: true, caseSensitive: false },
+//   },
+//   {
+//     key: '/:id',
+//     methods: ['ALL'],
+//     keys: [{ name: 'id', type: "param" }],
+//     options: { strict: true, caseSensitive: true },
+//   }
+// ]
+```
+
 ### router.route(path)
 
 Creates an instance of a single `Route` for the given `path`.
