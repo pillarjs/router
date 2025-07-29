@@ -3,11 +3,9 @@ on:
   push:
     branches:
       - master
-    paths-ignore:
-      - '*.md'
   pull_request:
-    paths-ignore:
-      - '*.md'
+    branches:
+      - master
 
 permissions:
   contents: read
@@ -19,7 +17,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node-version: [18, 19, 20, 21, 22, 23]
+        node-version: [18, 19, 20, 21, 22, 23, 24]
 
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
