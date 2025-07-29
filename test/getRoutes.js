@@ -5,13 +5,13 @@ const utils = require('./support/utils')
 const assert = utils.assert
 
 describe('getRoutes', function () {
-  it('should return empty array for router with no registered routes', function () {
+  it('should return an empty array when no routes are registered', function () {
     const router = new Router()
 
     assert.deepStrictEqual(router.getRoutes(), [])
   })
 
-  it('should map different route types including strings, regex patterns, and parameter routes', function () {
+  it('should return route information for various route types (strings, arrays, and parameterized paths)', function () {
     const router = new Router()
 
     router.all('/', noop)
@@ -34,49 +34,62 @@ describe('getRoutes', function () {
       ])
   })
 
-  it('should consolidate HTTP methods for routes registered multiple times', function () {
+  it('should track multiple registrations of the same route with different HTTP methods', function () {
     const router = new Router()
+
     router.post(['/test', '/test2'], noop)
 
-    for (let i = 0; i < 20; i++) {
+    for (let i = 0; i < 2; i++) {
       router.get(['/test', '/test3'], noop)
     }
 
     router.put('/test3', noop)
 
     assert.deepStrictEqual(router.getRoutes(), [
-      { path: '/test', methods: ['POST', 'GET'], keys: [], options: { strict: undefined, caseSensitive: undefined } },
+      { path: '/test', methods: ['POST'], keys: [], options: { strict: undefined, caseSensitive: undefined } },
       { path: '/test2', methods: ['POST'], keys: [], options: { strict: undefined, caseSensitive: undefined } },
-      { path: '/test3', methods: ['GET', 'PUT'], keys: [], options: { strict: undefined, caseSensitive: undefined } }
+      { path: '/test', methods: ['GET'], keys: [], options: { strict: undefined, caseSensitive: undefined } },
+      { path: '/test3', methods: ['GET'], keys: [], options: { strict: undefined, caseSensitive: undefined } },
+      { path: '/test', methods: ['GET'], keys: [], options: { strict: undefined, caseSensitive: undefined } },
+      { path: '/test3', methods: ['GET'], keys: [], options: { strict: undefined, caseSensitive: undefined } },
+      { path: '/test3', methods: ['PUT'], keys: [], options: { strict: undefined, caseSensitive: undefined } }
     ])
   })
 
-  it('should deduplicate routes and flatten nested router paths correctly', function () {
+  it('should properly handle nested routers and multiple mount points', function () {
     const router = new Router()
     const inner = new Router()
     router.post('/test', noop)
 
-    for (let i = 0; i < 100; i++) {
+    for (let i = 0; i < 2; i++) {
       router.get('/test', noop)
     }
 
-    for (let i = 0; i < 20; i++) {
+    for (let i = 0; i < 2; i++) {
       inner.get('/test', noop)
     }
 
     router.use(['/test/', '/test2', '/test3'], inner)
     router.use('/test4/', inner)
+    router.route('/test5').get(noop).post(noop)
 
     assert.deepStrictEqual(router.getRoutes(), [
-      { path: '/test', methods: ['POST', 'GET'], keys: [], options: { strict: undefined, caseSensitive: undefined } },
+      { path: '/test', methods: ['POST'], keys: [], options: { strict: undefined, caseSensitive: undefined } },
+      { path: '/test', methods: ['GET'], keys: [], options: { strict: undefined, caseSensitive: undefined } },
+      { path: '/test', methods: ['GET'], keys: [], options: { strict: undefined, caseSensitive: undefined } },
+      { path: '/test/test', methods: ['GET'], keys: [], options: { strict: undefined, caseSensitive: undefined } },
       { path: '/test/test', methods: ['GET'], keys: [], options: { strict: undefined, caseSensitive: undefined } },
       { path: '/test2/test', methods: ['GET'], keys: [], options: { strict: undefined, caseSensitive: undefined } },
+      { path: '/test2/test', methods: ['GET'], keys: [], options: { strict: undefined, caseSensitive: undefined } },
       { path: '/test3/test', methods: ['GET'], keys: [], options: { strict: undefined, caseSensitive: undefined } },
-      { path: '/test4/test', methods: ['GET'], keys: [], options: { strict: undefined, caseSensitive: undefined } }
+      { path: '/test3/test', methods: ['GET'], keys: [], options: { strict: undefined, caseSensitive: undefined } },
+      { path: '/test4/test', methods: ['GET'], keys: [], options: { strict: undefined, caseSensitive: undefined } },
+      { path: '/test4/test', methods: ['GET'], keys: [], options: { strict: undefined, caseSensitive: undefined } },
+      { path: '/test5', methods: ['GET', 'POST'], keys: [], options: { strict: undefined, caseSensitive: undefined } }
     ])
   })
 
-  it('should handle complex nested router hierarchies with multiple mount points', function () {
+  it('should correctly flatten deeply nested router hierarchies with multiple levels', function () {
     const router = new Router()
     const inner = new Router()
     const subinner = new Router()
@@ -126,7 +139,7 @@ describe('getRoutes', function () {
     ])
   })
 
-  it('should inherit router options correctly through nested hierarchies', function () {
+  it('should preserve router configuration options from parent to child routers', function () {
     const router = new Router({ strict: true, caseSensitive: true })
     const inner = new Router({ strict: true, caseSensitive: false })
     const subinner = new Router({ strict: false, caseSensitive: false })
@@ -159,7 +172,7 @@ describe('getRoutes', function () {
     ])
   })
 
-  it('should handle routers with mixed options when mounted at same path', function () {
+  it('should handle multiple routers with different configuration options mounted at the same path', function () {
     const router = new Router({ strict: true, caseSensitive: true })
     const inner = new Router({ strict: true, caseSensitive: false })
     const otherInner = new Router({ strict: true, caseSensitive: true })
@@ -178,10 +191,9 @@ describe('getRoutes', function () {
 
     assert.deepStrictEqual(router.getRoutes(), [
       { path: '/t2/:t5', methods: ['PUT'], keys: [{ name: 't5', type: 'param' }], options: { strict: true, caseSensitive: true } },
-      // The current implementation merges methods for the same path, even if options differ. It shouldn't
-      { path: '/t2/:t6', methods: ['POST', 'GET'], keys: [{ name: 't6', type: 'param' }], options: { strict: true, caseSensitive: true } }
-      // { path: '/t2/t6', methods: ['POST'], options: { strict: true, caseSensitive: true } }
-      // { path: '/t2/t6', methods: ['GET'], options: { strict: true, caseSensitive: false } },
+      { path: '/t2/:t6', methods: ['POST'], keys: [{ name: 't6', type: 'param' }], options: { strict: true, caseSensitive: true } },
+      { path: '/t2/:t5', methods: ['PUT'], keys: [{ name: 't5', type: 'param' }], options: { strict: true, caseSensitive: false } },
+      { path: '/t2/:t6', methods: ['GET'], keys: [{ name: 't6', type: 'param' }], options: { strict: true, caseSensitive: false } }
     ])
   })
 })

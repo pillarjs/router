@@ -457,14 +457,7 @@ Router.prototype.getRoutes = function getRoutes () {
     caseSensitive: this.caseSensitive
   }
 
-  const routeMap = new Map()
-
-  collectRoutes(stack, '', routeMap, options)
-
-  // Convert Map to array of route objects
-  for (const [path, methods] of routeMap.entries()) {
-    routes.push({ path, ...methods })
-  }
+  collectRoutes(stack, '', routes, options)
 
   return routes
 }
@@ -486,25 +479,16 @@ methods.concat('all').forEach(function (method) {
  * @private
  */
 function addRouteToMap (routeMap, path, methods, options) {
-  if (routeMap.has(path)) {
-    const existingMethods = routeMap.get(path)
-    for (const method of methods) {
-      if (!existingMethods.methods.includes(method)) {
-        existingMethods.methods.push(method)
-      }
-    }
-  } else {
-    const { keys } = pathRegexp.pathToRegexp(path)
+  const { keys } = pathRegexp.pathToRegexp(path)
 
-    routeMap.set(
+  routeMap.push(
+    {
       path,
-      {
-        methods: [...methods],
-        keys,
-        options: { strict: options.strict, caseSensitive: options.caseSensitive }
-      }
-    )
-  }
+      methods: [...methods],
+      keys,
+      options: { strict: options.strict, caseSensitive: options.caseSensitive }
+    }
+  )
 }
 
 /**
