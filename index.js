@@ -17,6 +17,7 @@ const Layer = require('./lib/layer')
 const { METHODS } = require('node:http')
 const parseUrl = require('parseurl')
 const Route = require('./lib/route')
+const pathRegexp = require('path-to-regexp')
 const debug = require('debug')('router')
 const deprecate = require('depd')('router')
 
@@ -493,10 +494,13 @@ function addRouteToMap (routeMap, path, methods, options) {
       }
     }
   } else {
+    const { keys } = pathRegexp.pathToRegexp(path)
+
     routeMap.set(
       path,
       {
         methods: [...methods],
+        keys,
         options: { strict: options.strict, caseSensitive: options.caseSensitive }
       }
     )
