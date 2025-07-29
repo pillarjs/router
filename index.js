@@ -450,13 +450,19 @@ Router.prototype.route = function route (path) {
 Router.prototype.mapRoutes = function mapRoutes () {
   const routes = []
   const stack = this.stack
+
+  const options = {
+    strict: this.strict,
+    caseSensitive: this.caseSensitive
+  }
+
   const routeMap = new Map()
 
-  collectRoutes(stack, '', routeMap)
+  collectRoutes(stack, '', routeMap, options)
 
   // Convert Map to array of route objects
   for (const [path, methods] of routeMap.entries()) {
-    routes.push({ path, methods })
+    routes.push({ path, ...methods })
   }
 
   return routes
@@ -478,16 +484,22 @@ methods.concat('all').forEach(function (method) {
  * @param {Array} methods
  * @private
  */
-function addRouteToMap (routeMap, path, methods) {
+function addRouteToMap (routeMap, path, methods, options) {
   if (routeMap.has(path)) {
     const existingMethods = routeMap.get(path)
     for (const method of methods) {
-      if (!existingMethods.includes(method)) {
-        existingMethods.push(method)
+      if (!existingMethods.methods.includes(method)) {
+        existingMethods.methods.push(method)
       }
     }
   } else {
-    routeMap.set(path, [...methods])
+    routeMap.set(
+      path,
+      {
+        methods: [...methods],
+        options: { strict: options.strict, caseSensitive: options.caseSensitive }
+      }
+    )
   }
 }
 
@@ -517,19 +529,20 @@ function normalizePath (path) {
  * @param {Map} routeMap - The map to store collected routes
  * @private
  */
-function collectRoutes (stack, prefix, routeMap) {
+function collectRoutes (stack, prefix, routeMap, options) {
   for (const layer of stack) {
     // for routes without a .use
     if (layer.pathPatterns && layer.route) {
       const methods = Object.keys(layer.route.methods).map((method) => method.toUpperCase())
+
       if (Array.isArray(layer.pathPatterns)) {
         for (const pathPattern of layer.pathPatterns) {
-          const fullPath = prefix === '/' ? pathPattern : prefix + pathPattern
-          addRouteToMap(routeMap, fullPath, methods)
+          const fullPath = prefix === '/' ? pathPattern : normalizePath(prefix) + pathPattern
+          addRouteToMap(routeMap, fullPath, methods, options)
         }
       } else {
         const fullPath = prefix === '/' ? layer.pathPatterns : prefix + layer.pathPatterns
-        addRouteToMap(routeMap, fullPath, methods)
+        addRouteToMap(routeMap, fullPath, methods, options)
       }
     }
 
@@ -537,12 +550,20 @@ function collectRoutes (stack, prefix, routeMap) {
     if (layer.pathPatterns && layer.handle && layer.handle.stack && !layer.route) {
       if (Array.isArray(layer.pathPatterns)) {
         for (const pathPattern of layer.pathPatterns) {
-          const pathPrefix = prefix + normalizePath(pathPattern)
-          collectRoutes(layer.handle.stack, pathPrefix, routeMap)
+          const pathPrefix = prefix === '/' ? normalizePath(pathPattern) : prefix + normalizePath(pathPattern)
+
+          collectRoutes(layer.handle.stack, pathPrefix, routeMap, {
+            strict: layer.handle.strict,
+            caseSensitive: layer.handle.caseSensitive
+          })
         }
       } else {
-        const pathPrefix = prefix + normalizePath(layer.pathPatterns)
-        collectRoutes(layer.handle.stack, pathPrefix, routeMap)
+        const pathPrefix = prefix === '/' ? normalizePath(layer.pathPatterns) : prefix + normalizePath(layer.pathPatterns)
+
+        collectRoutes(layer.handle.stack, pathPrefix, routeMap, {
+          strict: layer.handle.strict,
+          caseSensitive: layer.handle.caseSensitive
+        })
       }
     }
   }

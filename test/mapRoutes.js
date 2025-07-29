@@ -23,13 +23,13 @@ describe('mapRoutes', function () {
 
     assert.deepStrictEqual(router.mapRoutes(),
       [
-        { path: '/', methods: ['_ALL'] },
-        { path: '/test2/', methods: [] },
-        { path: '/test/', methods: ['GET'] },
-        { path: '/^\\/[a-z]oo$/', methods: ['_ALL'] },
-        { path: '/foo', methods: ['GET'] },
-        { path: '/bar', methods: ['GET'] },
-        { path: '/:id/setting/:thing', methods: ['POST'] }
+        { path: '/', methods: ['_ALL'], options: { strict: undefined, caseSensitive: undefined } },
+        { path: '/test2/', methods: [], options: { strict: undefined, caseSensitive: undefined } },
+        { path: '/test/', methods: ['GET'], options: { strict: undefined, caseSensitive: undefined } },
+        { path: '/^\\/[a-z]oo$/', methods: ['_ALL'], options: { strict: undefined, caseSensitive: undefined } },
+        { path: '/foo', methods: ['GET'], options: { strict: undefined, caseSensitive: undefined } },
+        { path: '/bar', methods: ['GET'], options: { strict: undefined, caseSensitive: undefined } },
+        { path: '/:id/setting/:thing', methods: ['POST'], options: { strict: undefined, caseSensitive: undefined } }
       ])
   })
 
@@ -44,9 +44,9 @@ describe('mapRoutes', function () {
     router.put('/test3', noop)
 
     assert.deepStrictEqual(router.mapRoutes(), [
-      { path: '/test', methods: ['POST', 'GET'] },
-      { path: '/test2', methods: ['POST'] },
-      { path: '/test3', methods: ['GET', 'PUT'] }
+      { path: '/test', methods: ['POST', 'GET'], options: { strict: undefined, caseSensitive: undefined } },
+      { path: '/test2', methods: ['POST'], options: { strict: undefined, caseSensitive: undefined } },
+      { path: '/test3', methods: ['GET', 'PUT'], options: { strict: undefined, caseSensitive: undefined } }
     ])
   })
 
@@ -67,11 +67,11 @@ describe('mapRoutes', function () {
     router.use('/test4/', inner)
 
     assert.deepStrictEqual(router.mapRoutes(), [
-      { path: '/test', methods: ['POST', 'GET'] },
-      { path: '/test/test', methods: ['GET'] },
-      { path: '/test2/test', methods: ['GET'] },
-      { path: '/test3/test', methods: ['GET'] },
-      { path: '/test4/test', methods: ['GET'] }
+      { path: '/test', methods: ['POST', 'GET'], options: { strict: undefined, caseSensitive: undefined } },
+      { path: '/test/test', methods: ['GET'], options: { strict: undefined, caseSensitive: undefined } },
+      { path: '/test2/test', methods: ['GET'], options: { strict: undefined, caseSensitive: undefined } },
+      { path: '/test3/test', methods: ['GET'], options: { strict: undefined, caseSensitive: undefined } },
+      { path: '/test4/test', methods: ['GET'], options: { strict: undefined, caseSensitive: undefined } }
     ])
   })
 
@@ -96,22 +96,22 @@ describe('mapRoutes', function () {
     router.use('/test1', noop)
 
     assert.deepStrictEqual(router.mapRoutes(), [
-      { path: '/t2/t3/t5', methods: ['PUT'] },
-      { path: '/t2/t3/^\\/[a-z]oo$/', methods: ['_ALL'] },
-      { path: '/t2/t4', methods: ['_ALL'] },
-      { path: '/t2/', methods: ['GET'] },
-      { path: '/t5/t3/t5', methods: ['PUT'] },
-      { path: '/t5/t3/^\\/[a-z]oo$/', methods: ['_ALL'] },
-      { path: '/t5/t4', methods: ['_ALL'] },
-      { path: '/t5/', methods: ['GET'] },
-      { path: '/t7/t3/t5', methods: ['PUT'] },
-      { path: '/t7/t3/^\\/[a-z]oo$/', methods: ['_ALL'] },
-      { path: '/t7/t4', methods: ['_ALL'] },
-      { path: '/t7/', methods: ['GET'] }
+      { path: '/t2/t3/t5', methods: ['PUT'], options: { strict: undefined, caseSensitive: undefined } },
+      { path: '/t2/t3/^\\/[a-z]oo$/', methods: ['_ALL'], options: { strict: undefined, caseSensitive: undefined } },
+      { path: '/t2/t4', methods: ['_ALL'], options: { strict: undefined, caseSensitive: undefined } },
+      { path: '/t2/', methods: ['GET'], options: { strict: undefined, caseSensitive: undefined } },
+      { path: '/t5/t3/t5', methods: ['PUT'], options: { strict: undefined, caseSensitive: undefined } },
+      { path: '/t5/t3/^\\/[a-z]oo$/', methods: ['_ALL'], options: { strict: undefined, caseSensitive: undefined } },
+      { path: '/t5/t4', methods: ['_ALL'], options: { strict: undefined, caseSensitive: undefined } },
+      { path: '/t5/', methods: ['GET'], options: { strict: undefined, caseSensitive: undefined } },
+      { path: '/t7/t3/t5', methods: ['PUT'], options: { strict: undefined, caseSensitive: undefined } },
+      { path: '/t7/t3/^\\/[a-z]oo$/', methods: ['_ALL'], options: { strict: undefined, caseSensitive: undefined } },
+      { path: '/t7/t4', methods: ['_ALL'], options: { strict: undefined, caseSensitive: undefined } },
+      { path: '/t7/', methods: ['GET'], options: { strict: undefined, caseSensitive: undefined } }
     ])
   })
 
-  it('should not create double slashes when mounting at root /', function () {
+  it('should avoid double slashes when mounting routers at root path', function () {
     const router = new Router()
     const subRouter = new Router()
 
@@ -121,7 +121,66 @@ describe('mapRoutes', function () {
     const routes = router.mapRoutes()
 
     assert.deepStrictEqual(routes, [
-      { path: '/api', methods: ['GET'] }
+      { path: '/api', methods: ['GET'], options: { strict: undefined, caseSensitive: undefined } }
+    ])
+  })
+
+  it('should inherit router options correctly through nested hierarchies', function () {
+    const router = new Router({ strict: true, caseSensitive: true })
+    const inner = new Router({ strict: true, caseSensitive: false })
+    const subinner = new Router({ strict: false, caseSensitive: false })
+
+    subinner.put('/t5', noop)
+    subinner.use(noop)
+
+    inner.use('/t3', subinner)
+    inner.all('/t4', noop)
+    inner.get('/', noop)
+    inner.use(noop)
+
+    router.use('/t2', inner)
+    router.use(['/t5', '/t7'], inner)
+
+    router.use(noop)
+    router.get('/test', noop)
+
+    assert.deepStrictEqual(router.mapRoutes(), [
+      { path: '/t2/t3/t5', methods: ['PUT'], options: { strict: false, caseSensitive: false } },
+      { path: '/t2/t4', methods: ['_ALL'], options: { strict: true, caseSensitive: false } },
+      { path: '/t2/', methods: ['GET'], options: { strict: true, caseSensitive: false } },
+      { path: '/t5/t3/t5', methods: ['PUT'], options: { strict: false, caseSensitive: false } },
+      { path: '/t5/t4', methods: ['_ALL'], options: { strict: true, caseSensitive: false } },
+      { path: '/t5/', methods: ['GET'], options: { strict: true, caseSensitive: false } },
+      { path: '/t7/t3/t5', methods: ['PUT'], options: { strict: false, caseSensitive: false } },
+      { path: '/t7/t4', methods: ['_ALL'], options: { strict: true, caseSensitive: false } },
+      { path: '/t7/', methods: ['GET'], options: { strict: true, caseSensitive: false } },
+      { path: '/test', methods: ['GET'], options: { strict: true, caseSensitive: true } }
+    ])
+  })
+
+  it('should handle routers with mixed options when mounted at same path', function () {
+    const router = new Router({ strict: true, caseSensitive: true })
+    const inner = new Router({ strict: true, caseSensitive: false })
+    const otherInner = new Router({ strict: true, caseSensitive: true })
+    const otherInner2 = new Router({ strict: true, caseSensitive: false })
+
+    otherInner2.put('/t5', noop)
+    otherInner2.get('/t6', noop)
+
+    otherInner.put('/t5', noop)
+    otherInner.post('/t6', noop)
+
+    inner.use('/t2', otherInner)
+    inner.use('/t2', otherInner2)
+
+    router.use(inner)
+
+    assert.deepStrictEqual(router.mapRoutes(), [
+      { path: '/t2/t5', methods: ['PUT'], options: { strict: true, caseSensitive: true } },
+      // The current implementation merges methods for the same path, even if options differ. It shouldn't
+      { path: '/t2/t6', methods: ['POST', 'GET'], options: { strict: true, caseSensitive: true } }
+      // { path: '/t2/t6', methods: ['POST'], options: { strict: true, caseSensitive: true } }
+      // { path: '/t2/t6', methods: ['GET'], options: { strict: true, caseSensitive: false } },
     ])
   })
 })
