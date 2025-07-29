@@ -11,6 +11,7 @@ const shouldHaveBody = utils.shouldHaveBody
 const shouldHitHandle = utils.shouldHitHandle
 const shouldNotHaveBody = utils.shouldNotHaveBody
 const shouldNotHitHandle = utils.shouldNotHitHandle
+const shouldSkipQueryHttpMethod = utils.shouldSkipQueryHttpMethod
 const methods = utils.methods
 
 describe('Router', function () {
@@ -254,7 +255,8 @@ describe('Router', function () {
         // CONNECT is tricky and supertest doesn't support it
         return
       }
-      if (method === 'query' && process.version.startsWith('v21')) {
+
+      if (shouldSkipQueryHttpMethod()) {
         return
       }
 
