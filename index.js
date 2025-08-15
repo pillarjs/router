@@ -17,6 +17,7 @@ const Layer = require('./lib/layer')
 const { METHODS } = require('node:http')
 const parseUrl = require('parseurl')
 const Route = require('./lib/route')
+const pathRegexp = require('path-to-regexp')
 const debug = require('debug')('router')
 const deprecate = require('depd')('router')
 
@@ -441,6 +442,26 @@ Router.prototype.route = function route (path) {
   return route
 }
 
+/**
+ * List all registered routes.
+ *
+ * @return {Array} An array of route paths
+ * @public
+ */
+Router.prototype.getRoutes = function getRoutes () {
+  const routes = []
+  const stack = this.stack
+
+  const options = {
+    strict: this.strict,
+    caseSensitive: this.caseSensitive
+  }
+
+  collectRoutes(stack, '', routes, options)
+
+  return routes
+}
+
 // create Router#VERB functions
 methods.concat('all').forEach(function (method) {
   Router.prototype[method] = function (path) {
@@ -449,6 +470,92 @@ methods.concat('all').forEach(function (method) {
     return this
   }
 })
+
+/**
+ * Add a route to the map with the given path and methods.
+ * @param {Map} routeMap
+ * @param {string} path
+ * @param {Array} methods
+ * @private
+ */
+function addRouteToMap (routeMap, path, methods, options) {
+  const { keys } = pathRegexp.pathToRegexp(path)
+
+  routeMap.push(
+    {
+      path,
+      methods: [...methods],
+      keys,
+      options: { strict: options.strict, caseSensitive: options.caseSensitive }
+    }
+  )
+}
+
+/**
+ * Normalize a path by removing trailing slashes.
+ * @param {string} path
+ * @return {string} normalized path
+ * @private
+ */
+function normalizePath (path) {
+  if (typeof path !== 'string') {
+    return path
+  }
+
+  if (path.endsWith('/') && path.length > 1) {
+    return path.slice(0, -1)
+  }
+
+  return path
+}
+
+/**
+ * Collect routes from a router stack recursively.
+ *
+ * @param {Array} stack - The router stack to collect routes from
+ * @param {string} prefix - The path prefix to prepend to routes
+ * @param {Map} routeMap - The map to store collected routes
+ * @private
+ */
+function collectRoutes (stack, prefix, routeMap, options) {
+  for (const layer of stack) {
+    // for routes without a .use
+    if (layer.pathPatterns && layer.route) {
+      const methods = Object.keys(layer.route.methods).map((method) => method.toUpperCase())
+
+      if (Array.isArray(layer.pathPatterns)) {
+        for (const pathPattern of layer.pathPatterns) {
+          const fullPath = prefix === '/' ? pathPattern : normalizePath(prefix) + pathPattern
+          addRouteToMap(routeMap, fullPath, methods, options)
+        }
+      } else {
+        const fullPath = prefix === '/' ? layer.pathPatterns : prefix + layer.pathPatterns
+        addRouteToMap(routeMap, fullPath, methods, options)
+      }
+    }
+
+    // for layers with a .use (mounted routers)
+    if (layer.pathPatterns && layer.handle && layer.handle.stack && !layer.route) {
+      if (Array.isArray(layer.pathPatterns)) {
+        for (const pathPattern of layer.pathPatterns) {
+          const pathPrefix = prefix === '/' ? normalizePath(pathPattern) : prefix + normalizePath(pathPattern)
+
+          collectRoutes(layer.handle.stack, pathPrefix, routeMap, {
+            strict: layer.handle.strict,
+            caseSensitive: layer.handle.caseSensitive
+          })
+        }
+      } else {
+        const pathPrefix = prefix === '/' ? normalizePath(layer.pathPatterns) : prefix + normalizePath(layer.pathPatterns)
+
+        collectRoutes(layer.handle.stack, pathPrefix, routeMap, {
+          strict: layer.handle.strict,
+          caseSensitive: layer.handle.caseSensitive
+        })
+      }
+    }
+  }
+}
 
 /**
  * Generate a callback that will make an OPTIONS response.
