@@ -21,7 +21,7 @@
   },
   "devDependencies": {
     "finalhandler": "^2.1.0",
-    "mocha": "10.2.0",
+    "mocha": "10.8.2",
     "nyc": "15.1.0",
     "run-series": "^1.1.9",
     "standard": "^17.1.0",
