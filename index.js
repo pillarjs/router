@@ -161,6 +161,7 @@ Router.prototype.handle = function handle (req, res, callback) {
   let slashAdded = false
   let sync = 0
   const paramcalled = {}
+  const matchedLayers = []
 
   // middleware and routes
   const stack = this.stack
@@ -227,15 +228,10 @@ Router.prototype.handle = function handle (req, res, callback) {
       return done(layerError)
     }
 
-    // find next matching layer
-    let layer
-    let match
-    let route
-
-    while (match !== true && idx < stack.length) {
-      layer = stack[idx++]
-      match = matchLayer(layer, path)
-      route = layer.route
+    while (matchedLayers.length < 2 && idx < stack.length) {
+      const layer = stack[idx++]
+      const match = matchLayer(layer, path)
+      const route = layer.route
 
       if (typeof match !== 'boolean') {
         // hold on to layerError
@@ -248,12 +244,13 @@ Router.prototype.handle = function handle (req, res, callback) {
 
       if (!route) {
         // process non-route handlers normally
+        matchedLayers.push(layer)
         continue
       }
 
       if (layerError) {
         // routes do not match with a pending error
-        match = false
+        matchedLayers.push(layer)
         continue
       }
 
@@ -267,18 +264,23 @@ Router.prototype.handle = function handle (req, res, callback) {
 
       // don't even bother matching route
       if (!hasMethod && method !== 'HEAD') {
-        match = false
+        continue
+      } else {
+        matchedLayers.push(layer)
       }
     }
 
     // no match
-    if (match !== true) {
+    if (matchedLayers.length === 0) {
       return done(layerError)
     }
 
+    // prioritize strict matches over paths with parameters
+    const layer = matchedLayers.find((layer) => layer.layerPath === path) ?? matchedLayers[0]
+
     // store route for dispatch on change
-    if (route) {
-      req.route = route
+    if (layer.route) {
+      req.route = layer.route
     }
 
     // Capture one-time layer values
@@ -291,7 +293,7 @@ Router.prototype.handle = function handle (req, res, callback) {
     processParams(self.params, layer, paramcalled, req, res, function (err) {
       if (err) {
         next(layerError || err)
-      } else if (route) {
+      } else if (layer.route) {
         layer.handleRequest(req, res, next)
       } else {
         trimPrefix(layer, layerError, layerPath, path)
