@@ -145,7 +145,6 @@ Router.prototype.param = function param (name, fn) {
  *
  * @private
  */
-
 Router.prototype.handle = function handle (req, res, callback) {
   if (!callback) {
     throw new TypeError('argument callback is required')
@@ -161,7 +160,6 @@ Router.prototype.handle = function handle (req, res, callback) {
   let slashAdded = false
   let sync = 0
   const paramcalled = {}
-  const matchedLayers = []
 
   // middleware and routes
   const stack = this.stack
@@ -228,6 +226,8 @@ Router.prototype.handle = function handle (req, res, callback) {
       return done(layerError)
     }
 
+    const matchedLayers = []
+
     while (matchedLayers.length < 2 && idx < stack.length) {
       const layer = stack[idx++]
       const match = matchLayer(layer, path)
@@ -250,7 +250,6 @@ Router.prototype.handle = function handle (req, res, callback) {
 
       if (layerError) {
         // routes do not match with a pending error
-        matchedLayers.push(layer)
         continue
       }
 
@@ -275,11 +274,9 @@ Router.prototype.handle = function handle (req, res, callback) {
       return done(layerError)
     }
 
-    // prioritize strict matches over paths with parameters
     const layer = matchedLayers.find((layer) => layer.layerPath === path) ?? matchedLayers[0]
 
-    // store route for dispatch on change
-    if (layer.route) {
+    if (layer) {
       req.route = layer.route
     }
 
