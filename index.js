@@ -274,9 +274,11 @@ Router.prototype.handle = function handle (req, res, callback) {
       return done(layerError)
     }
 
+    // prioritize strict matches over paths with parameters
     const layer = matchedLayers.find((layer) => layer.layerPath === path) ?? matchedLayers[0]
 
     if (layer) {
+    // store route for dispatch on change
       req.route = layer.route
     }
 
