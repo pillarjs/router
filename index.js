@@ -392,6 +392,17 @@ Router.prototype.use = function use (handler) {
       throw new TypeError('argument handler must be a function')
     }
 
+    // Detect router cycles
+    if (fn && typeof fn.handle === 'function' && fn.stack) {
+      if (detectRouterCycle(this, fn)) {
+        process.emitWarning(
+          'Detected router mounted on itself or in a cycle. ' +
+          'This will cause requests to hang indefinitely.',
+          'RouterCycleWarning'
+        )
+      }
+    }
+
     // add the middleware
     debug('use %o %s', path, fn.name || '<anonymous>')
 
@@ -407,6 +418,51 @@ Router.prototype.use = function use (handler) {
   }
 
   return this
+}
+
+/**
+ * Detect if mounting a router would create a cycle.
+ *
+ * @param {Router} parentRouter - The router being mounted onto
+ * @param {Router} childRouter - The router being mounted
+ * @param {Set} visited - Set of visited routers to avoid infinite recursion
+ * @return {boolean}
+ * @private
+ */
+
+function detectRouterCycle (parentRouter, childRouter, visited) {
+  // Direct self-mount
+  if (parentRouter === childRouter) {
+    return true
+  }
+
+  // Initialize visited set on first call
+  if (!visited) {
+    visited = new Set()
+  }
+
+  // Avoid infinite recursion - if we've already checked this router, skip it
+  if (visited.has(childRouter)) {
+    return false
+  }
+
+  visited.add(childRouter)
+
+  // Check if childRouter already contains parentRouter in its stack
+  if (childRouter.stack) {
+    for (let i = 0; i < childRouter.stack.length; i++) {
+      const layer = childRouter.stack[i]
+      if (layer.handle === parentRouter) {
+        return true
+      }
+      // Check nested routers recursively
+      if (layer.handle && layer.handle.stack && detectRouterCycle(parentRouter, layer.handle, visited)) {
+        return true
+      }
+    }
+  }
+
+  return false
 }
 
 /**
