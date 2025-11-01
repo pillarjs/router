@@ -261,16 +261,29 @@ router.all('/:id', function (req, res) {
 console.log(router.getRoutes())
 // [
 //   {
-//     key: '/admin/',
-//     methods: ['GET'],
-//     keys: [],
-//     options: { strict: true, caseSensitive: false },
+//     name: 'router',
+//     path: '/admin',
+//     methods: undefined,
+//     keys: undefined,
+//     router: [
+//       {
+//         name: 'handle',
+//         path: '/',
+//         methods: ['GET'],
+//         keys: undefined,
+//         router: undefined,
+//         options: { strict: true, caseSensitive: false, end: true },
+//       }
+//     ],
+//     options: { strict: true, caseSensitive: true, end: false }
 //   },
 //   {
-//     key: '/:id',
-//     methods: ['ALL'],
+//     name: 'handle',
+//     path: '/:id',
+//     methods: ['_ALL'],
 //     keys: [{ name: 'id', type: "param" }],
-//     options: { strict: true, caseSensitive: true },
+//     router: undefined,
+//     options: { strict: true, caseSensitive: true, end: true }
 //   }
 // ]
 ```

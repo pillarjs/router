@@ -14,6 +14,7 @@
 
 const isPromise = require('is-promise')
 const Layer = require('./lib/layer')
+const { MATCHING_GROUP_REGEXP } = require('./lib/layer')
 const { METHODS } = require('node:http')
 const parseUrl = require('parseurl')
 const Route = require('./lib/route')
@@ -449,7 +450,6 @@ Router.prototype.route = function route (path) {
  * @public
  */
 Router.prototype.getRoutes = function getRoutes () {
-  const routes = []
   const stack = this.stack
 
   const options = {
@@ -457,9 +457,7 @@ Router.prototype.getRoutes = function getRoutes () {
     caseSensitive: this.caseSensitive
   }
 
-  collectRoutes(stack, '', routes, options)
-
-  return routes
+  return collectRoutes(stack, options)
 }
 
 // create Router#VERB functions
@@ -472,89 +470,115 @@ methods.concat('all').forEach(function (method) {
 })
 
 /**
- * Add a route to the map with the given path and methods.
- * @param {Map} routeMap
- * @param {string} path
- * @param {Array} methods
- * @private
- */
-function addRouteToMap (routeMap, path, methods, options) {
-  const { keys } = pathRegexp.pathToRegexp(path)
-
-  routeMap.push(
-    {
-      path,
-      methods: [...methods],
-      keys,
-      options: { strict: options.strict, caseSensitive: options.caseSensitive }
-    }
-  )
-}
-
-/**
- * Normalize a path by removing trailing slashes.
- * @param {string} path
- * @return {string} normalized path
- * @private
- */
-function normalizePath (path) {
-  if (typeof path !== 'string') {
-    return path
-  }
-
-  if (path.endsWith('/') && path.length > 1) {
-    return path.slice(0, -1)
-  }
-
-  return path
-}
-
-/**
  * Collect routes from a router stack recursively.
  *
  * @param {Array} stack - The router stack to collect routes from
- * @param {string} prefix - The path prefix to prepend to routes
- * @param {Map} routeMap - The map to store collected routes
+ * @param {object} options - The router options
  * @private
  */
-function collectRoutes (stack, prefix, routeMap, options) {
+function collectRoutes (stack, options) {
+  const routes = []
+
   for (const layer of stack) {
-    // for routes without a .use
+    // route layer (has methods)
     if (layer.pathPatterns && layer.route) {
       const methods = Object.keys(layer.route.methods).map((method) => method.toUpperCase())
 
       if (Array.isArray(layer.pathPatterns)) {
         for (const pathPattern of layer.pathPatterns) {
-          const fullPath = prefix === '/' ? pathPattern : normalizePath(prefix) + pathPattern
-          addRouteToMap(routeMap, fullPath, methods, options)
-        }
-      } else {
-        const fullPath = prefix === '/' ? layer.pathPatterns : prefix + layer.pathPatterns
-        addRouteToMap(routeMap, fullPath, methods, options)
-      }
-    }
+          const keys = extractPatternKeys(pathPattern)
 
-    // for layers with a .use (mounted routers)
-    if (layer.pathPatterns && layer.handle && layer.handle.stack && !layer.route) {
-      if (Array.isArray(layer.pathPatterns)) {
-        for (const pathPattern of layer.pathPatterns) {
-          const pathPrefix = prefix === '/' ? normalizePath(pathPattern) : prefix + normalizePath(pathPattern)
-
-          collectRoutes(layer.handle.stack, pathPrefix, routeMap, {
-            strict: layer.handle.strict,
-            caseSensitive: layer.handle.caseSensitive
+          routes.push({
+            name: layer.name,
+            path: pathPattern,
+            keys,
+            methods,
+            router: undefined,
+            options: { ...options, end: layer.end }
           })
         }
       } else {
-        const pathPrefix = prefix === '/' ? normalizePath(layer.pathPatterns) : prefix + normalizePath(layer.pathPatterns)
+        const keys = extractPatternKeys(layer.pathPatterns)
 
-        collectRoutes(layer.handle.stack, pathPrefix, routeMap, {
-          strict: layer.handle.strict,
-          caseSensitive: layer.handle.caseSensitive
+        routes.push({
+          name: layer.name,
+          path: layer.pathPatterns,
+          keys,
+          methods,
+          router: undefined,
+          options: { ...options, end: layer.end }
+        })
+      }
+    }
+
+    // mounted router (use)
+    if (layer.pathPatterns && layer.handle && layer.handle.stack && !layer.route) {
+      if (Array.isArray(layer.pathPatterns)) {
+        for (const pathPattern of layer.pathPatterns) {
+          const inner = collectRoutes(
+            layer.handle.stack,
+            { strict: layer.handle.strict, caseSensitive: layer.handle.caseSensitive }
+          )
+          const keys = extractPatternKeys(pathPattern)
+
+          routes.push({
+            name: layer.name,
+            path: pathPattern,
+            keys,
+            methods: undefined,
+            router: inner.length ? inner : undefined,
+            options: { ...options, end: layer.end }
+          })
+        }
+      } else {
+        const inner = collectRoutes(
+          layer.handle.stack,
+          { strict: layer.handle.strict, caseSensitive: layer.handle.caseSensitive }
+        )
+        const keys = extractPatternKeys(layer.pathPatterns)
+
+        routes.push({
+          name: layer.name,
+          path: layer.pathPatterns,
+          keys,
+          methods: undefined,
+          router: inner.length ? inner : undefined,
+          options: { ...options, end: layer.end }
         })
       }
     }
   }
+
+  return routes
+}
+
+/**
+ * Extracts parameter/key descriptors from a route pattern.
+ *
+ * @param {string|RegExp} pattern - Route pattern to analyze (path string or RegExp).
+ * @returns {Array<Object>|undefined} Array of key descriptor objects (each with at least a `name` property), or `undefined` if none found.
+ * @private
+ */
+function extractPatternKeys (pattern) {
+  if (pattern instanceof RegExp) {
+    const keys = []
+    let name = 0
+    let m
+    // eslint-disable-next-line no-cond-assign
+    while (m = MATCHING_GROUP_REGEXP.exec(pattern.source)) {
+      keys.push({ name: m[1] || name++ })
+    }
+
+    return keys.length > 0 ? keys : undefined
+  }
+
+  const pathKeys = pathRegexp.pathToRegexp(String(pattern)).keys
+
+  if (pathKeys && pathKeys.length > 0) {
+    return pathKeys
+  }
+
+  return undefined
 }
 
 /**
