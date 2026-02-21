@@ -65,6 +65,7 @@ function Router (options) {
 
   router.caseSensitive = opts.caseSensitive
   router.mergeParams = opts.mergeParams
+  router.methodNotAllowed = opts.methodNotAllowed
   router.params = {}
   router.strict = opts.strict
   router.stack = []
@@ -155,6 +156,7 @@ Router.prototype.handle = function handle (req, res, callback) {
 
   let idx = 0
   let methods
+  let methodNotAllowed
   const protohost = getProtohost(req.url) || ''
   let removed = ''
   const self = this
@@ -177,6 +179,14 @@ Router.prototype.handle = function handle (req, res, callback) {
   if (req.method === 'OPTIONS') {
     methods = []
     done = wrap(done, generateOptionsResponder(res, methods))
+  }
+
+  if (self.methodNotAllowed) {
+    methodNotAllowed = {
+      methods: [],
+      methodMatched: false
+    }
+    done = wrap(done, generateMethodNotAllowedResponder(req, res, methodNotAllowed))
   }
 
   // setup basic req values
@@ -260,9 +270,17 @@ Router.prototype.handle = function handle (req, res, callback) {
       const method = req.method
       const hasMethod = route._handlesMethod(method)
 
+      if (methodNotAllowed && hasMethod) {
+        methodNotAllowed.methodMatched = true
+      }
+
       // build up automatic options response
       if (!hasMethod && method === 'OPTIONS' && methods) {
         methods.push.apply(methods, route._methods())
+      }
+
+      if (!hasMethod && methodNotAllowed && method !== 'OPTIONS') {
+        methodNotAllowed.methods.push.apply(methodNotAllowed.methods, route._methods())
       }
 
       // don't even bother matching route
@@ -465,6 +483,25 @@ function generateOptionsResponder (res, methods) {
     }
 
     trySendOptionsResponse(res, methods, fn)
+  }
+}
+
+/**
+ * Generate a callback that will make a 405 response.
+ *
+ * @param {IncomingMessage} req
+ * @param {OutgoingMessage} res
+ * @param {object} methodNotAllowed
+ * @private
+ */
+
+function generateMethodNotAllowedResponder (req, res, methodNotAllowed) {
+  return function onDone (fn, err) {
+    if (err || methodNotAllowed.methodMatched || methodNotAllowed.methods.length === 0 || req.method === 'OPTIONS') {
+      return fn(err)
+    }
+
+    trySendMethodNotAllowedResponse(res, methodNotAllowed.methods, fn)
   }
 }
 
@@ -690,6 +727,17 @@ function restore (fn, obj) {
 }
 
 /**
+ * Send a 405 response.
+ *
+ * @private
+ */
+
+function sendMethodNotAllowedResponse (res, methods) {
+  res.statusCode = 405
+  sendOptionsResponse(res, methods)
+}
+
+/**
  * Send an OPTIONS response.
  *
  * @private
@@ -723,6 +771,20 @@ function sendOptionsResponse (res, methods) {
 function trySendOptionsResponse (res, methods, next) {
   try {
     sendOptionsResponse(res, methods)
+  } catch (err) {
+    next(err)
+  }
+}
+
+/**
+ * Try to send a 405 response.
+ *
+ * @private
+ */
+
+function trySendMethodNotAllowedResponse (res, methods, next) {
+  try {
+    sendMethodNotAllowedResponse(res, methods)
   } catch (err) {
     next(err)
   }
