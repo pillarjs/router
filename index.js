@@ -360,26 +360,7 @@ Router.prototype.handle = function handle (req, res, callback) {
  */
 
 Router.prototype.use = function use (handler) {
-  let offset = 0
-  let path = '/'
-
-  // default path to '/'
-  // disambiguate router.use([handler])
-  if (typeof handler !== 'function') {
-    let arg = handler
-
-    while (Array.isArray(arg) && arg.length !== 0) {
-      arg = arg[0]
-    }
-
-    // first arg is the path
-    if (typeof arg !== 'function') {
-      offset = 1
-      path = handler
-    }
-  }
-
-  const callbacks = flatten.call(slice.call(arguments, offset), Infinity)
+  const [path, callbacks] = normalizeMiddlewareArg(arguments)
 
   if (callbacks.length === 0) {
     throw new TypeError('argument handler is required')
@@ -405,6 +386,75 @@ Router.prototype.use = function use (handler) {
 
     this.stack.push(layer)
   }
+
+  return this
+}
+
+/**
+ * Use the given error handler, with optional path, defaulting to "/".
+ *
+ * `.error` (like `.all`) will run for any http METHOD, but it will not add
+ * handlers for those methods so OPTIONS requests will not consider `.error`
+ * functions even if they could respond. This is the same behavior as `.use`.
+ *
+ * You can use multiple `.error` calls to add multiple handlers. They will run
+ * as long as `next(err)` is called. If you want to stop processing, omit the
+ * call.
+ *
+ *   function logErrorToConsole(err, req, res, next) {
+ *     console.error(err)
+ *     next(err)
+ *   }
+ *
+ *   function logErrorToFile(err, req, res, next) {
+ *     fs.appendFile('errors.txt', err.toString(), function() {
+ *       next(err)
+ *     })
+ *   }
+ *
+ *   // Note that the arity of the error handler can be 3 when passed to
+ *   // `router.error` (it must be 4 when passed to to `router.use`).
+ *   function sendErrorResponse(err, req, res) {
+ *     res.statusCode = 500
+ *     res.setHeader('Content-Type', 'text/plain')
+ *     res.end('ouch on ' + req.method + ' ' + req.url + ': ' + err.message)
+ *   }
+ *
+ *   router
+ *     .error(logErrorToConsole)
+ *     .error(logErrorToFile)
+ *     .error(sendErrorResponse)
+ *
+ * @public
+ */
+
+Router.prototype.error = function error (handler) {
+  const [path, callbacks] = normalizeMiddlewareArg(arguments)
+
+  if (callbacks.length === 0) {
+    throw new TypeError('argument handler is required')
+  }
+
+  // `router.error` can be thought of as a special case of `router.use` which
+  // ensures the arity of the handler is 4 (to indicate to `use` that the
+  // handler is an error handler). Once the arity is set to 4, we can fall back
+  // to `use` for the rest of the logic.
+  this.use(path, callbacks.map(fn => {
+    if (typeof fn !== 'function') {
+      throw new TypeError('argument handler must be a function')
+    }
+
+    const errorHandler = function (err, req, res, next) {
+      return fn(err, req, res, next)
+    }
+
+    // preserve the original function name for debug logging
+    Object.defineProperty(errorHandler, 'name', {
+      value: fn.name
+    })
+
+    return errorHandler
+  }))
 
   return this
 }
@@ -745,4 +795,37 @@ function wrap (old, fn) {
 
     fn.apply(this, args)
   }
+}
+
+/**
+ * Normalize variadic/polymorphic arguments to middleware creation functions
+ * (e.g. `router.use`, `router.error`).
+ *
+ * @private
+ */
+
+function normalizeMiddlewareArg (originalArgs) {
+  let offset = 0
+  let path = '/'
+  const handler = originalArgs[0]
+
+  // default path to '/'
+  // disambiguate router.use([handler])
+  if (typeof handler !== 'function') {
+    let arg = handler
+
+    while (Array.isArray(arg) && arg.length !== 0) {
+      arg = arg[0]
+    }
+
+    // first arg is the path
+    if (typeof arg !== 'function') {
+      offset = 1
+      path = handler
+    }
+  }
+
+  const callbacks = flatten.call(slice.call(originalArgs, offset), Infinity)
+
+  return [path, callbacks]
 }
