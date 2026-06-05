@@ -12,7 +12,6 @@
  * @private
  */
 
-const isPromise = require('is-promise')
 const Layer = require('./lib/layer')
 const { METHODS } = require('node:http')
 const parseUrl = require('parseurl')
@@ -647,7 +646,7 @@ function processParams (params, layer, called, req, res, done) {
 
     try {
       const ret = fn(req, res, paramCallback, paramVal, key)
-      if (isPromise(ret)) {
+      if (ret instanceof Promise) {
         if (!(ret instanceof Promise)) {
           deprecate('parameters that are Promise-like are deprecated, use a native Promise instead')
         }
