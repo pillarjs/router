@@ -1,12 +1,15 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
 
 export type NextFunction = (err?: any) => void
-export type RequestHandler = (req: any, res: any, next: NextFunction) => void
-export type ErrorRequestHandler = (err: any, req: any, res: any, next: NextFunction) => void
-export type Handler = RequestHandler | ErrorRequestHandler
-export type Handlers = Handler | Handlers[]
 
-interface Route {
+export type RequestHandler = (req: IncomingMessage, res: ServerResponse, next: NextFunction) => void
+export type ErrorRequestHandler = (err: Error, req: IncomingMessage, res: ServerResponse, next: NextFunction) => void
+
+export type Handler = RequestHandler | ErrorRequestHandler
+
+export type RouteMethod<T> = <F extends Handler = RequestHandler>(handler: F) => T
+
+export interface Route {
   path: string
   stack: any[]
   methods: Record<string, boolean>
@@ -15,14 +18,14 @@ interface Route {
   _methods(): string[]
   dispatch(req: IncomingMessage, res: ServerResponse, done: NextFunction): void
 
-  all(...handlers: Handlers[]): this
-  get(...handlers: Handlers[]): this
-  post(...handlers: Handlers[]): this
-  put(...handlers: Handlers[]): this
-  delete(...handlers: Handlers[]): this
-  patch(...handlers: Handlers[]): this
-  options(...handlers: Handlers[]): this
-  head(...handlers: Handlers[]): this
+  all: RouteMethod<this>
+  get: RouteMethod<this>
+  post: RouteMethod<this>
+  put: RouteMethod<this>
+  delete: RouteMethod<this>
+  patch: RouteMethod<this>
+  options: RouteMethod<this>
+  head: RouteMethod<this>
 }
 
 interface RouteConstructor {

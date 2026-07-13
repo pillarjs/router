@@ -1,0 +1,7 @@
+{
+  "extends": "@tsconfig/node18/tsconfig.json",
+  "include": ["index.d.ts", "lib/route.d.ts", "test/types.ts"],
+  "compilerOptions": {
+    "types": ["node"]
+  }
+}

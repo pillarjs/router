@@ -1,11 +1,13 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
-import type { 
-  NextFunction, 
-  RequestHandler, 
-  Handlers, 
-  Route as IRoute 
+import type {
+  Handler,
+  NextFunction,
+  RequestHandler,
+  Route as IRoute
 } from './lib/route'
 import Route = require('./lib/route')
+
+export type RouterMethod<T> = <F extends Handler = RequestHandler>(path: Path, handler: F) => T
 
 export type Path = string | RegExp | Array<string | RegExp>
 
@@ -26,17 +28,19 @@ interface Router extends RequestHandler {
   param(name: string, fn: (req: any, res: any, next: NextFunction, value: any, name: string) => void): this
   route(path: Path): IRoute
 
-  use(path: Path, ...handlers: Handlers[]): this
-  use(...handlers: Handlers[]): this
+  use: {
+    <F extends Handler = RequestHandler>(path: Path, handler: F): Router
+    <F extends Handler = RequestHandler>(handler: F): Router
+  }
 
-  all(path: Path, ...handlers: Handlers[]): this
-  get(path: Path, ...handlers: Handlers[]): this
-  post(path: Path, ...handlers: Handlers[]): this
-  put(path: Path, ...handlers: Handlers[]): this
-  delete(path: Path, ...handlers: Handlers[]): this
-  patch(path: Path, ...handlers: Handlers[]): this
-  options(path: Path, ...handlers: Handlers[]): this
-  head(path: Path, ...handlers: Handlers[]): this
+  all: RouterMethod<this>
+  get: RouterMethod<this>
+  post: RouterMethod<this>
+  put: RouterMethod<this>
+  delete: RouterMethod<this>
+  patch: RouterMethod<this>
+  options: RouterMethod<this>
+  head: RouterMethod<this>
 }
 
 interface RouterConstructor {
