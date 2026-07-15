@@ -20,11 +20,23 @@ describe('listRoutes', function () {
     router.get(['/bar', '/baz'], noop)
 
     assert.deepStrictEqual(router.listRoutes(), [
-      { path: '/foo', methods: ['GET'], router: undefined },
+      { path: '/foo', methods: ['GET', 'HEAD'], router: undefined },
       { path: '/:id/setting/:thing', methods: ['POST'], router: undefined },
       { path: /^\/[a-z]oo$/, methods: undefined, router: undefined },
-      { path: '/bar', methods: ['GET'], router: undefined },
-      { path: '/baz', methods: ['GET'], router: undefined }
+      { path: '/bar', methods: ['GET', 'HEAD'], router: undefined },
+      { path: '/baz', methods: ['GET', 'HEAD'], router: undefined }
+    ])
+  })
+
+  it('should include the automatic HEAD method for GET routes, but not duplicate an explicit one', function () {
+    const router = new Router()
+
+    router.get('/implicit', noop)
+    router.route('/explicit').get(noop).head(noop)
+
+    assert.deepStrictEqual(router.listRoutes(), [
+      { path: '/implicit', methods: ['GET', 'HEAD'], router: undefined },
+      { path: '/explicit', methods: ['GET', 'HEAD'], router: undefined }
     ])
   })
 
@@ -37,7 +49,7 @@ describe('listRoutes', function () {
       .put(noop)
 
     assert.deepStrictEqual(router.listRoutes(), [
-      { path: '/test', methods: ['GET', 'POST', 'PUT'], router: undefined }
+      { path: '/test', methods: ['GET', 'POST', 'PUT', 'HEAD'], router: undefined }
     ])
   })
 
@@ -51,6 +63,19 @@ describe('listRoutes', function () {
     ])
   })
 
+  it('should keep the specific methods of routes that combine .all() with verbs', function () {
+    const router = new Router()
+
+    router.route('/users')
+      .all(noop)
+      .get(noop)
+      .post(noop)
+
+    assert.deepStrictEqual(router.listRoutes(), [
+      { path: '/users', methods: ['GET', 'POST', 'HEAD'], router: undefined }
+    ])
+  })
+
   it('should repeat routes registered multiple times', function () {
     const router = new Router()
 
@@ -59,10 +84,22 @@ describe('listRoutes', function () {
     router.post('/test', noop)
 
     assert.deepStrictEqual(router.listRoutes(), [
-      { path: '/test', methods: ['GET'], router: undefined },
-      { path: '/test', methods: ['GET'], router: undefined },
+      { path: '/test', methods: ['GET', 'HEAD'], router: undefined },
+      { path: '/test', methods: ['GET', 'HEAD'], router: undefined },
       { path: '/test', methods: ['POST'], router: undefined }
     ])
+  })
+
+  it('should not share the methods array between entries of an array path', function () {
+    const router = new Router()
+
+    router.get(['/bar', '/baz'], noop)
+
+    const routes = router.listRoutes()
+
+    routes[0].methods.push('POST')
+
+    assert.deepStrictEqual(routes[1].methods, ['GET', 'HEAD'])
   })
 
   it('should not list plain middleware', function () {
@@ -73,7 +110,7 @@ describe('listRoutes', function () {
     router.get('/test', noop)
 
     assert.deepStrictEqual(router.listRoutes(), [
-      { path: '/test', methods: ['GET'], router: undefined }
+      { path: '/test', methods: ['GET', 'HEAD'], router: undefined }
     ])
   })
 
@@ -87,11 +124,11 @@ describe('listRoutes', function () {
 
     assert.deepStrictEqual(router.listRoutes(), [
       { path: '/inner', methods: undefined, router: inner },
-      { path: '/test', methods: ['GET'], router: undefined }
+      { path: '/test', methods: ['GET', 'HEAD'], router: undefined }
     ])
 
     assert.deepStrictEqual(inner.listRoutes(), [
-      { path: '/api', methods: ['GET'], router: undefined }
+      { path: '/api', methods: ['GET', 'HEAD'], router: undefined }
     ])
   })
 
@@ -132,7 +169,7 @@ describe('listRoutes', function () {
     ])
 
     assert.deepStrictEqual(inner.listRoutes(), [
-      { path: '/api', methods: ['GET'], router: undefined },
+      { path: '/api', methods: ['GET', 'HEAD'], router: undefined },
       { path: '/loop', methods: undefined, router }
     ])
   })

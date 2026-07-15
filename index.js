@@ -445,8 +445,10 @@ Router.prototype.route = function route (path) {
  * List the routes and mounted routers registered on this router.
  *
  * Returns one `{ path, methods, router }` object per registered path.
- * `methods` is `undefined` when the layer matches all methods (`.all()`
- * or `.use()`). `router` is the mounted router instance for
+ * `methods` lists the methods the route responds to, including the
+ * automatic `HEAD` for `GET` routes, and is `undefined` when the layer
+ * matches all methods (routes registered only with `.all()`, and
+ * `.use()`). `router` is the mounted router instance for
  * `.use(path, router)` layers, so consumers can recurse by calling
  * `router.listRoutes()` themselves.
  *
@@ -466,13 +468,15 @@ Router.prototype.listRoutes = function listRoutes () {
       continue
     }
 
-    const methods = route && !route.methods._all
-      ? Object.keys(route.methods).map((method) => method.toUpperCase())
+    const allOnly = route !== undefined &&
+      route.methods._all && Object.keys(route.methods).length === 1
+    const methods = route && !allOnly
+      ? route._methods().filter((method) => method !== '_ALL')
       : undefined
 
     if (Array.isArray(layer.rawPath)) {
       for (const path of layer.rawPath) {
-        routes.push({ path, methods, router })
+        routes.push({ path, methods: methods && methods.slice(), router })
       }
     } else {
       routes.push({ path: layer.rawPath, methods, router })

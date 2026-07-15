@@ -241,9 +241,11 @@ registered on this router, in registration order.
 
 - `path` is the path the route was registered with (a string or a `RegExp`).
   Routes registered with an array of paths produce one entry per path.
-- `methods` is an array of uppercase HTTP method names, or `undefined` when
-  the entry matches all methods (routes registered with `.all()` and mounted
-  routers).
+- `methods` is an array of the uppercase HTTP method names the route responds
+  to, including the automatic `HEAD` for `GET` routes. It is `undefined` when
+  the entry matches all methods (routes registered only with `.all()`, and
+  mounted routers). Routes that combine `.all()` with specific methods list
+  those methods.
 - `router` is the mounted router instance for `.use(path, router)` entries,
   otherwise `undefined`. Nested routes are not resolved recursively; consumers
   can recurse themselves by calling `router.listRoutes()` on each entry that
@@ -273,7 +275,7 @@ console.log(router.listRoutes())
 
 console.log(admin.listRoutes())
 // [
-//   { path: '/', methods: ['GET'], router: undefined }
+//   { path: '/', methods: ['GET', 'HEAD'], router: undefined }
 // ]
 ```
 
