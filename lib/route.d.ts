@@ -7,9 +7,22 @@ export type ErrorRequestHandler = (err: Error, req: IncomingMessage, res: Server
 
 export type Handler = RequestHandler | ErrorRequestHandler
 
-export type RouteMethod<T> = <F extends Handler = RequestHandler>(handler: F) => T
+export type HandlerArg<F extends Handler = Handler> = F | ReadonlyArray<HandlerArg<F>>
 
-export interface Route {
+export type RouteMethod<T> = <F extends Handler = RequestHandler>(handler: HandlerArg<F>, ...handlers: Array<HandlerArg<F>>) => T
+
+
+export type Method =
+  | 'acl' | 'bind' | 'checkout' | 'connect' | 'copy' | 'delete' | 'get'
+  | 'head' | 'link' | 'lock' | 'm-search' | 'merge' | 'mkactivity'
+  | 'mkcalendar' | 'mkcol' | 'move' | 'notify' | 'options' | 'patch'
+  | 'post' | 'propfind' | 'proppatch' | 'purge' | 'put' | 'query'
+  | 'rebind' | 'report' | 'search' | 'source' | 'subscribe' | 'trace'
+  | 'unbind' | 'unlink' | 'unlock' | 'unsubscribe'
+
+export type MethodHandlers<T> = { [M in Method | 'all']: RouteMethod<T> }
+
+export interface Route extends MethodHandlers<Route> {
   path: string
   stack: any[]
   methods: Record<string, boolean>
@@ -17,20 +30,10 @@ export interface Route {
   _handlesMethod(method: string): boolean
   _methods(): string[]
   dispatch(req: IncomingMessage, res: ServerResponse, done: NextFunction): void
-
-  all: RouteMethod<this>
-  get: RouteMethod<this>
-  post: RouteMethod<this>
-  put: RouteMethod<this>
-  delete: RouteMethod<this>
-  patch: RouteMethod<this>
-  options: RouteMethod<this>
-  head: RouteMethod<this>
 }
 
 interface RouteConstructor {
-  (path: string): Route
-  new (path: string): Route
+  new (path: Path): Route
 }
 
 declare const Route: RouteConstructor

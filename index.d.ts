@@ -11,13 +11,15 @@ export type RouterMethod<T> = <F extends Handler = RequestHandler>(path: Path, h
 
 export type Path = string | RegExp | Array<string | RegExp>
 
-interface RouterOptions {
+export interface RouterOptions {
   caseSensitive?: boolean
   mergeParams?: boolean
   strict?: boolean
 }
 
-interface Router extends RequestHandler {
+type MethodHandlers<T> = { [M in Method | 'all']: RouterMethod<T> }
+
+export interface Router extends RequestHandler, MethodHandlers<Router> {
   params: Record<string, any>
   stack: any[]
   caseSensitive: boolean
@@ -29,8 +31,8 @@ interface Router extends RequestHandler {
   route(path: Path): IRoute
 
   use: {
-    <F extends Handler = RequestHandler>(path: Path, handler: F): Router
-    <F extends Handler = RequestHandler>(handler: F): Router
+   <F extends Handler = RequestHandler>(path: Path, handler: HandlerArg<F>, ...handlers: Array<HandlerArg<F>>): Router
+    <F extends Handler = RequestHandler>(handler: HandlerArg<F>, ...handlers: Array<HandlerArg<F>>): Router
   }
 
   all: RouterMethod<this>
