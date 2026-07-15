@@ -53,6 +53,16 @@ describe('listRoutes', function () {
     ])
   })
 
+  it('should return empty methods for routes created without handlers', function () {
+    const router = new Router()
+
+    router.route('/draft')
+
+    assert.deepStrictEqual(router.listRoutes(), [
+      { path: '/draft', methods: [], router: undefined }
+    ])
+  })
+
   it('should return undefined methods for .all() routes', function () {
     const router = new Router()
 
@@ -114,6 +124,55 @@ describe('listRoutes', function () {
     ])
   })
 
+  it('should flatten nested arrays of paths', function () {
+    const router = new Router()
+    const nested = ['/b']
+
+    router.get(['/a', nested], noop)
+    nested.push('/c')
+
+    assert.deepStrictEqual(router.listRoutes(), [
+      { path: '/a', methods: ['GET', 'HEAD'], router: undefined },
+      { path: '/b', methods: ['GET', 'HEAD'], router: undefined }
+    ])
+  })
+
+  it('should not reflect later mutations of a registered path array', function () {
+    const router = new Router()
+    const paths = ['/a']
+
+    router.get(paths, noop)
+    paths.push('/b')
+
+    assert.deepStrictEqual(router.listRoutes(), [
+      { path: '/a', methods: ['GET', 'HEAD'], router: undefined }
+    ])
+  })
+
+  it('should not list middleware that merely has a listRoutes property', function () {
+    const router = new Router()
+
+    function metrics (req, res, next) { next() }
+    metrics.listRoutes = () => 'not routes'
+
+    router.use('/status', metrics)
+
+    assert.deepStrictEqual(router.listRoutes(), [])
+  })
+
+  it('should list mounted routers that do not implement listRoutes', function () {
+    const router = new Router()
+
+    function legacy (req, res, next) { next() }
+    legacy.stack = []
+
+    router.use('/legacy', legacy)
+
+    assert.deepStrictEqual(router.listRoutes(), [
+      { path: '/legacy', methods: undefined, router: legacy }
+    ])
+  })
+
   it('should expose mounted routers without recursing', function () {
     const router = new Router()
     const inner = new Router()
@@ -141,6 +200,18 @@ describe('listRoutes', function () {
 
     assert.deepStrictEqual(router.listRoutes(), [
       { path: '/', methods: undefined, router: inner }
+    ])
+  })
+
+  it('should list routers mounted at a RegExp path', function () {
+    const router = new Router()
+    const inner = new Router()
+
+    inner.get('/api', noop)
+    router.use(/^\/page_([0-9]+)/, inner)
+
+    assert.deepStrictEqual(router.listRoutes(), [
+      { path: /^\/page_([0-9]+)/, methods: undefined, router: inner }
     ])
   })
 

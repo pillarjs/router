@@ -245,11 +245,14 @@ registered on this router, in registration order.
   to, including the automatic `HEAD` for `GET` routes. It is `undefined` when
   the entry matches all methods (routes registered only with `.all()`, and
   mounted routers). Routes that combine `.all()` with specific methods list
-  those methods.
+  those methods. An empty array means the route was created with
+  `router.route(path)` but has no handlers yet, so it matches no method.
 - `router` is the mounted router instance for `.use(path, router)` entries,
   otherwise `undefined`. Nested routes are not resolved recursively; consumers
-  can recurse themselves by calling `router.listRoutes()` on each entry that
-  exposes one.
+  can recurse themselves by calling `router.listRoutes()` when the mounted
+  router implements it. Note that `.use()`
+  entries match their path as a prefix, while route entries match the full
+  path.
 
 Plain middleware functions registered with `.use()` are not listed.
 

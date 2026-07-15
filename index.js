@@ -448,9 +448,10 @@ Router.prototype.route = function route (path) {
  * `methods` lists the methods the route responds to, including the
  * automatic `HEAD` for `GET` routes, and is `undefined` when the layer
  * matches all methods (routes registered only with `.all()`, and
- * `.use()`). `router` is the mounted router instance for
+ * mounted routers). Plain middleware is not listed. `router` is the
+ * mounted router instance for
  * `.use(path, router)` layers, so consumers can recurse by calling
- * `router.listRoutes()` themselves.
+ * `router.listRoutes()` themselves when it is available.
  *
  * @return {Array<{path: string|RegExp, methods: Array<string>|undefined, router: Router|undefined}>}
  * @public
@@ -460,7 +461,7 @@ Router.prototype.listRoutes = function listRoutes () {
 
   for (const layer of this.stack) {
     const route = layer.route
-    const router = !route && typeof layer.handle.listRoutes === 'function'
+    const router = !route && Array.isArray(layer.handle.stack)
       ? layer.handle
       : undefined
 
@@ -468,11 +469,13 @@ Router.prototype.listRoutes = function listRoutes () {
       continue
     }
 
-    const allOnly = route !== undefined &&
-      route.methods._all && Object.keys(route.methods).length === 1
-    const methods = route && !allOnly
-      ? route._methods().filter((method) => method !== '_ALL')
-      : undefined
+    let methods
+    if (route) {
+      methods = route._methods()
+      if (methods.length === 0 && route.methods._all) {
+        methods = undefined
+      }
+    }
 
     if (Array.isArray(layer.rawPath)) {
       for (const path of layer.rawPath) {
