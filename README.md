@@ -234,57 +234,46 @@ router.param('user_id', function (req, res, next, id) {
 })
 ```
 
-### route.getRoutes()
+### router.listRoutes()
 
-Returns an array of all the routes registered on this route, including
-all the methods, key, and the options of instance of router.
+Returns an array with one `{ path, methods, router }` object per path
+registered on this router, in registration order.
+
+- `path` is the path the route was registered with (a string or a `RegExp`).
+  Routes registered with an array of paths produce one entry per path.
+- `methods` is an array of uppercase HTTP method names, or `undefined` when
+  the entry matches all methods (routes registered with `.all()` and mounted
+  routers).
+- `router` is the mounted router instance for `.use(path, router)` entries,
+  otherwise `undefined`. Nested routes are not resolved recursively; consumers
+  can recurse themselves by calling `router.listRoutes()` on each entry that
+  exposes one.
+
+Plain middleware functions registered with `.use()` are not listed.
 
 ```js
-const router = new Router({ strict: true, caseSensitive: true })
-const admin = new Router({ strict: true, caseSensitive: false })
+const router = new Router()
+const admin = new Router()
 
-admin.use((req, res, next) => {
-  // some middleware for admin routes
-  next()
-})
-
-admin.get('/', (req, res, next) => {
+admin.get('/', (req, res) => {
   res.end('Hello')
 })
 
-router.use("/admin", admin)
+router.use('/admin', admin)
 
 router.all('/:id', function (req, res) {
   res.end('Hello')
 })
 
-console.log(router.getRoutes())
+console.log(router.listRoutes())
 // [
-//   {
-//     name: 'router',
-//     path: '/admin',
-//     methods: undefined,
-//     keys: undefined,
-//     router: [
-//       {
-//         name: 'handle',
-//         path: '/',
-//         methods: ['GET'],
-//         keys: undefined,
-//         router: undefined,
-//         options: { strict: true, caseSensitive: false, end: true },
-//       }
-//     ],
-//     options: { strict: true, caseSensitive: true, end: false }
-//   },
-//   {
-//     name: 'handle',
-//     path: '/:id',
-//     methods: ['_ALL'],
-//     keys: [{ name: 'id', type: "param" }],
-//     router: undefined,
-//     options: { strict: true, caseSensitive: true, end: true }
-//   }
+//   { path: '/admin', methods: undefined, router: admin },
+//   { path: '/:id', methods: undefined, router: undefined }
+// ]
+
+console.log(admin.listRoutes())
+// [
+//   { path: '/', methods: ['GET'], router: undefined }
 // ]
 ```
 

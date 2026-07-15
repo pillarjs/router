@@ -1,0 +1,141 @@
+const { it, describe } = require('mocha')
+const Router = require('..')
+const utils = require('./support/utils')
+
+const assert = utils.assert
+
+describe('listRoutes', function () {
+  it('should return an empty array when no routes are registered', function () {
+    const router = new Router()
+
+    assert.deepStrictEqual(router.listRoutes(), [])
+  })
+
+  it('should list routes for strings, regexps, arrays, and parameterized paths', function () {
+    const router = new Router()
+
+    router.get('/foo', noop)
+    router.post('/:id/setting/:thing', noop)
+    router.all(/^\/[a-z]oo$/, noop)
+    router.get(['/bar', '/baz'], noop)
+
+    assert.deepStrictEqual(router.listRoutes(), [
+      { path: '/foo', methods: ['GET'], router: undefined },
+      { path: '/:id/setting/:thing', methods: ['POST'], router: undefined },
+      { path: /^\/[a-z]oo$/, methods: undefined, router: undefined },
+      { path: '/bar', methods: ['GET'], router: undefined },
+      { path: '/baz', methods: ['GET'], router: undefined }
+    ])
+  })
+
+  it('should list all methods registered on a route', function () {
+    const router = new Router()
+
+    router.route('/test')
+      .get(noop)
+      .post(noop)
+      .put(noop)
+
+    assert.deepStrictEqual(router.listRoutes(), [
+      { path: '/test', methods: ['GET', 'POST', 'PUT'], router: undefined }
+    ])
+  })
+
+  it('should return undefined methods for .all() routes', function () {
+    const router = new Router()
+
+    router.all('/test', noop)
+
+    assert.deepStrictEqual(router.listRoutes(), [
+      { path: '/test', methods: undefined, router: undefined }
+    ])
+  })
+
+  it('should repeat routes registered multiple times', function () {
+    const router = new Router()
+
+    router.get('/test', noop)
+    router.get('/test', noop)
+    router.post('/test', noop)
+
+    assert.deepStrictEqual(router.listRoutes(), [
+      { path: '/test', methods: ['GET'], router: undefined },
+      { path: '/test', methods: ['GET'], router: undefined },
+      { path: '/test', methods: ['POST'], router: undefined }
+    ])
+  })
+
+  it('should not list plain middleware', function () {
+    const router = new Router()
+
+    router.use(noop)
+    router.use('/admin', noop)
+    router.get('/test', noop)
+
+    assert.deepStrictEqual(router.listRoutes(), [
+      { path: '/test', methods: ['GET'], router: undefined }
+    ])
+  })
+
+  it('should expose mounted routers without recursing', function () {
+    const router = new Router()
+    const inner = new Router()
+
+    inner.get('/api', noop)
+    router.use('/inner', inner)
+    router.get('/test', noop)
+
+    assert.deepStrictEqual(router.listRoutes(), [
+      { path: '/inner', methods: undefined, router: inner },
+      { path: '/test', methods: ['GET'], router: undefined }
+    ])
+
+    assert.deepStrictEqual(inner.listRoutes(), [
+      { path: '/api', methods: ['GET'], router: undefined }
+    ])
+  })
+
+  it('should use the default path when mounting a router without a path', function () {
+    const router = new Router()
+    const inner = new Router()
+
+    inner.get('/api', noop)
+    router.use(inner)
+
+    assert.deepStrictEqual(router.listRoutes(), [
+      { path: '/', methods: undefined, router: inner }
+    ])
+  })
+
+  it('should list a mounted router once per path in an array', function () {
+    const router = new Router()
+    const inner = new Router()
+
+    router.use(['/foo', '/bar'], inner)
+
+    assert.deepStrictEqual(router.listRoutes(), [
+      { path: '/foo', methods: undefined, router: inner },
+      { path: '/bar', methods: undefined, router: inner }
+    ])
+  })
+
+  it('should allow consumers to recurse into cyclic routers without blowing the stack', function () {
+    const router = new Router()
+    const inner = new Router()
+
+    inner.get('/api', noop)
+    router.use('/inner', inner)
+    inner.use('/loop', router)
+
+    assert.deepStrictEqual(router.listRoutes(), [
+      { path: '/inner', methods: undefined, router: inner }
+    ])
+
+    assert.deepStrictEqual(inner.listRoutes(), [
+      { path: '/api', methods: ['GET'], router: undefined },
+      { path: '/loop', methods: undefined, router }
+    ])
+  })
+})
+
+function noop () {}

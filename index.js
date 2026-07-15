@@ -14,11 +14,9 @@
 
 const isPromise = require('is-promise')
 const Layer = require('./lib/layer')
-const { MATCHING_GROUP_REGEXP } = require('./lib/layer')
 const { METHODS } = require('node:http')
 const parseUrl = require('parseurl')
 const Route = require('./lib/route')
-const pathRegexp = require('path-to-regexp')
 const debug = require('debug')('router')
 const deprecate = require('depd')('router')
 
@@ -444,20 +442,44 @@ Router.prototype.route = function route (path) {
 }
 
 /**
- * List all registered routes.
+ * List the routes and mounted routers registered on this router.
  *
- * @return {Array} An array of route paths
+ * Returns one `{ path, methods, router }` object per registered path.
+ * `methods` is `undefined` when the layer matches all methods (`.all()`
+ * or `.use()`). `router` is the mounted router instance for
+ * `.use(path, router)` layers, so consumers can recurse by calling
+ * `router.listRoutes()` themselves.
+ *
+ * @return {Array<{path: string|RegExp, methods: Array<string>|undefined, router: Router|undefined}>}
  * @public
  */
-Router.prototype.getRoutes = function getRoutes () {
-  const stack = this.stack
+Router.prototype.listRoutes = function listRoutes () {
+  const routes = []
 
-  const options = {
-    strict: this.strict,
-    caseSensitive: this.caseSensitive
+  for (const layer of this.stack) {
+    const route = layer.route
+    const router = !route && typeof layer.handle.listRoutes === 'function'
+      ? layer.handle
+      : undefined
+
+    if (!route && !router) {
+      continue
+    }
+
+    const methods = route && !route.methods._all
+      ? Object.keys(route.methods).map((method) => method.toUpperCase())
+      : undefined
+
+    if (Array.isArray(layer.rawPath)) {
+      for (const path of layer.rawPath) {
+        routes.push({ path, methods, router })
+      }
+    } else {
+      routes.push({ path: layer.rawPath, methods, router })
+    }
   }
 
-  return collectRoutes(stack, options)
+  return routes
 }
 
 // create Router#VERB functions
@@ -468,118 +490,6 @@ methods.concat('all').forEach(function (method) {
     return this
   }
 })
-
-/**
- * Collect routes from a router stack recursively.
- *
- * @param {Array} stack - The router stack to collect routes from
- * @param {object} options - The router options
- * @private
- */
-function collectRoutes (stack, options) {
-  const routes = []
-
-  for (const layer of stack) {
-    // route layer (has methods)
-    if (layer.pathPatterns && layer.route) {
-      const methods = Object.keys(layer.route.methods).map((method) => method.toUpperCase())
-
-      if (Array.isArray(layer.pathPatterns)) {
-        for (const pathPattern of layer.pathPatterns) {
-          const keys = extractPatternKeys(pathPattern)
-
-          routes.push({
-            name: layer.name,
-            path: pathPattern,
-            keys,
-            methods,
-            router: undefined,
-            options: { ...options, end: layer.end }
-          })
-        }
-      } else {
-        const keys = extractPatternKeys(layer.pathPatterns)
-
-        routes.push({
-          name: layer.name,
-          path: layer.pathPatterns,
-          keys,
-          methods,
-          router: undefined,
-          options: { ...options, end: layer.end }
-        })
-      }
-    }
-
-    // mounted router (use)
-    if (layer.pathPatterns && layer.handle && layer.handle.stack && !layer.route) {
-      if (Array.isArray(layer.pathPatterns)) {
-        for (const pathPattern of layer.pathPatterns) {
-          const inner = collectRoutes(
-            layer.handle.stack,
-            { strict: layer.handle.strict, caseSensitive: layer.handle.caseSensitive }
-          )
-          const keys = extractPatternKeys(pathPattern)
-
-          routes.push({
-            name: layer.name,
-            path: pathPattern,
-            keys,
-            methods: undefined,
-            router: inner.length ? inner : undefined,
-            options: { ...options, end: layer.end }
-          })
-        }
-      } else {
-        const inner = collectRoutes(
-          layer.handle.stack,
-          { strict: layer.handle.strict, caseSensitive: layer.handle.caseSensitive }
-        )
-        const keys = extractPatternKeys(layer.pathPatterns)
-
-        routes.push({
-          name: layer.name,
-          path: layer.pathPatterns,
-          keys,
-          methods: undefined,
-          router: inner.length ? inner : undefined,
-          options: { ...options, end: layer.end }
-        })
-      }
-    }
-  }
-
-  return routes
-}
-
-/**
- * Extracts parameter/key descriptors from a route pattern.
- *
- * @param {string|RegExp} pattern - Route pattern to analyze (path string or RegExp).
- * @returns {Array<Object>|undefined} Array of key descriptor objects (each with at least a `name` property), or `undefined` if none found.
- * @private
- */
-function extractPatternKeys (pattern) {
-  if (pattern instanceof RegExp) {
-    const keys = []
-    let name = 0
-    let m
-    // eslint-disable-next-line no-cond-assign
-    while (m = MATCHING_GROUP_REGEXP.exec(pattern.source)) {
-      keys.push({ name: m[1] || name++ })
-    }
-
-    return keys.length > 0 ? keys : undefined
-  }
-
-  const pathKeys = pathRegexp.pathToRegexp(String(pattern)).keys
-
-  if (pathKeys && pathKeys.length > 0) {
-    return pathKeys
-  }
-
-  return undefined
-}
 
 /**
  * Generate a callback that will make an OPTIONS response.
