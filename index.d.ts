@@ -7,7 +7,8 @@ import type {
 } from './lib/route'
 import Route = require('./lib/route')
 
-export type RouterMethod<T> = <F extends Handler = RequestHandler>(path: Path, handler: F) => T
+export type RouterMethod<T> = <F extends Handler = RequestHandler>(path: Path, handler: HandlerArg<F>, ...handlers: Array<HandlerArg<F>>) => T
+
 
 export type Path = string | RegExp | Array<string | RegExp>
 
