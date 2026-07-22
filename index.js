@@ -395,6 +395,14 @@ Router.prototype.use = function use (handler) {
     // add the middleware
     debug('use %o %s', path, fn.name || '<anonymous>')
 
+    // Normalize mount path: strip trailing slash for consistent behavior
+    // with strict sub-routers. req.baseUrl already strips trailing slashes,
+    // so this keeps mount paths consistent with baseUrl semantics.
+    // See expressjs/express#2281.
+    if (typeof path === 'string' && path.length > 1 && path.endsWith('/')) {
+      path = path.slice(0, -1)
+    }
+
     const layer = new Layer(path, {
       sensitive: this.caseSensitive,
       strict: false,
