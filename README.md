@@ -65,6 +65,10 @@ consider it one for handling `OPTIONS` requests.
 
 * Note: If a `path` is specified, that `path` is stripped from the start of
   `req.url`.
+* Note: The stripped `path` is added back to `req.url` when the middleware calls
+  `next()`. A `req.url` rewritten by the middleware is treated as relative to the
+  mount `path`, so rewriting `req.url` to `/index.html` inside a router mounted
+  on `/app` continues with `/app/index.html`.
 
 <!-- eslint-disable no-undef -->
 
