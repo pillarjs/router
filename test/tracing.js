@@ -1,4 +1,5 @@
 const { it, describe, beforeEach, afterEach } = require('mocha')
+const path = require('node:path')
 const Router = require('..')
 const utils = require('./support/utils')
 
@@ -741,6 +742,33 @@ describeTracing('TracingChannel', function () {
         })
     })
 
+    it('should report a next(err) error once across separate copies of the router', function (done) {
+      const { router: outer, server } = traced()
+      const RouterCopy = loadRouterCopy()
+      const nested = new RouterCopy()
+
+      assert.notStrictEqual(RouterCopy, Router)
+
+      nested.get('/bar', function innerHandler (req, res, next) {
+        next(new Error('boom'))
+      })
+      outer.use('/foo', nested)
+      outer.use(recover)
+
+      request(server)
+        .get('/foo/bar')
+        .expect(500, 'boom', function (err) {
+          if (err) return done(err)
+
+          const errorEvents = events.filter(byPhase('error'))
+          assert.equal(errorEvents.length, 1,
+            'an app can end up with multiple copies of router, so dedup must not be scoped to one copy')
+          assert.equal(errorEvents[0].ctx.layer.name, 'innerHandler')
+
+          done()
+        })
+    })
+
     it('should report a next(err) error once across two mount levels', function (done) {
       const { router: outer, server } = traced()
       const mid = new Router()
@@ -948,6 +976,30 @@ describeTracing('TracingChannel', function () {
     })
   })
 })
+
+// Load a separate instance of the router module, as when an app installs more
+// than one copy (e.g. a direct dependency alongside the one bundled by express).
+function loadRouterCopy () {
+  const root = path.dirname(require.resolve('..'))
+  const isRouterModule = function (key) {
+    return key === path.join(root, 'index.js') || key.startsWith(path.join(root, 'lib') + path.sep)
+  }
+
+  const original = {}
+  Object.keys(require.cache).filter(isRouterModule).forEach(function (key) {
+    original[key] = require.cache[key]
+    delete require.cache[key]
+  })
+
+  try {
+    return require('..')
+  } finally {
+    Object.keys(require.cache).filter(isRouterModule).forEach(function (key) {
+      delete require.cache[key]
+    })
+    Object.assign(require.cache, original)
+  }
+}
 
 // Predicate matching a captured event by its layer name.
 function byLayer (name) {
