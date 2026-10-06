@@ -19,6 +19,15 @@ try {
   }
 } catch {}
 
+// Node 19 drops a channel once its last subscriber leaves, orphaning the
+// router's cached channel. A permanent no-op subscriber keeps it alive.
+if (tracingChannel && process.version.startsWith('v19')) {
+  const noop = function () {}
+  tracingChannel(CHANNEL).subscribe({
+    start: noop, end: noop, asyncStart: noop, asyncEnd: noop, error: noop
+  })
+}
+
 const describeTracing = tracingChannel ? describe : describe.skip
 
 describeTracing('TracingChannel', function () {
