@@ -400,6 +400,58 @@ router.route('/pet/:id')
 server.listen(8080)
 ```
 
+## Diagnostics
+
+`router` integrates with Node.js [`diagnostics_channel`](https://nodejs.org/api/diagnostics_channel.html)
+via a [`TracingChannel`](https://nodejs.org/api/diagnostics_channel.html#class-tracingchannel)
+named `express.router.request`. This lets observability tools (APMs, tracers,
+loggers) hook into middleware and route handler execution without monkey-patching.
+
+Each layer's handler invocation publishes the standard tracing channel sub-events
+(`start`, `end`, `asyncStart`, `asyncEnd`, `error`). The published context object
+contains:
+
+- `req`: the incoming `http.IncomingMessage`
+- `res`: the `http.ServerResponse`
+- `layer`: the internal `Layer` instance being invoked (exposes `.name`, `.path`, `.handle`, etc.). Note that `Layer` is an internal implementation detail and its shape may change between releases.
+- `error`: the error the layer failed with, when applicable
+- `errorHandler`: `true` when the layer is an error-handling middleware (4-arg signature)
+
+The `error` event is published once, on the layer where the error originates,
+whether the handler calls `next(err)`, throws, or returns a rejected promise. An
+error bubbling up through outer layers is not reported again. The `'route'` and
+`'router'` routing signals are not treated as errors and will not publish to the
+`error` channel.
+
+When no subscribers are attached, tracing is bypassed entirely, so there is no
+context allocation or channel publishing overhead on the hot path.
+
+```js
+const dc = require('node:diagnostics_channel')
+
+const channel = dc.tracingChannel('express.router.request')
+
+channel.subscribe({
+  start (ctx) {
+    ctx.startTime = process.hrtime.bigint()
+  },
+  end (ctx) {
+    // do whatever you need on synchronous completion
+  },
+  asyncStart (ctx) {
+    // do whatever you need when the async portion begins
+  },
+  asyncEnd (ctx) {
+    const durationNs = process.hrtime.bigint() - ctx.startTime
+    console.log('%s %s -> %s (%dns)',
+      ctx.req.method, ctx.req.url, ctx.layer.name, durationNs)
+  },
+  error (ctx) {
+    console.error('handler error in %s:', ctx.layer.name, ctx.error)
+  }
+})
+```
+
 ## License
 
 [MIT](LICENSE)
