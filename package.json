@@ -8,6 +8,9 @@
   ],
   "license": "MIT",
   "repository": "pillarjs/router",
+  "type": "commonjs",
+  "main": "index.js",
+  "types": "index.d.ts",
   "funding": {
     "type": "opencollective",
     "url": "https://opencollective.com/express"
@@ -20,7 +23,11 @@
     "path-to-regexp": "^8.0.0"
   },
   "devDependencies": {
+    "@arethetypeswrong/cli": "0.18.5",
+    "@tsconfig/node18": "18.2.6",
+    "@types/node": "18.19.130",
     "finalhandler": "^2.1.0",
+    "expect-type": "1.4.0",
     "mocha": "10.2.0",
     "nyc": "15.1.0",
     "run-series": "^1.1.9",
@@ -32,7 +39,8 @@
     "LICENSE",
     "HISTORY.md",
     "README.md",
-    "index.js"
+    "index.js",
+    "index.d.ts"
   ],
   "engines": {
     "node": ">= 18"
@@ -43,6 +51,7 @@
     "test:debug": "mocha --reporter spec --check-leaks test/ --inspect --inspect-brk",
     "test-ci": "nyc --reporter=lcov --reporter=text npm test",
     "test-cov": "nyc --reporter=text npm test",
-    "version": "node scripts/version-history.js && git add HISTORY.md"
+    "version": "node scripts/version-history.js && git add HISTORY.md",
+    "test-types": "tsc --noEmit && attw --pack"
   }
 }
