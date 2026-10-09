@@ -726,7 +726,13 @@ describeTracing('TracingChannel', function () {
   })
 
   describe('route pattern', function () {
-    it('should expose the registered path on middleware layers', function (done) {
+    function startFor (predicate) {
+      return events.filter(byPhase('start')).find(function (e) {
+        return predicate(e.ctx.layer)
+      })
+    }
+
+    it('should provide the matched path for middleware', function (done) {
       const { router, server } = traced()
 
       router.use('/api/:version', function apiMiddleware (req, res, next) {
@@ -743,17 +749,15 @@ describeTracing('TracingChannel', function () {
         .expect(200, 'users', function (err) {
           if (err) return done(err)
 
-          const startEvent = events.filter(byPhase('start')).find(function (e) {
-            return e.ctx.layer.name === 'apiMiddleware'
-          })
+          const startEvent = startFor(function (layer) { return layer.name === 'apiMiddleware' })
           assert.ok(startEvent, 'should have start event for apiMiddleware')
-          assert.equal(startEvent.ctx.layer.rawPath, '/api/:version')
+          assert.equal(startEvent.ctx.route, '/api/:version')
 
           done()
         })
     })
 
-    it('should expose the route path on route handlers via req.route', function (done) {
+    it('should provide the route path for route handlers', function (done) {
       const { router, server } = traced()
 
       router.get('/users/:id', function getUser (req, res) {
@@ -766,23 +770,63 @@ describeTracing('TracingChannel', function () {
         .expect(200, 'user', function (err) {
           if (err) return done(err)
 
-          const startEvent = events.filter(byPhase('start')).find(function (e) {
-            return e.ctx.layer.name === 'getUser'
-          })
+          const startEvent = startFor(function (layer) { return layer.name === 'getUser' })
           assert.ok(startEvent, 'should have start event for getUser')
-          assert.equal(startEvent.ctx.req.route.path, '/users/:id')
+          assert.equal(startEvent.ctx.route, '/users/:id')
 
           done()
         })
     })
 
-    it('should expose each mount path so the full route can be composed', function (done) {
+    it('should provide the path that matched for array paths', function (done) {
+      const { router, server } = traced()
+
+      router.get(['/foo', ['/bar', '/baz/:id']], function multi (req, res) {
+        res.statusCode = 200
+        res.end('multi')
+      })
+
+      request(server)
+        .get('/baz/1')
+        .expect(200, 'multi', function (err) {
+          if (err) return done(err)
+
+          const startEvent = startFor(function (layer) { return layer.name === 'multi' })
+          assert.ok(startEvent, 'should have start event for multi')
+          assert.equal(startEvent.ctx.route, '/baz/:id')
+
+          done()
+        })
+    })
+
+    it('should provide the route path for error handlers inside a route', function (done) {
+      const { router, server } = traced()
+
+      router.get('/fail/:id', function fail (req, res, next) {
+        next(new Error('boom'))
+      }, function routeErrorHandler (err, req, res, next) {
+        res.statusCode = 500
+        res.end(err.message)
+      })
+
+      request(server)
+        .get('/fail/1')
+        .expect(500, 'boom', function (err) {
+          if (err) return done(err)
+
+          const startEvent = startFor(function (layer) { return layer.name === 'routeErrorHandler' })
+          assert.ok(startEvent, 'should have start event for routeErrorHandler')
+          assert.equal(startEvent.ctx.route, '/fail/:id')
+
+          done()
+        })
+    })
+
+    it('should provide the mount path for mounted routers', function (done) {
       const { router, server } = traced()
       const nested = new Router()
-      let routePath
 
       nested.get('/:id', function getItem (req, res) {
-        routePath = req.route.path
         res.statusCode = 200
         res.end('item')
       })
@@ -794,12 +838,12 @@ describeTracing('TracingChannel', function () {
         .expect(200, 'item', function (err) {
           if (err) return done(err)
 
-          const mountEvent = events.filter(byPhase('start')).find(function (e) {
-            return e.ctx.layer.handle === nested
-          })
+          const mountEvent = startFor(function (layer) { return layer.handle === nested })
+          const itemEvent = startFor(function (layer) { return layer.name === 'getItem' })
           assert.ok(mountEvent, 'should have start event for the mounted router')
-          assert.equal(mountEvent.ctx.layer.rawPath, '/items')
-          assert.equal(routePath, '/:id')
+          assert.ok(itemEvent, 'should have start event for getItem')
+          assert.equal(mountEvent.ctx.route, '/items')
+          assert.equal(itemEvent.ctx.route, '/:id')
 
           done()
         })

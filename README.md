@@ -462,6 +462,7 @@ contains:
 - `req`: the incoming `http.IncomingMessage`
 - `res`: the `http.ServerResponse`
 - `layer`: the internal `Layer` instance being invoked (exposes `.name`, `.path`, `.handle`, etc.). Note that `Layer` is an internal implementation detail and its shape may change between releases.
+- `route`: the path pattern that matched, e.g. `'/users/:id'`. Route handlers get their route's path; middleware and mounted routers get the path they were registered with
 - `error`: the error the layer failed with, when applicable
 - `errorHandler`: `true` when the layer is an error-handling middleware (4-arg signature)
 
@@ -470,12 +471,6 @@ whether the handler calls `next(err)`, throws, or returns a rejected promise. An
 error bubbling up through outer layers is not reported again. The `'route'` and
 `'router'` routing signals are not treated as errors and will not publish to the
 `error` channel.
-
-The path a layer was registered with is available as `ctx.layer.rawPath`
-(e.g. `'/api/:version'` for `router.use('/api/:version', fn)`, or `'/items'` for
-a mounted router). Route handlers run inside their route, so their pattern is on
-`ctx.req.route.path` instead. Joining the mount paths of the enclosing layers with
-the route path gives the full route template (e.g. `/items/:id`).
 
 When no subscribers are attached, tracing is bypassed entirely, so there is no
 context allocation or channel publishing overhead on the hot path.
