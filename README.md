@@ -471,6 +471,12 @@ error bubbling up through outer layers is not reported again. The `'route'` and
 `'router'` routing signals are not treated as errors and will not publish to the
 `error` channel.
 
+The path a layer was registered with is available as `ctx.layer.rawPath`
+(e.g. `'/api/:version'` for `router.use('/api/:version', fn)`, or `'/items'` for
+a mounted router). Route handlers run inside their route, so their pattern is on
+`ctx.req.route.path` instead. Joining the mount paths of the enclosing layers with
+the route path gives the full route template (e.g. `/items/:id`).
+
 When no subscribers are attached, tracing is bypassed entirely, so there is no
 context allocation or channel publishing overhead on the hot path.
 
