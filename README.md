@@ -143,6 +143,54 @@ router.param('user_id', function (req, res, next, id) {
 })
 ```
 
+### router.listRoutes()
+
+Returns an array with one `{ path, methods, router }` object per path
+registered on this router, in registration order.
+
+- `path` is the path the route was registered with (a string or a `RegExp`).
+  Routes registered with an array of paths produce one entry per path.
+- `methods` is an array of the uppercase HTTP method names the route responds
+  to, including the automatic `HEAD` for `GET` routes. It is `undefined` when
+  the entry matches all methods (routes registered only with `.all()`, and
+  mounted routers). Routes that combine `.all()` with specific methods list
+  those methods. An empty array means the route was created with
+  `router.route(path)` but has no handlers yet, so it matches no method.
+- `router` is the mounted router instance for `.use(path, router)` entries,
+  otherwise `undefined`. Nested routes are not resolved recursively; consumers
+  can recurse themselves by calling `router.listRoutes()` when the mounted
+  router implements it. Note that `.use()`
+  entries match their path as a prefix, while route entries match the full
+  path.
+
+Plain middleware functions registered with `.use()` are not listed.
+
+```js
+const router = new Router()
+const admin = new Router()
+
+admin.get('/', (req, res) => {
+  res.end('Hello')
+})
+
+router.use('/admin', admin)
+
+router.all('/:id', function (req, res) {
+  res.end('Hello')
+})
+
+console.log(router.listRoutes())
+// [
+//   { path: '/admin', methods: undefined, router: admin },
+//   { path: '/:id', methods: undefined, router: undefined }
+// ]
+
+console.log(admin.listRoutes())
+// [
+//   { path: '/', methods: ['GET', 'HEAD'], router: undefined }
+// ]
+```
+
 ### router.route(path)
 
 Creates an instance of a single `Route` for the given `path`.
@@ -414,6 +462,7 @@ contains:
 - `req`: the incoming `http.IncomingMessage`
 - `res`: the `http.ServerResponse`
 - `layer`: the internal `Layer` instance being invoked (exposes `.name`, `.path`, `.handle`, etc.). Note that `Layer` is an internal implementation detail and its shape may change between releases.
+- `route`: the path pattern that matched, e.g. `'/users/:id'`. Route handlers get their route's path; middleware and mounted routers get the path they were registered with
 - `error`: the error the layer failed with, when applicable
 - `errorHandler`: `true` when the layer is an error-handling middleware (4-arg signature)
 

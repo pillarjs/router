@@ -725,6 +725,131 @@ describeTracing('TracingChannel', function () {
     })
   })
 
+  describe('route pattern', function () {
+    function startFor (predicate) {
+      return events.filter(byPhase('start')).find(function (e) {
+        return predicate(e.ctx.layer)
+      })
+    }
+
+    it('should provide the matched path for middleware', function (done) {
+      const { router, server } = traced()
+
+      router.use('/api/:version', function apiMiddleware (req, res, next) {
+        next()
+      })
+
+      router.get('/api/:version/users', function (req, res) {
+        res.statusCode = 200
+        res.end('users')
+      })
+
+      request(server)
+        .get('/api/v1/users')
+        .expect(200, 'users', function (err) {
+          if (err) return done(err)
+
+          const startEvent = startFor(function (layer) { return layer.name === 'apiMiddleware' })
+          assert.ok(startEvent, 'should have start event for apiMiddleware')
+          assert.equal(startEvent.ctx.route, '/api/:version')
+
+          done()
+        })
+    })
+
+    it('should provide the route path for route handlers', function (done) {
+      const { router, server } = traced()
+
+      router.get('/users/:id', function getUser (req, res) {
+        res.statusCode = 200
+        res.end('user')
+      })
+
+      request(server)
+        .get('/users/42')
+        .expect(200, 'user', function (err) {
+          if (err) return done(err)
+
+          const startEvent = startFor(function (layer) { return layer.name === 'getUser' })
+          assert.ok(startEvent, 'should have start event for getUser')
+          assert.equal(startEvent.ctx.route, '/users/:id')
+
+          done()
+        })
+    })
+
+    it('should provide the path that matched for array paths', function (done) {
+      const { router, server } = traced()
+
+      router.get(['/foo', ['/bar', '/baz/:id']], function multi (req, res) {
+        res.statusCode = 200
+        res.end('multi')
+      })
+
+      request(server)
+        .get('/baz/1')
+        .expect(200, 'multi', function (err) {
+          if (err) return done(err)
+
+          const startEvent = startFor(function (layer) { return layer.name === 'multi' })
+          assert.ok(startEvent, 'should have start event for multi')
+          assert.equal(startEvent.ctx.route, '/baz/:id')
+
+          done()
+        })
+    })
+
+    it('should provide the route path for error handlers inside a route', function (done) {
+      const { router, server } = traced()
+
+      router.get('/fail/:id', function fail (req, res, next) {
+        next(new Error('boom'))
+      }, function routeErrorHandler (err, req, res, next) {
+        res.statusCode = 500
+        res.end(err.message)
+      })
+
+      request(server)
+        .get('/fail/1')
+        .expect(500, 'boom', function (err) {
+          if (err) return done(err)
+
+          const startEvent = startFor(function (layer) { return layer.name === 'routeErrorHandler' })
+          assert.ok(startEvent, 'should have start event for routeErrorHandler')
+          assert.equal(startEvent.ctx.route, '/fail/:id')
+
+          done()
+        })
+    })
+
+    it('should provide the mount path for mounted routers', function (done) {
+      const { router, server } = traced()
+      const nested = new Router()
+
+      nested.get('/:id', function getItem (req, res) {
+        res.statusCode = 200
+        res.end('item')
+      })
+
+      router.use('/items', nested)
+
+      request(server)
+        .get('/items/7')
+        .expect(200, 'item', function (err) {
+          if (err) return done(err)
+
+          const mountEvent = startFor(function (layer) { return layer.handle === nested })
+          const itemEvent = startFor(function (layer) { return layer.name === 'getItem' })
+          assert.ok(mountEvent, 'should have start event for the mounted router')
+          assert.ok(itemEvent, 'should have start event for getItem')
+          assert.equal(mountEvent.ctx.route, '/items')
+          assert.equal(itemEvent.ctx.route, '/:id')
+
+          done()
+        })
+    })
+  })
+
   describe('error deduplication', function () {
     it('should report a next(err) error once, on the origin layer, across mounted routers', function (done) {
       const { router: outer, server } = traced()
