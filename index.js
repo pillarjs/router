@@ -392,7 +392,17 @@ Router.prototype.use = function use (handler) {
       throw new TypeError('argument handler must be a function')
     }
 
-    // add the middleware
+    if (fn instanceof Router) {
+      const visited = new Set()
+      if (hasCycle(this, fn, visited)) {
+        process.emitWarning(
+          'Router cycle detected: a router is being mounted in a way that creates a circular reference. ' +
+          'Requests that traverse this cycle will hang indefinitely.',
+          { code: 'ROUTER_CYCLE_DETECTED' }
+        )
+      }
+    }
+
     debug('use %o %s', path, fn.name || '<anonymous>')
 
     const layer = new Layer(path, {
@@ -441,7 +451,6 @@ Router.prototype.route = function route (path) {
   return route
 }
 
-// create Router#VERB functions
 methods.concat('all').forEach(function (method) {
   Router.prototype[method] = function (path) {
     const route = this.route(path)
@@ -449,6 +458,39 @@ methods.concat('all').forEach(function (method) {
     return this
   }
 })
+
+/**
+ * Detect circular router references.
+ *
+ * @param {Router} root
+ * @param {Router} current
+ * @param {Set} visited
+ * @return {boolean}
+ * @private
+ */
+
+function hasCycle (root, current, visited) {
+  if (current === root) {
+    return true
+  }
+
+  if (visited.has(current)) {
+    return false
+  }
+
+  visited.add(current)
+
+  for (let i = 0; i < current.stack.length; i++) {
+    const fn = current.stack[i].handle
+    if (fn instanceof Router) {
+      if (hasCycle(root, fn, visited)) {
+        return true
+      }
+    }
+  }
+
+  return false
+}
 
 /**
  * Generate a callback that will make an OPTIONS response.
