@@ -725,6 +725,87 @@ describeTracing('TracingChannel', function () {
     })
   })
 
+  describe('route pattern', function () {
+    it('should expose the registered path on middleware layers', function (done) {
+      const { router, server } = traced()
+
+      router.use('/api/:version', function apiMiddleware (req, res, next) {
+        next()
+      })
+
+      router.get('/api/:version/users', function (req, res) {
+        res.statusCode = 200
+        res.end('users')
+      })
+
+      request(server)
+        .get('/api/v1/users')
+        .expect(200, 'users', function (err) {
+          if (err) return done(err)
+
+          const startEvent = events.filter(byPhase('start')).find(function (e) {
+            return e.ctx.layer.name === 'apiMiddleware'
+          })
+          assert.ok(startEvent, 'should have start event for apiMiddleware')
+          assert.equal(startEvent.ctx.layer.rawPath, '/api/:version')
+
+          done()
+        })
+    })
+
+    it('should expose the route path on route handlers via req.route', function (done) {
+      const { router, server } = traced()
+
+      router.get('/users/:id', function getUser (req, res) {
+        res.statusCode = 200
+        res.end('user')
+      })
+
+      request(server)
+        .get('/users/42')
+        .expect(200, 'user', function (err) {
+          if (err) return done(err)
+
+          const startEvent = events.filter(byPhase('start')).find(function (e) {
+            return e.ctx.layer.name === 'getUser'
+          })
+          assert.ok(startEvent, 'should have start event for getUser')
+          assert.equal(startEvent.ctx.req.route.path, '/users/:id')
+
+          done()
+        })
+    })
+
+    it('should expose each mount path so the full route can be composed', function (done) {
+      const { router, server } = traced()
+      const nested = new Router()
+      let routePath
+
+      nested.get('/:id', function getItem (req, res) {
+        routePath = req.route.path
+        res.statusCode = 200
+        res.end('item')
+      })
+
+      router.use('/items', nested)
+
+      request(server)
+        .get('/items/7')
+        .expect(200, 'item', function (err) {
+          if (err) return done(err)
+
+          const mountEvent = events.filter(byPhase('start')).find(function (e) {
+            return e.ctx.layer.handle === nested
+          })
+          assert.ok(mountEvent, 'should have start event for the mounted router')
+          assert.equal(mountEvent.ctx.layer.rawPath, '/items')
+          assert.equal(routePath, '/:id')
+
+          done()
+        })
+    })
+  })
+
   describe('error deduplication', function () {
     it('should report a next(err) error once, on the origin layer, across mounted routers', function (done) {
       const { router: outer, server } = traced()
