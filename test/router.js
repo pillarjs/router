@@ -312,6 +312,33 @@ describe('Router', function () {
     })
   })
 
+  describe('with "methodNotAllowed" option', function () {
+    it('should default to 404 for unsupported methods', function (done) {
+      const router = new Router()
+      const server = createServer(router)
+
+      router.get('/users', saw)
+      router.post('/users', saw)
+
+      request(server)
+        .put('/users')
+        .expect(404, done)
+    })
+
+    it('should respond with 405 and Allow header when enabled', function (done) {
+      const router = new Router({ methodNotAllowed: true })
+      const server = createServer(router)
+
+      router.get('/users', saw)
+      router.post('/users', saw)
+
+      request(server)
+        .put('/users')
+        .expect('Allow', 'GET, HEAD, POST')
+        .expect(405, done)
+    })
+  })
+
   methods.slice().sort().forEach(function (method) {
     if (method === 'connect') {
       // CONNECT is tricky and supertest doesn't support it
