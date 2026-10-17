@@ -5,6 +5,12 @@ declare const Route: Route.RouteConstructor
 
 // eslint-disable-next-line @typescript-eslint/no-redeclare -- Merge types with the CommonJS constructor export.
 declare namespace Route {
+  /**
+   * Call `next()` to continue to the next handler.
+   * In a route handler, `next('route')` skips the remaining handlers of that route.
+   * `next('router')` exits the current router and invokes its completion callback.
+   * Other truthy arguments enter error handling; falsy arguments continue normally.
+   */
   type NextFunction = (err?: any) => void
 
   type Params = RouterParams
