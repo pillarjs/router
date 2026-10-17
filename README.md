@@ -241,10 +241,14 @@ registered on this router, in registration order.
 
 - `path` is the path the route was registered with (a string or a `RegExp`).
   Routes registered with an array of paths produce one entry per path.
-- `methods` is an array of uppercase HTTP method names the route handles,
-  including the automatic `HEAD` for `GET` routes. It is `undefined` for
-  routes with `.all()` handlers, even when combined with specific methods,
-  and for mounted routers: these layers do not restrict by HTTP method.
+- `methods` lists registered HTTP methods in uppercase, in the order they
+  were first registered. `.all()` is represented by `'*'` in that order to
+  indicate that the route accepts any HTTP method. Repeated registrations
+  do not add duplicate entries. The automatic `HEAD` for `GET` routes is
+  appended unless explicitly registered. For example, `.all(...).get(...)`
+  produces `['*', 'GET', 'HEAD']`, while `.get(...).all(...)` produces
+  `['GET', '*', 'HEAD']`. It is `undefined` for mounted routers, whose
+  internal routes determine the methods they handle.
   An empty array means the route was created with
   `router.route(path)` but has no handlers yet, so it matches no method.
 - `router` is the mounted router instance for `.use(path, router)` entries,
@@ -273,7 +277,7 @@ router.all('/:id', function (req, res) {
 console.log(router.listRoutes())
 // [
 //   { path: '/admin', methods: undefined, router: admin },
-//   { path: '/:id', methods: undefined, router: undefined }
+//   { path: '/:id', methods: ['*'], router: undefined }
 // ]
 
 console.log(admin.listRoutes())

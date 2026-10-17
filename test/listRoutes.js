@@ -22,7 +22,7 @@ describe('listRoutes', function () {
     assert.deepStrictEqual(router.listRoutes(), [
       { path: '/foo', methods: ['GET', 'HEAD'], router: undefined },
       { path: '/:id/setting/:thing', methods: ['POST'], router: undefined },
-      { path: /^\/[a-z]oo$/, methods: undefined, router: undefined },
+      { path: /^\/[a-z]oo$/, methods: ['*'], router: undefined },
       { path: '/bar', methods: ['GET', 'HEAD'], router: undefined },
       { path: '/baz', methods: ['GET', 'HEAD'], router: undefined }
     ])
@@ -63,17 +63,17 @@ describe('listRoutes', function () {
     ])
   })
 
-  it('should return undefined methods for .all() routes', function () {
+  it('should list a wildcard for .all() routes', function () {
     const router = new Router()
 
     router.all('/test', noop)
 
     assert.deepStrictEqual(router.listRoutes(), [
-      { path: '/test', methods: undefined, router: undefined }
+      { path: '/test', methods: ['*'], router: undefined }
     ])
   })
 
-  it('should return undefined methods when combining .all() with verbs in either order', function () {
+  it('should preserve registration order when combining .all() with verbs', function () {
     const router = new Router()
 
     router.route('/users')
@@ -86,9 +86,26 @@ describe('listRoutes', function () {
       .post(noop)
       .all(noop)
 
+    router.route('/explicit-head')
+      .head(noop)
+      .all(noop)
+      .get(noop)
+      .post(noop)
+
     assert.deepStrictEqual(router.listRoutes(), [
-      { path: '/users', methods: undefined, router: undefined },
-      { path: '/posts', methods: undefined, router: undefined }
+      { path: '/users', methods: ['*', 'GET', 'POST', 'HEAD'], router: undefined },
+      { path: '/posts', methods: ['GET', 'POST', '*', 'HEAD'], router: undefined },
+      { path: '/explicit-head', methods: ['HEAD', '*', 'GET', 'POST'], router: undefined }
+    ])
+  })
+
+  it('should keep the first registration position for repeated methods and .all() handlers', function () {
+    const router = new Router()
+
+    router.route('/users').get(noop).all(noop).post(noop).all(noop).get(noop)
+
+    assert.deepStrictEqual(router.listRoutes(), [
+      { path: '/users', methods: ['GET', '*', 'POST', 'HEAD'], router: undefined }
     ])
   })
 
