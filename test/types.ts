@@ -1,7 +1,7 @@
-import type { IncomingMessage, ServerResponse } from "node:http";
+import type { ServerResponse } from "node:http";
 import { expectTypeOf } from "expect-type";
 import Router from "..";
-import type { ErrorRequestHandler, Method, NextFunction, Path, RequestHandler } from "..";
+import type { ErrorRequestHandler, Method, NextFunction, Path, Request, RequestHandler } from "..";
 
 const router = Router();
 
@@ -10,12 +10,12 @@ const other: RequestHandler = (req, res, next) => next();
 
 // handler parameters are inferred
 router.get("/", function (req, res) {
-  expectTypeOf(req).toEqualTypeOf<IncomingMessage>();
+  expectTypeOf(req).toEqualTypeOf<Request>();
   expectTypeOf(res).toEqualTypeOf<ServerResponse>();
 });
 
 router.get("/", function (req, res, next) {
-  expectTypeOf(req).toEqualTypeOf<IncomingMessage>();
+  expectTypeOf(req).toEqualTypeOf<Request>();
   expectTypeOf(res).toEqualTypeOf<ServerResponse>();
   expectTypeOf(next).toBeFunction();
 });
@@ -23,7 +23,7 @@ router.get("/", function (req, res, next) {
 // typescript has no way to infer the types automatically
 router.get<ErrorRequestHandler>("/", function (err, req, res, next) {
   expectTypeOf(err).toEqualTypeOf<Error>();
-  expectTypeOf(req).toEqualTypeOf<IncomingMessage>();
+  expectTypeOf(req).toEqualTypeOf<Request>();
   expectTypeOf(res).toEqualTypeOf<ServerResponse>();
   expectTypeOf(next).toBeFunction();
 });
@@ -78,7 +78,7 @@ router.use<ErrorRequestHandler>(function (err, req, res, next) {
 
 // param callbacks receive typed req/res
 router.param("id", function (req, res, next, value, name) {
-  expectTypeOf(req).toEqualTypeOf<IncomingMessage>();
+  expectTypeOf(req).toEqualTypeOf<Request>();
   expectTypeOf(res).toEqualTypeOf<ServerResponse>();
   expectTypeOf(next).toEqualTypeOf<NextFunction>();
   expectTypeOf(name).toBeString();

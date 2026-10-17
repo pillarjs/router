@@ -6,8 +6,16 @@ declare const Route: Route.RouteConstructor
 declare namespace Route {
   type NextFunction = (err?: any) => void
 
-  type RequestHandler = (req: IncomingMessage, res: ServerResponse, next: NextFunction) => void
-  type ErrorRequestHandler = (err: Error, req: IncomingMessage, res: ServerResponse, next: NextFunction) => void
+  interface Request extends IncomingMessage {
+    params: Record<string, string | string[] | undefined>
+    baseUrl: string
+    originalUrl: string
+    route?: Route
+    next?: NextFunction
+  }
+
+  type RequestHandler = (req: Request, res: ServerResponse, next: NextFunction) => void
+  type ErrorRequestHandler = (err: Error, req: Request, res: ServerResponse, next: NextFunction) => void
 
   type Handler = RequestHandler | ErrorRequestHandler
   type HandlerArg<F extends Handler = Handler> = F | ReadonlyArray<HandlerArg<F>>

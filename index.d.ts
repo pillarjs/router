@@ -6,6 +6,7 @@ declare const Router: Router.RouterConstructor
 // eslint-disable-next-line @typescript-eslint/no-redeclare -- Merge types with the callable and constructable CommonJS export.
 declare namespace Router {
   type NextFunction = RouteModule.NextFunction
+  type Request = RouteModule.Request
   type RequestHandler = RouteModule.RequestHandler
   type ErrorRequestHandler = RouteModule.ErrorRequestHandler
   type Handler = RouteModule.Handler
@@ -24,7 +25,9 @@ declare namespace Router {
 
   type MethodHandlers<T> = { [M in Method | 'all']: RouterMethod<T> }
 
-  interface Router extends RequestHandler, MethodHandlers<Router> {
+  interface Router extends MethodHandlers<Router> {
+    (req: IncomingMessage, res: ServerResponse, callback: NextFunction): void
+
     params: Record<string, any>
     stack: any[]
     caseSensitive: boolean | undefined
@@ -32,7 +35,7 @@ declare namespace Router {
     strict: boolean | undefined
 
     handle(req: IncomingMessage, res: ServerResponse, callback: NextFunction): void
-    param(name: string, fn: (req: IncomingMessage, res: ServerResponse, next: NextFunction, value: any, name: string) => void): this
+    param(name: string, fn: (req: Request, res: ServerResponse, next: NextFunction, value: any, name: string) => void): this
     route(path: Path): Route
 
     use: {
