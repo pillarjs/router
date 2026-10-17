@@ -22,7 +22,7 @@ router.get("/", function (req, res, next) {
 
 // typescript has no way to infer the types automatically
 router.get<ErrorRequestHandler>("/", function (err, req, res, next) {
-  expectTypeOf(err).toEqualTypeOf<Error>();
+  expectTypeOf(err).toBeAny();
   expectTypeOf(req).toEqualTypeOf<Request>();
   expectTypeOf(res).toEqualTypeOf<ServerResponse>();
   expectTypeOf(next).toBeFunction();
@@ -72,7 +72,7 @@ router.foo("/", handler);
 
 // error handlers are distinguished by the explicit generic
 router.use<ErrorRequestHandler>(function (err, req, res, next) {
-  expectTypeOf(err).toEqualTypeOf<Error>();
+  expectTypeOf(err).toBeAny();
   next(err);
 });
 

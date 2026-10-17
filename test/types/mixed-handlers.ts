@@ -53,13 +53,13 @@ route.get((req, res, next) => {
 
 // Explicit error-handler generics remain supported.
 router.use<ErrorRequestHandler>((err, req, res, next) => {
-  expectTypeOf(err).toEqualTypeOf<Error>()
+  expectTypeOf(err).toBeAny()
   expectTypeOf(req).toEqualTypeOf<Request>()
   next(err)
 })
 
 route.get<ErrorRequestHandler>((err, req, res, next) => {
-  expectTypeOf(err).toEqualTypeOf<Error>()
+  expectTypeOf(err).toBeAny()
   expectTypeOf(req).toEqualTypeOf<Request>()
   next(err)
 })

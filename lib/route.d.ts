@@ -15,7 +15,7 @@ declare namespace Route {
   }
 
   type RequestHandler = (req: Request, res: ServerResponse, next: NextFunction) => void
-  type ErrorRequestHandler = (err: Error, req: Request, res: ServerResponse, next: NextFunction) => void
+  type ErrorRequestHandler = (err: any, req: Request, res: ServerResponse, next: NextFunction) => void
 
   type Handler = RequestHandler | ErrorRequestHandler
   type HandlerArg<F extends Handler = Handler> = F | ReadonlyArray<HandlerArg<F>>
