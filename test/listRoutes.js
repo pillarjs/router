@@ -73,7 +73,7 @@ describe('listRoutes', function () {
     ])
   })
 
-  it('should keep the specific methods of routes that combine .all() with verbs', function () {
+  it('should keep specific methods when combining .all() with verbs in either order', function () {
     const router = new Router()
 
     router.route('/users')
@@ -81,8 +81,14 @@ describe('listRoutes', function () {
       .get(noop)
       .post(noop)
 
+    router.route('/posts')
+      .get(noop)
+      .post(noop)
+      .all(noop)
+
     assert.deepStrictEqual(router.listRoutes(), [
-      { path: '/users', methods: ['GET', 'POST', 'HEAD'], router: undefined }
+      { path: '/users', methods: ['GET', 'POST', 'HEAD'], router: undefined },
+      { path: '/posts', methods: ['GET', 'POST', 'HEAD'], router: undefined }
     ])
   })
 
