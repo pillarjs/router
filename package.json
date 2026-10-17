@@ -26,12 +26,13 @@
     "@arethetypeswrong/cli": "0.18.5",
     "@tsconfig/node18": "18.2.6",
     "@types/node": "18.19.130",
+    "eslint": "^9.0.0",
     "finalhandler": "^2.1.0",
     "expect-type": "1.4.0",
     "mocha": "10.8.2",
+    "neostandard": "^0.12.0",
     "nyc": "15.1.0",
     "run-series": "^1.1.9",
-    "standard": "^17.1.0",
     "supertest": "6.3.3"
   },
   "files": [
@@ -46,7 +47,7 @@
     "node": ">= 18"
   },
   "scripts": {
-    "lint": "standard",
+    "lint": "eslint .",
     "test": "mocha --reporter spec --check-leaks test/",
     "test:debug": "mocha --reporter spec --check-leaks test/ --inspect --inspect-brk",
     "test-ci": "nyc --reporter=lcov --reporter=text npm test",

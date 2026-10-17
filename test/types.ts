@@ -92,7 +92,7 @@ const mounted: Router.Router = Router({ strict: true, caseSensitive: true, merge
 mounted.use(handler);
 const opts: Router.RouterOptions = { strict: true };
 Router(opts);
-new Router(opts);
+expectTypeOf(new Router(opts)).toEqualTypeOf<Router.Router>();
 // @ts-expect-error unknown options are rejected
 Router({ nope: true });
 expectTypeOf<Method>().toExtend<string>();
@@ -108,11 +108,10 @@ route["m-search"](handler);
 route.put();
 
 // Route must be constructed with new, and accepts any Path
-new Router.Route("/x");
-new Router.Route(/^\/x/);
-new Router.Route(["/a", /^\/b/]);
+expectTypeOf(new Router.Route("/x")).toEqualTypeOf<Router.Route>();
+expectTypeOf(new Router.Route(/^\/x/)).toEqualTypeOf<Router.Route>();
+expectTypeOf(new Router.Route(["/a", /^\/b/])).toEqualTypeOf<Router.Route>();
 // @ts-expect-error calling without new does not construct (strict mode)
 Router.Route("/x");
 // @ts-expect-error
-new Router.Route(42);
-
+expectTypeOf(new Router.Route(42)).toEqualTypeOf<Router.Route>();
