@@ -195,7 +195,7 @@ describeTracing('TracingChannel', function () {
         next(new Error('boom'))
       })
 
-      router.use(function myErrorHandler (err, req, res, next) { // eslint-disable-line no-unused-vars
+      router.use(function myErrorHandler (err, req, res, next) {
         res.statusCode = 500
         res.end(err.message)
       })
@@ -236,7 +236,7 @@ describeTracing('TracingChannel', function () {
         next(new Error('boom'))
       })
 
-      router.use(function myErrorHandler (err, req, res, next) { // eslint-disable-line no-unused-vars
+      router.use(function myErrorHandler (err, req, res, next) {
         res.statusCode = 500
         res.end(err.message)
       })
@@ -280,7 +280,7 @@ describeTracing('TracingChannel', function () {
         next(new Error('boom'))
       })
 
-      router.use(function myErrorHandler (err, req, res, next) { // eslint-disable-line no-unused-vars
+      router.use(function myErrorHandler (err, req, res, next) {
         res.statusCode = 500
         res.end(err.message)
       })
@@ -550,7 +550,7 @@ describeTracing('TracingChannel', function () {
         throw new Error('sync boom')
       })
 
-      router.use(function cleanErrorHandler (err, req, res, next) { // eslint-disable-line no-unused-vars
+      router.use(function cleanErrorHandler (err, req, res, next) {
         res.statusCode = 500
         res.end(err.message)
       })
@@ -576,7 +576,7 @@ describeTracing('TracingChannel', function () {
         throw new Error('async boom')
       })
 
-      router.use(function cleanErrorHandler (err, req, res, next) { // eslint-disable-line no-unused-vars
+      router.use(function cleanErrorHandler (err, req, res, next) {
         res.statusCode = 500
         res.end(err.message)
       })
@@ -602,7 +602,7 @@ describeTracing('TracingChannel', function () {
         throw new Error('sync boom')
       })
 
-      // eslint-disable-next-line no-unused-vars, n/handle-callback-err
+      // eslint-disable-next-line n/handle-callback-err
       router.use(function throwingErrorHandler (err, req, res, next) {
         throw new Error('handler boom')
       })
@@ -637,7 +637,7 @@ describeTracing('TracingChannel', function () {
         throw new Error('async boom')
       })
 
-      // eslint-disable-next-line no-unused-vars, n/handle-callback-err
+      // eslint-disable-next-line n/handle-callback-err
       router.use(function throwingErrorHandler (err, req, res, next) {
         throw new Error('handler boom')
       })
@@ -883,7 +883,7 @@ describeTracing('TracingChannel', function () {
       router.get('/fail', function origin (req, res, next) {
         next(new Error('boom'))
       })
-      router.use(function rethrowing (err, req, res, next) { // eslint-disable-line no-unused-vars
+      router.use(function rethrowing (err, req, res, next) {
         throw err
       })
       router.use(recover)
@@ -1021,7 +1021,7 @@ function byPhase (name) {
 }
 
 // Error handler that recovers by ending the response with the error message.
-function recover (err, req, res, next) { // eslint-disable-line no-unused-vars
+function recover (err, req, res, next) {
   res.statusCode = 500
   res.end(err.message)
 }
