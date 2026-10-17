@@ -35,6 +35,12 @@ router.get('/files{/*splat}', (req, res) => {
 // Middleware can run before a route has matched.
 router.use((req, res, next) => {
   expectTypeOf(req).toEqualTypeOf<Request>()
+  // @ts-expect-error custom request properties require module augmentation
+  res.end(req.user)
+  // @ts-expect-error custom response properties require module augmentation
+  res.end(res.requestId)
+  // @ts-expect-error custom response methods require module augmentation
+  res.sendText('response')
   if (req.route) {
     expectTypeOf(req.route.path).toEqualTypeOf<Router.Path>()
   }

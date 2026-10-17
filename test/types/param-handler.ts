@@ -9,7 +9,6 @@ const loadUser: RequestParamHandler = (req, res, next, value, name) => {
   expectTypeOf(next).toEqualTypeOf<NextFunction>()
   expectTypeOf(value).toBeAny()
   expectTypeOf(name).toBeString()
-  req.user = { id: String(value) }
   next()
 }
 

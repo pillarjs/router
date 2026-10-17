@@ -18,8 +18,8 @@ declare namespace Route {
   type Response = RouterResponse
   type Layer = RouterLayer
 
-  type RequestHandler<P = Params> = (req: Request<P>, res: Response, next: NextFunction) => void
-  type ErrorRequestHandler<P = Params> = (err: any, req: Request<P>, res: Response, next: NextFunction) => void
+  type RequestHandler<P = Params> = (req: Request<P>, res: Response, next: NextFunction) => unknown
+  type ErrorRequestHandler<P = Params> = (err: any, req: Request<P>, res: Response, next: NextFunction) => unknown
 
   type Handler<P = Params> = RequestHandler<P> | ErrorRequestHandler<P>
   type HandlerArg<F extends Handler<any> = Handler> = F | ReadonlyArray<HandlerArg<F>>

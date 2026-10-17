@@ -40,15 +40,12 @@ router.get<{ id?: string }>('/users{/:id}', (req, res) => {
 })
 
 router.get<string[]>(/^\/users\/(\w+)$/, (req, res) => {
-  expectTypeOf(req.params[0]).toBeString()
+  expectTypeOf(req.params[0]).toEqualTypeOf<string | undefined>()
   res.end(req.params[0])
 })
 
 const handler: Router.RequestHandler<UserParams> = (req, res, next) => {
   expectTypeOf(req.params.id).toBeString()
-  // Custom request and response properties remain available with generics.
-  expectTypeOf(req.user?.id).toEqualTypeOf<string | undefined>()
-  expectTypeOf(res.requestId).toEqualTypeOf<string | undefined>()
   next()
 }
 

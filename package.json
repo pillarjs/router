@@ -54,6 +54,6 @@
     "test-ci": "nyc --reporter=lcov --reporter=text npm test",
     "test-cov": "nyc --reporter=text npm test",
     "version": "node scripts/version-history.js && git add HISTORY.md",
-    "test-types": "tsc --noEmit && attw --pack"
+    "test-types": "tsc --noEmit && tsc -p test/types/tsconfig.augmentation.json && attw --pack"
   }
 }

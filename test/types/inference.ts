@@ -8,8 +8,7 @@ router.get('/users/:id', (req, res, next) => {
   expectTypeOf(req).toEqualTypeOf<Router.Request<{ id: string }>>()
   expectTypeOf(res).toEqualTypeOf<Router.Response>()
   expectTypeOf(next).toEqualTypeOf<Router.NextFunction>()
-  expectTypeOf(req.user?.id).toEqualTypeOf<string | undefined>()
-  res.sendText(req.params.id.toUpperCase())
+  res.end(req.params.id.toUpperCase())
   // @ts-expect-error only declared parameter names are available
   res.end(req.params.slug)
   // @ts-expect-error named parameters are strings

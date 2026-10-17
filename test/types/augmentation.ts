@@ -36,14 +36,16 @@ router.use((req, res, next) => {
 })
 
 router.get('/users/:id', (req, res) => {
+  expectTypeOf(req.params.id).toBeString()
   expectTypeOf(req.user?.id).toEqualTypeOf<string | undefined>()
   expectTypeOf(res.sendText(req.user?.id || '')).toEqualTypeOf<Router.Response>()
   // @ts-expect-error custom response methods check argument types
   res.sendText(123)
 })
 
-router.param('id', (req, res, next) => {
+router.param('id', (req, res, next, value) => {
   expectTypeOf(req.user?.id).toEqualTypeOf<string | undefined>()
+  req.user = { id: String(value) }
   expectTypeOf(res.sendText).toEqualTypeOf<Router.Response['sendText']>()
   next()
 })
@@ -69,6 +71,16 @@ new Router.Route('/').all<Router.ErrorRequestHandler>((err, req, res, next) => {
   expectTypeOf(res.sendText).toEqualTypeOf<Router.Response['sendText']>()
   next(err)
 })
+
+// Explicit parameter types preserve request and response augmentation.
+const handler: Router.RequestHandler<{ id: string }> = (req, res) => {
+  expectTypeOf(req.params.id).toBeString()
+  expectTypeOf(req.user?.id).toEqualTypeOf<string | undefined>()
+  expectTypeOf(res.requestId).toEqualTypeOf<string | undefined>()
+  return res.sendText(req.params.id)
+}
+router.get<{ id: string }>('/users/:id', handler)
+router.route('/users/:id').get<{ id: string }>(handler)
 
 // Augmentation does not change the raw requests and responses accepted by the router.
 createServer((req, res) => {
