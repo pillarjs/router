@@ -6,10 +6,11 @@ declare const Router: Router.RouterConstructor
 // eslint-disable-next-line @typescript-eslint/no-redeclare -- Merge types with the callable and constructable CommonJS export.
 declare namespace Router {
   type NextFunction = RouteModule.NextFunction
+  type Params = Record<string, string | string[] | undefined>
 
   /** Can be augmented to describe properties added by middleware. */
-  interface Request extends IncomingMessage {
-    params: Record<string, string | string[] | undefined>
+  interface Request<P = Params> extends IncomingMessage {
+    params: P
     baseUrl: string
     originalUrl: string
     route?: Route
@@ -19,17 +20,18 @@ declare namespace Router {
   /** Can be augmented to describe properties and methods added by middleware. */
   interface Response extends ServerResponse {}
 
-  type RequestHandler = RouteModule.RequestHandler
-  type ErrorRequestHandler = RouteModule.ErrorRequestHandler
-  type Handler = RouteModule.Handler
-  type HandlerArg<F extends Handler = Handler> = RouteModule.HandlerArg<F>
+  type RequestHandler<P = Params> = RouteModule.RequestHandler<P>
+  type ErrorRequestHandler<P = Params> = RouteModule.ErrorRequestHandler<P>
+  type Handler<P = Params> = RouteModule.Handler<P>
+  type HandlerArg<F extends Handler<any> = Handler> = RouteModule.HandlerArg<F>
   type Method = RouteModule.Method
   type Path = RouteModule.Path
   type Route = RouteModule.Route
 
   type RouterMethod<T> = {
-    <F extends Handler = RequestHandler>(path: Path, handler: HandlerArg<F>, ...handlers: Array<HandlerArg<F>>): T
-    (path: Path, handler: HandlerArg, ...handlers: HandlerArg[]): T
+    <F extends Handler<any> = RequestHandler>(path: Path, handler: HandlerArg<F>, ...handlers: Array<HandlerArg<F>>): T
+    <P = Params>(path: Path, handler: HandlerArg<RequestHandler<P>>, ...handlers: Array<HandlerArg<RequestHandler<P>>>): T
+    <P = Params>(path: Path, handler: HandlerArg<Handler<P>>, ...handlers: Array<HandlerArg<Handler<P>>>): T
   }
 
   interface RouterOptions {

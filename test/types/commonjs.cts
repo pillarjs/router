@@ -19,3 +19,8 @@ expectTypeOf<Router.ErrorRequestHandler>().toEqualTypeOf<Route.ErrorRequestHandl
 expectTypeOf(router.caseSensitive).toEqualTypeOf<boolean | undefined>()
 expectTypeOf(router.mergeParams).toEqualTypeOf<boolean | undefined>()
 expectTypeOf(router.strict).toEqualTypeOf<boolean | undefined>()
+
+router.get<{ id: string }>('/users/:id', (req, res) => {
+  expectTypeOf(req).toEqualTypeOf<Router.Request<{ id: string }>>()
+  res.end(req.params.id)
+})

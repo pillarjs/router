@@ -54,6 +54,28 @@ The augmentation applies to middleware, route handlers, error handlers, and
 `router.param` callbacks. It only describes types; your middleware must assign
 the property. Mark properties optional when they may not be present.
 
+To declare route parameters explicitly, pass their type to a routing method or
+to `Request`, `RequestHandler`, or `ErrorRequestHandler`:
+
+```ts
+type UserParams = { id: string }
+
+router.get<UserParams>('/users/:id', (req, res) => {
+  res.end(req.params.id.toUpperCase())
+})
+
+const showUser: Router.RequestHandler<UserParams> = (req, res) => {
+  res.end(req.params.id)
+}
+
+router.route('/users/:id').get<UserParams>(showUser)
+```
+
+Without an explicit parameter type, parameter values remain
+`string | string[] | undefined`. Use `string[]` for wildcard parameters and
+optional properties for optional parameters. These types describe expected
+parameters; they do not validate the path or convert parameter values.
+
 ## API
 
 ```js

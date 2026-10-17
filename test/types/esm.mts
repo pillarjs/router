@@ -15,3 +15,8 @@ expectTypeOf(router).toExtend<RequestHandler>()
 expectTypeOf(new Router(options)).toEqualTypeOf<Router.Router>()
 expectTypeOf(Route).toEqualTypeOf(Router.Route)
 expectTypeOf(new Route('/')).toEqualTypeOf<Router.Route>()
+
+router.get<{ id: string }>('/users/:id', (req, res) => {
+  expectTypeOf(req).toEqualTypeOf<Request<{ id: string }>>()
+  res.end(req.params.id)
+})

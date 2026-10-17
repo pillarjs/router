@@ -1,5 +1,5 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
-import type { Request as RouterRequest, Response as RouterResponse } from '../index'
+import type { Params as RouterParams, Request as RouterRequest, Response as RouterResponse } from '../index'
 
 declare const Route: Route.RouteConstructor
 
@@ -7,19 +7,21 @@ declare const Route: Route.RouteConstructor
 declare namespace Route {
   type NextFunction = (err?: any) => void
 
-  type Request = RouterRequest
+  type Params = RouterParams
+  type Request<P = Params> = RouterRequest<P>
   type Response = RouterResponse
 
-  type RequestHandler = (req: Request, res: Response, next: NextFunction) => void
-  type ErrorRequestHandler = (err: any, req: Request, res: Response, next: NextFunction) => void
+  type RequestHandler<P = Params> = (req: Request<P>, res: Response, next: NextFunction) => void
+  type ErrorRequestHandler<P = Params> = (err: any, req: Request<P>, res: Response, next: NextFunction) => void
 
-  type Handler = RequestHandler | ErrorRequestHandler
-  type HandlerArg<F extends Handler = Handler> = F | ReadonlyArray<HandlerArg<F>>
+  type Handler<P = Params> = RequestHandler<P> | ErrorRequestHandler<P>
+  type HandlerArg<F extends Handler<any> = Handler> = F | ReadonlyArray<HandlerArg<F>>
 
   type Path = string | RegExp | Array<string | RegExp>
   type RouteMethod<T> = {
-    <F extends Handler = RequestHandler>(handler: HandlerArg<F>, ...handlers: Array<HandlerArg<F>>): T
-    (handler: HandlerArg, ...handlers: HandlerArg[]): T
+    <F extends Handler<any> = RequestHandler>(handler: HandlerArg<F>, ...handlers: Array<HandlerArg<F>>): T
+    <P = Params>(handler: HandlerArg<RequestHandler<P>>, ...handlers: Array<HandlerArg<RequestHandler<P>>>): T
+    <P = Params>(handler: HandlerArg<Handler<P>>, ...handlers: Array<HandlerArg<Handler<P>>>): T
   }
 
   type Method =
