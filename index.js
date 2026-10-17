@@ -445,11 +445,11 @@ Router.prototype.route = function route (path) {
  * List the routes and mounted routers registered on this router.
  *
  * Returns one `{ path, methods, router }` object per registered path.
- * `methods` lists the methods with dedicated handlers, including the
- * automatic `HEAD` for `GET` routes. Routes that combine `.all()` with
- * specific methods list those methods, but can also handle other methods
- * through `.all()`. It is `undefined` for routes registered only with
- * `.all()` and for mounted routers. Plain middleware is not listed.
+ * `methods` lists the methods the route handles, including the automatic
+ * `HEAD` for `GET` routes. It is `undefined` for routes with `.all()`
+ * handlers, even when combined with specific methods, and for mounted
+ * routers: these layers do not restrict by HTTP method.
+ * Plain middleware is not listed.
  * `router` is the mounted router instance for
  * `.use(path, router)` layers, so consumers can recurse by calling
  * `router.listRoutes()` themselves when it is available.
@@ -470,13 +470,9 @@ Router.prototype.listRoutes = function listRoutes () {
       continue
     }
 
-    let methods
-    if (route) {
-      methods = route._methods()
-      if (methods.length === 0 && route.methods._all) {
-        methods = undefined
-      }
-    }
+    const methods = route && !route.methods._all
+      ? route._methods()
+      : undefined
 
     if (Array.isArray(layer.rawPath)) {
       for (const path of layer.rawPath) {
