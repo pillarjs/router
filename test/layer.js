@@ -4,24 +4,18 @@ const assert = require('assert')
 const Layer = require('../lib/layer')
 
 describe('decodeParam', function () {
-  it('should set statusCode to 400 on URIError', function () {
+  it('should set status and statusCode to 400 on URIError', function () {
     const layer = new Layer('/:param', {}, function handle () {})
 
-    // Create a malformed URI component that will cause a decoding error
-    const malformedParam = '%Z'
-
-    try {
-      // Using match will internally call decodeParam with our malformed value
-      layer.match('/' + malformedParam)
-
-      // If we reach here, no error was thrown, which is a failure
-      assert.fail('Expected URIError to be thrown')
-    } catch (err) {
-      // Verify that the URIError was enhanced with the correct status properties
-      assert.strictEqual(err.status, 400, 'Expected err.status to be 400')
-      assert.strictEqual(err.statusCode, 400, 'Expected err.statusCode to be 400')
-      assert.strictEqual(err.message, `Failed to decode param '${malformedParam}'`, 'Expected proper error message')
-    }
+    assert.throws(function () {
+      layer.match('/%Z')
+    }, function (err) {
+      assert.ok(err instanceof URIError)
+      assert.strictEqual(err.status, 400)
+      assert.strictEqual(err.statusCode, 400)
+      assert.strictEqual(err.message, "Failed to decode param '%Z'")
+      return true
+    })
   })
 
   it('should successfully decode valid parameters', function () {

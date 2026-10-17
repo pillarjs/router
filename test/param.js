@@ -122,6 +122,23 @@ describe('Router', function () {
         .expect(400, /URIError: Failed to decode param/, done)
     })
 
+    it('should expose statusCode to error handlers for invalid path values', function (done) {
+      const router = new Router()
+      const server = createServer(router)
+
+      router.get('/user/:id', createHitHandle(1))
+
+      router.use(function handleError (err, req, res, next) {
+        res.statusCode = err.statusCode || 500
+        res.end(err.message)
+      })
+
+      request(server)
+        .get('/user/%Z')
+        .expect(shouldNotHitHandle(1))
+        .expect(400, "Failed to decode param '%Z'", done)
+    })
+
     it('should only invoke fn when necessary', function (done) {
       const router = new Router()
       const server = createServer(router)
