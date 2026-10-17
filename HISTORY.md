@@ -1,6 +1,7 @@
 unreleased
 ==========
 
+* Add TypeScript declarations for `Router` and `Route`
 * perf: skip decoding route parameters without `%`
 * Set `err.statusCode` to 400 for malformed route parameters
 
