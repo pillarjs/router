@@ -13,6 +13,26 @@ permissions:
   contents: read
 
 jobs:
+  checks:
+    name: Lint and types
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          check-latest: true
+
+      - name: Install Node.js dependencies
+        run: npm install --ignore-scripts
+
+      - name: Lint code
+        run: npm run lint
+
+      - name: Check types
+        run: npm run test-types
+
   test:
     name: Test - Node.js ${{ matrix.node-version }}
     runs-on: ubuntu-latest
@@ -34,9 +54,6 @@ jobs:
 
       - name: Run tests
         run: npm run test-ci
-
-      - name: Lint code
-        run: npm run lint
 
       - name: Upload code coverage
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

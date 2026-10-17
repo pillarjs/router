@@ -18,6 +18,97 @@ This is a [Node.js](https://nodejs.org/en/) module available through the
 $ npm install router
 ```
 
+## TypeScript
+
+TypeScript declarations are included. To describe properties added by your
+middleware, augment the `Request` and `Response` interfaces in the `router` module:
+
+```ts
+import Router from 'router'
+
+declare module 'router' {
+  interface Request {
+    user?: { id: string }
+  }
+
+  interface Response {
+    requestId?: string
+  }
+}
+
+const router = Router()
+
+router.use((req, res, next) => {
+  req.user = { id: '123' }
+  res.requestId = 'request-123'
+  next()
+})
+
+router.get('/me', (req, res) => {
+  if (res.requestId) res.setHeader('X-Request-Id', res.requestId)
+  res.end(req.user?.id)
+})
+```
+
+The augmentation applies to middleware, route handlers, error handlers, and
+`router.param` callbacks. It only describes types; your middleware must assign
+the property. Mark properties optional when they may not be present.
+
+Literal route strings infer parameter names and values, following the approach
+used by `@types/express-serve-static-core`:
+
+```ts
+router.get('/users/:id', (req, res) => {
+  res.end(req.params.id.toUpperCase()) // id: string
+})
+
+router.get('/files{/*path}', (req, res) => {
+  res.end(req.params.path?.join('/')) // path: string[] | undefined
+})
+```
+
+Inference also applies to `router.use(path, ...)`, `router.route(path)`, and
+`new Router.Route(path)`, including chained routing methods.
+
+To declare route parameters explicitly, pass their type to a routing method or
+to `Request`, `RequestHandler`, or `ErrorRequestHandler`:
+
+```ts
+type UserParams = { id: string }
+
+router.get<UserParams>('/users/:id', (req, res) => {
+  res.end(req.params.id.toUpperCase())
+})
+
+const showUser: Router.RequestHandler<UserParams> = (req, res) => {
+  res.end(req.params.id)
+}
+
+router.route('/users/:id').get<UserParams>(showUser)
+```
+
+Dynamic strings, regular expressions, and path arrays keep the default parameter
+values of `string | string[] | undefined` unless you supply an explicit type.
+Use explicit types for syntax the inference does not cover, such as quoted
+parameter names. These types do not validate the path or convert parameter values.
+
+Path arrays can be mutable or readonly, including arrays declared with `as const`.
+
+Use `RequestParamHandler` for reusable `router.param` callbacks:
+
+```ts
+const loadUser: Router.RequestParamHandler = (req, res, next, value, name) => {
+  req.user = { id: String(value) }
+  next()
+}
+
+router.param('id', loadUser)
+```
+
+Routing methods preserve extended router and route types when chaining.
+`router.stack` and `route.stack` expose `Layer` entries; their matched `path`
+and `params` can be undefined before a successful match.
+
 ## API
 
 ```js
