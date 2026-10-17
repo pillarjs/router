@@ -5,6 +5,8 @@ import type { NextFunction, Request, RequestHandler, Response, RouterOptions } f
 const options: RouterOptions = { strict: true }
 const router = Router(options)
 
+expectTypeOf(router.listRoutes()).toEqualTypeOf<Router.RouteInfo[]>()
+
 router.get('/', (req, res, next) => {
   expectTypeOf(req).toEqualTypeOf<Request<{}>>()
   expectTypeOf(res).toEqualTypeOf<Response>()

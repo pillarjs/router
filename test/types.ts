@@ -96,7 +96,7 @@ expectTypeOf(new Router(opts)).toEqualTypeOf<Router.Router>()
 // @ts-expect-error unknown options are rejected
 Router({ nope: true })
 expectTypeOf<Method>().toExtend<string>()
-expectTypeOf<Path>().toEqualTypeOf<string | RegExp | ReadonlyArray<string | RegExp>>()
+expectTypeOf<string | RegExp | ReadonlyArray<string | RegExp>>().toExtend<Path>()
 
 // routes: all verbs, multiple handlers, chaining
 const route = router.route('/things/:id')

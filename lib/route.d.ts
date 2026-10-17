@@ -24,7 +24,8 @@ declare namespace Route {
   type Handler<P = Params> = RequestHandler<P> | ErrorRequestHandler<P>
   type HandlerArg<F extends Handler<any> = Handler> = F | ReadonlyArray<HandlerArg<F>>
 
-  type Path = string | RegExp | ReadonlyArray<string | RegExp>
+  type NestedStringPath = string | ReadonlyArray<NestedStringPath>
+  type Path = string | RegExp | ReadonlyArray<RegExp | NestedStringPath>
 
   // Follow the route parameter inference used by @types/express-serve-static-core.
   type RemoveTail<S extends string, Tail extends string> = S extends `${infer P}${Tail}` ? P : S
@@ -67,7 +68,8 @@ declare namespace Route {
     methods: Record<string, boolean>
 
     _handlesMethod(method: string): boolean
-    _methods(): string[]
+    /** Include `'*'` for `.all()` handlers when `includeAll` is true. */
+    _methods(includeAll?: boolean): string[]
     dispatch(req: IncomingMessage, res: ServerResponse, done: NextFunction): void
 
     all: RouteMethod<this, RouteParameters<R>>
