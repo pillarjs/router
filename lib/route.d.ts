@@ -24,7 +24,7 @@ declare namespace Route {
   type Handler<P = Params> = RequestHandler<P> | ErrorRequestHandler<P>
   type HandlerArg<F extends Handler<any> = Handler> = F | ReadonlyArray<HandlerArg<F>>
 
-  type Path = string | RegExp | Array<string | RegExp>
+  type Path = string | RegExp | ReadonlyArray<string | RegExp>
 
   // Follow the route parameter inference used by @types/express-serve-static-core.
   type RemoveTail<S extends string, Tail extends string> = S extends `${infer P}${Tail}` ? P : S

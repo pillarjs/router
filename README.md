@@ -92,6 +92,8 @@ values of `string | string[] | undefined` unless you supply an explicit type.
 Use explicit types for syntax the inference does not cover, such as quoted
 parameter names. These types do not validate the path or convert parameter values.
 
+Path arrays can be mutable or readonly, including arrays declared with `as const`.
+
 Use `RequestParamHandler` for reusable `router.param` callbacks:
 
 ```ts
