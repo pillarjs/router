@@ -1,6 +1,7 @@
-import { IncomingMessage, ServerResponse } from "node:http";
+import type { IncomingMessage, ServerResponse } from "node:http";
 import { expectTypeOf } from "expect-type";
-import Router, { ErrorRequestHandler, Method, NextFunction, Path, RequestHandler } from "..";
+import Router from "..";
+import type { ErrorRequestHandler, Method, NextFunction, Path, RequestHandler } from "..";
 
 const router = Router();
 
@@ -33,16 +34,16 @@ router.get("/", [handler, other]);
 router.get("/", [handler, [other]], handler);
 
 // at least one handler is required (runtime throws TypeError)
-// @ts-expect-error
+// @ts-expect-error at least one handler is required
 router.get("/");
 // handlers must be functions or arrays of them
-// @ts-expect-error
+// @ts-expect-error a string is not a handler
 router.get("/", "not-a-handler");
 
 // paths may be a string, RegExp, or array of either
 router.get(/^\/x/, handler);
 router.get(["/a", /^\/b/], handler);
-// @ts-expect-error
+// @ts-expect-error a number is not a path
 router.get(42, handler);
 
 // use: with or without path, multiple handlers, arrays
@@ -54,7 +55,7 @@ router.use(["/a", "/b"], handler);
 router.use(/^\/c/, handler);
 // @ts-expect-error path without any handler (runtime throws TypeError)
 router.use("/x");
-// @ts-expect-error
+// @ts-expect-error at least one handler is required
 router.use();
 
 // verb methods and use return the router for chaining
@@ -100,7 +101,7 @@ expectTypeOf<Path>().toEqualTypeOf<string | RegExp | Array<string | RegExp>>();
 
 // routes: all verbs, multiple handlers, chaining
 const route = router.route("/things/:id");
-expectTypeOf(route.path).toBeString();
+expectTypeOf(route.path).toEqualTypeOf<Path>();
 route.all(handler).get(handler, other).post([handler, [other]]);
 route.checkout(handler);
 route["m-search"](handler);
@@ -113,5 +114,5 @@ expectTypeOf(new Router.Route(/^\/x/)).toEqualTypeOf<Router.Route>();
 expectTypeOf(new Router.Route(["/a", /^\/b/])).toEqualTypeOf<Router.Route>();
 // @ts-expect-error calling without new does not construct (strict mode)
 Router.Route("/x");
-// @ts-expect-error
+// @ts-expect-error a number is not a path
 expectTypeOf(new Router.Route(42)).toEqualTypeOf<Router.Route>();

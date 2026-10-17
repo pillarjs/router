@@ -1,7 +1,9 @@
 {
   "extends": "@tsconfig/node18/tsconfig.json",
-  "include": ["index.d.ts", "lib/route.d.ts", "test/types.ts"],
+  "include": ["index.d.ts", "lib/**/*.d.ts", "test/**/*.ts", "test/**/*.cts", "test/**/*.mts"],
   "compilerOptions": {
+    "noEmit": true,
+    "skipLibCheck": false,
     "types": ["node"]
   }
 }

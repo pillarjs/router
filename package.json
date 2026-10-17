@@ -33,7 +33,8 @@
     "neostandard": "^0.12.0",
     "nyc": "15.1.0",
     "run-series": "^1.1.9",
-    "supertest": "6.3.3"
+    "supertest": "6.3.3",
+    "typescript": "5.9.3"
   },
   "files": [
     "lib/",
