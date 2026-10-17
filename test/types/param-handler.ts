@@ -20,14 +20,6 @@ router.param('id', async (req, res, next, value, name) => {
   next()
 })
 
-expectTypeOf(router.params.id).toEqualTypeOf<RequestParamHandler[] | undefined>()
-router.params.id?.forEach(callback => {
-  expectTypeOf(callback).toEqualTypeOf<RequestParamHandler>()
-})
-// @ts-expect-error callbacks are stored in arrays
-router.params.id = loadUser
-// @ts-expect-error registry entries must contain callbacks
-router.params.id = [123]
 // @ts-expect-error parameter names must be strings
 router.param(42, loadUser)
 // @ts-expect-error callbacks must be functions

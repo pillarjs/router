@@ -54,6 +54,22 @@ The augmentation applies to middleware, route handlers, error handlers, and
 `router.param` callbacks. It only describes types; your middleware must assign
 the property. Mark properties optional when they may not be present.
 
+Literal route strings infer parameter names and values, following the approach
+used by `@types/express-serve-static-core`:
+
+```ts
+router.get('/users/:id', (req, res) => {
+  res.end(req.params.id.toUpperCase()) // id: string
+})
+
+router.get('/files{/*path}', (req, res) => {
+  res.end(req.params.path?.join('/')) // path: string[] | undefined
+})
+```
+
+Inference also applies to `router.use(path, ...)`, `router.route(path)`, and
+`new Router.Route(path)`, including chained routing methods.
+
 To declare route parameters explicitly, pass their type to a routing method or
 to `Request`, `RequestHandler`, or `ErrorRequestHandler`:
 
@@ -71,10 +87,10 @@ const showUser: Router.RequestHandler<UserParams> = (req, res) => {
 router.route('/users/:id').get<UserParams>(showUser)
 ```
 
-Without an explicit parameter type, parameter values remain
-`string | string[] | undefined`. Use `string[]` for wildcard parameters and
-optional properties for optional parameters. These types describe expected
-parameters; they do not validate the path or convert parameter values.
+Dynamic strings, regular expressions, and path arrays keep the default parameter
+values of `string | string[] | undefined` unless you supply an explicit type.
+Use explicit types for syntax the inference does not cover, such as quoted
+parameter names. These types do not validate the path or convert parameter values.
 
 Use `RequestParamHandler` for reusable `router.param` callbacks:
 

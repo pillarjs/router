@@ -10,7 +10,7 @@ expectTypeOf<Request>().toExtend<IncomingMessage>()
 
 // The router adds these properties before invoking a matching handler.
 router.get('/users/:id', (req, res) => {
-  expectTypeOf(req.params.id).toEqualTypeOf<string | string[] | undefined>()
+  expectTypeOf(req.params.id).toBeString()
   expectTypeOf(req.baseUrl).toBeString()
   expectTypeOf(req.originalUrl).toBeString()
   expectTypeOf(req.route).toEqualTypeOf<Router.Route | undefined>()
@@ -43,7 +43,7 @@ router.use((req, res, next) => {
 })
 
 router.route('/users/:id').get((req, res) => {
-  expectTypeOf(req).toEqualTypeOf<Request>()
+  expectTypeOf(req).toEqualTypeOf<Request<{ id: string }>>()
   res.end(req.params.id)
 })
 

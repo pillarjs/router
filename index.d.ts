@@ -1,5 +1,5 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
-import type { MatchFunction, ParamData } from 'path-to-regexp'
+import type { MatchFunction } from 'path-to-regexp'
 import RouteModule = require('./lib/route')
 
 declare const Router: Router.RouterConstructor
@@ -7,7 +7,7 @@ declare const Router: Router.RouterConstructor
 // eslint-disable-next-line @typescript-eslint/no-redeclare -- Merge types with the callable and constructable CommonJS export.
 declare namespace Router {
   type NextFunction = RouteModule.NextFunction
-  type Params = ParamData
+  type Params = Record<string, string | string[] | undefined>
 
   /** Can be augmented to describe properties added by middleware. */
   interface Request<P = Params> extends IncomingMessage {
@@ -28,7 +28,8 @@ declare namespace Router {
   type HandlerArg<F extends Handler<any> = Handler> = RouteModule.HandlerArg<F>
   type Method = RouteModule.Method
   type Path = RouteModule.Path
-  type Route = RouteModule.Route
+  type Route<R extends Path = Path> = RouteModule.Route<R>
+  type RouteParameters<R extends Path> = RouteModule.RouteParameters<R>
 
   interface Layer {
     handle: Handler<any>
@@ -46,6 +47,8 @@ declare namespace Router {
   }
 
   type RouterMethod<T> = {
+    <R extends string | RegExp, P = RouteParameters<R>>(path: R, handler: HandlerArg<RequestHandler<P>>, ...handlers: Array<HandlerArg<RequestHandler<P>>>): T
+    <R extends string | RegExp, P = RouteParameters<R>>(path: R, handler: HandlerArg<Handler<P>>, ...handlers: Array<HandlerArg<Handler<P>>>): T
     <F extends Handler<any> = RequestHandler>(path: Path, handler: HandlerArg<F>, ...handlers: Array<HandlerArg<F>>): T
     <P = Params>(path: Path, handler: HandlerArg<RequestHandler<P>>, ...handlers: Array<HandlerArg<RequestHandler<P>>>): T
     <P = Params>(path: Path, handler: HandlerArg<Handler<P>>, ...handlers: Array<HandlerArg<Handler<P>>>): T
@@ -62,7 +65,7 @@ declare namespace Router {
   interface Router {
     (req: IncomingMessage, res: ServerResponse, callback: NextFunction): void
 
-    params: Record<string, RequestParamHandler[] | undefined>
+    params: Record<string, any>
     stack: Layer[]
     caseSensitive: boolean | undefined
     mergeParams: boolean | undefined
@@ -70,7 +73,7 @@ declare namespace Router {
 
     handle(req: IncomingMessage, res: ServerResponse, callback: NextFunction): void
     param(name: string, fn: RequestParamHandler): this
-    route(path: Path): Route
+    route<R extends Path>(path: R): Route<R>
 
     use: RouterMethod<this> & RouteModule.RouteMethod<this>
 

@@ -19,10 +19,30 @@ declare namespace Route {
   type HandlerArg<F extends Handler<any> = Handler> = F | ReadonlyArray<HandlerArg<F>>
 
   type Path = string | RegExp | Array<string | RegExp>
-  type RouteMethod<T> = {
-    <F extends Handler<any> = RequestHandler>(handler: HandlerArg<F>, ...handlers: Array<HandlerArg<F>>): T
-    <P = Params>(handler: HandlerArg<RequestHandler<P>>, ...handlers: Array<HandlerArg<RequestHandler<P>>>): T
-    <P = Params>(handler: HandlerArg<Handler<P>>, ...handlers: Array<HandlerArg<Handler<P>>>): T
+
+  // Follow the route parameter inference used by @types/express-serve-static-core.
+  type RemoveTail<S extends string, Tail extends string> = S extends `${infer P}${Tail}` ? P : S
+  type GetRouteParameter<S extends string> = RemoveTail<RemoveTail<RemoveTail<S, `/${string}`>, `-${string}`>, `.${string}`>
+
+  type RouteParameters<R extends Path> = R extends string
+    ? R extends `${infer Required}{${infer Optional}}${infer Next}`
+      ? ParseRouteParameters<Required> & Partial<ParseRouteParameters<Optional>> & RouteParameters<Next>
+      : ParseRouteParameters<R>
+    : Params
+
+  type ParseRouteParameters<R extends string> = string extends R ? Params
+    : R extends `${string}:${infer Rest}`
+      ? (GetRouteParameter<Rest> extends never ? Params : { [P in GetRouteParameter<Rest>]: string })
+        & (Rest extends `${GetRouteParameter<Rest>}${infer Next}` ? RouteParameters<Next> : unknown)
+      : R extends `${string}*${infer Rest}`
+        ? (GetRouteParameter<Rest> extends never ? Params : { [P in GetRouteParameter<Rest>]: string[] })
+          & (Rest extends `${GetRouteParameter<Rest>}${infer Next}` ? RouteParameters<Next> : unknown)
+        : {}
+
+  type RouteMethod<T, DefaultParams = Params> = {
+    <F extends Handler<any> = RequestHandler<DefaultParams>>(handler: HandlerArg<F>, ...handlers: Array<HandlerArg<F>>): T
+    <P = DefaultParams>(handler: HandlerArg<RequestHandler<P>>, ...handlers: Array<HandlerArg<RequestHandler<P>>>): T
+    <P = DefaultParams>(handler: HandlerArg<Handler<P>>, ...handlers: Array<HandlerArg<Handler<P>>>): T
   }
 
   type Method =
@@ -35,8 +55,8 @@ declare namespace Route {
 
   type MethodHandlers<T> = { [M in Method | 'all']: RouteMethod<T> }
 
-  interface Route {
-    path: Path
+  interface Route<R extends Path = Path> {
+    path: R
     stack: Layer[]
     methods: Record<string, boolean>
 
@@ -44,46 +64,46 @@ declare namespace Route {
     _methods(): string[]
     dispatch(req: IncomingMessage, res: ServerResponse, done: NextFunction): void
 
-    all: RouteMethod<this>
-    acl: RouteMethod<this>
-    bind: RouteMethod<this>
-    checkout: RouteMethod<this>
-    connect: RouteMethod<this>
-    copy: RouteMethod<this>
-    delete: RouteMethod<this>
-    get: RouteMethod<this>
-    head: RouteMethod<this>
-    link: RouteMethod<this>
-    lock: RouteMethod<this>
-    'm-search': RouteMethod<this>
-    merge: RouteMethod<this>
-    mkactivity: RouteMethod<this>
-    mkcalendar: RouteMethod<this>
-    mkcol: RouteMethod<this>
-    move: RouteMethod<this>
-    notify: RouteMethod<this>
-    options: RouteMethod<this>
-    patch: RouteMethod<this>
-    post: RouteMethod<this>
-    propfind: RouteMethod<this>
-    proppatch: RouteMethod<this>
-    purge: RouteMethod<this>
-    put: RouteMethod<this>
-    query: RouteMethod<this>
-    rebind: RouteMethod<this>
-    report: RouteMethod<this>
-    search: RouteMethod<this>
-    source: RouteMethod<this>
-    subscribe: RouteMethod<this>
-    trace: RouteMethod<this>
-    unbind: RouteMethod<this>
-    unlink: RouteMethod<this>
-    unlock: RouteMethod<this>
-    unsubscribe: RouteMethod<this>
+    all: RouteMethod<this, RouteParameters<R>>
+    acl: RouteMethod<this, RouteParameters<R>>
+    bind: RouteMethod<this, RouteParameters<R>>
+    checkout: RouteMethod<this, RouteParameters<R>>
+    connect: RouteMethod<this, RouteParameters<R>>
+    copy: RouteMethod<this, RouteParameters<R>>
+    delete: RouteMethod<this, RouteParameters<R>>
+    get: RouteMethod<this, RouteParameters<R>>
+    head: RouteMethod<this, RouteParameters<R>>
+    link: RouteMethod<this, RouteParameters<R>>
+    lock: RouteMethod<this, RouteParameters<R>>
+    'm-search': RouteMethod<this, RouteParameters<R>>
+    merge: RouteMethod<this, RouteParameters<R>>
+    mkactivity: RouteMethod<this, RouteParameters<R>>
+    mkcalendar: RouteMethod<this, RouteParameters<R>>
+    mkcol: RouteMethod<this, RouteParameters<R>>
+    move: RouteMethod<this, RouteParameters<R>>
+    notify: RouteMethod<this, RouteParameters<R>>
+    options: RouteMethod<this, RouteParameters<R>>
+    patch: RouteMethod<this, RouteParameters<R>>
+    post: RouteMethod<this, RouteParameters<R>>
+    propfind: RouteMethod<this, RouteParameters<R>>
+    proppatch: RouteMethod<this, RouteParameters<R>>
+    purge: RouteMethod<this, RouteParameters<R>>
+    put: RouteMethod<this, RouteParameters<R>>
+    query: RouteMethod<this, RouteParameters<R>>
+    rebind: RouteMethod<this, RouteParameters<R>>
+    report: RouteMethod<this, RouteParameters<R>>
+    search: RouteMethod<this, RouteParameters<R>>
+    source: RouteMethod<this, RouteParameters<R>>
+    subscribe: RouteMethod<this, RouteParameters<R>>
+    trace: RouteMethod<this, RouteParameters<R>>
+    unbind: RouteMethod<this, RouteParameters<R>>
+    unlink: RouteMethod<this, RouteParameters<R>>
+    unlock: RouteMethod<this, RouteParameters<R>>
+    unsubscribe: RouteMethod<this, RouteParameters<R>>
   }
 
   interface RouteConstructor {
-    new (path: Path): Route
+    new <R extends Path>(path: R): Route<R>
   }
 }
 

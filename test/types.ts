@@ -9,12 +9,12 @@ const other: RequestHandler = (req, res, next) => next()
 
 // handler parameters are inferred
 router.get('/', function (req, res) {
-  expectTypeOf(req).toEqualTypeOf<Request>()
+  expectTypeOf(req).toEqualTypeOf<Request<{}>>()
   expectTypeOf(res).toEqualTypeOf<Response>()
 })
 
 router.get('/', function (req, res, next) {
-  expectTypeOf(req).toEqualTypeOf<Request>()
+  expectTypeOf(req).toEqualTypeOf<Request<{}>>()
   expectTypeOf(res).toEqualTypeOf<Response>()
   expectTypeOf(next).toBeFunction()
 })
@@ -100,7 +100,7 @@ expectTypeOf<Path>().toEqualTypeOf<string | RegExp | Array<string | RegExp>>()
 
 // routes: all verbs, multiple handlers, chaining
 const route = router.route('/things/:id')
-expectTypeOf(route.path).toEqualTypeOf<Path>()
+expectTypeOf(route.path).toEqualTypeOf<'/things/:id'>()
 route.all(handler).get(handler, other).post([handler, [other]])
 route.checkout(handler)
 route['m-search'](handler)
@@ -108,9 +108,9 @@ route['m-search'](handler)
 route.put()
 
 // Route must be constructed with new, and accepts any Path
-expectTypeOf(new Router.Route('/x')).toEqualTypeOf<Router.Route>()
-expectTypeOf(new Router.Route(/^\/x/)).toEqualTypeOf<Router.Route>()
-expectTypeOf(new Router.Route(['/a', /^\/b/])).toEqualTypeOf<Router.Route>()
+expectTypeOf(new Router.Route('/x')).toEqualTypeOf<Router.Route<'/x'>>()
+expectTypeOf(new Router.Route(/^\/x/)).toEqualTypeOf<Router.Route<RegExp>>()
+expectTypeOf(new Router.Route(['/a', /^\/b/])).toEqualTypeOf<Router.Route<Array<string | RegExp>>>()
 // @ts-expect-error calling without new does not construct (strict mode)
 Router.Route('/x')
 // @ts-expect-error a number is not a path
