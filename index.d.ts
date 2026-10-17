@@ -16,6 +16,9 @@ declare namespace Router {
     next?: NextFunction
   }
 
+  /** Can be augmented to describe properties and methods added by middleware. */
+  interface Response extends ServerResponse {}
+
   type RequestHandler = RouteModule.RequestHandler
   type ErrorRequestHandler = RouteModule.ErrorRequestHandler
   type Handler = RouteModule.Handler
@@ -47,7 +50,7 @@ declare namespace Router {
     strict: boolean | undefined
 
     handle(req: IncomingMessage, res: ServerResponse, callback: NextFunction): void
-    param(name: string, fn: (req: Request, res: ServerResponse, next: NextFunction, value: any, name: string) => void): this
+    param(name: string, fn: (req: Request, res: Response, next: NextFunction, value: any, name: string) => void): this
     route(path: Path): Route
 
     use: RouterMethod<Router> & RouteModule.RouteMethod<Router>

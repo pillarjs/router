@@ -21,7 +21,7 @@ $ npm install router
 ## TypeScript
 
 TypeScript declarations are included. To describe properties added by your
-middleware, augment the `Request` interface in the `router` module:
+middleware, augment the `Request` and `Response` interfaces in the `router` module:
 
 ```ts
 import Router from 'router'
@@ -30,16 +30,22 @@ declare module 'router' {
   interface Request {
     user?: { id: string }
   }
+
+  interface Response {
+    requestId?: string
+  }
 }
 
 const router = Router()
 
 router.use((req, res, next) => {
   req.user = { id: '123' }
+  res.requestId = 'request-123'
   next()
 })
 
 router.get('/me', (req, res) => {
+  if (res.requestId) res.setHeader('X-Request-Id', res.requestId)
   res.end(req.user?.id)
 })
 ```

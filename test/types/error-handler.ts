@@ -1,15 +1,14 @@
-import type { ServerResponse } from 'node:http'
 import { expectTypeOf } from 'expect-type'
-import type { ErrorRequestHandler, NextFunction, Request } from '../..'
+import type { ErrorRequestHandler, NextFunction, Request, Response } from '../..'
 
 declare const req: Request
-declare const res: ServerResponse
+declare const res: Response
 declare const next: NextFunction
 
 const handler: ErrorRequestHandler = (err, req, res, next) => {
   expectTypeOf(err).toBeAny()
   expectTypeOf(req).toEqualTypeOf<Request>()
-  expectTypeOf(res).toEqualTypeOf<ServerResponse>()
+  expectTypeOf(res).toEqualTypeOf<Response>()
   expectTypeOf(next).toEqualTypeOf<NextFunction>()
   next(err)
 }

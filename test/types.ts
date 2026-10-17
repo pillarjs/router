@@ -1,7 +1,6 @@
-import type { ServerResponse } from "node:http";
 import { expectTypeOf } from "expect-type";
 import Router from "..";
-import type { ErrorRequestHandler, Method, NextFunction, Path, Request, RequestHandler } from "..";
+import type { ErrorRequestHandler, Method, NextFunction, Path, Request, RequestHandler, Response } from "..";
 
 const router = Router();
 
@@ -11,12 +10,12 @@ const other: RequestHandler = (req, res, next) => next();
 // handler parameters are inferred
 router.get("/", function (req, res) {
   expectTypeOf(req).toEqualTypeOf<Request>();
-  expectTypeOf(res).toEqualTypeOf<ServerResponse>();
+  expectTypeOf(res).toEqualTypeOf<Response>();
 });
 
 router.get("/", function (req, res, next) {
   expectTypeOf(req).toEqualTypeOf<Request>();
-  expectTypeOf(res).toEqualTypeOf<ServerResponse>();
+  expectTypeOf(res).toEqualTypeOf<Response>();
   expectTypeOf(next).toBeFunction();
 });
 
@@ -24,7 +23,7 @@ router.get("/", function (req, res, next) {
 router.get<ErrorRequestHandler>("/", function (err, req, res, next) {
   expectTypeOf(err).toBeAny();
   expectTypeOf(req).toEqualTypeOf<Request>();
-  expectTypeOf(res).toEqualTypeOf<ServerResponse>();
+  expectTypeOf(res).toEqualTypeOf<Response>();
   expectTypeOf(next).toBeFunction();
 });
 
@@ -79,7 +78,7 @@ router.use<ErrorRequestHandler>(function (err, req, res, next) {
 // param callbacks receive typed req/res
 router.param("id", function (req, res, next, value, name) {
   expectTypeOf(req).toEqualTypeOf<Request>();
-  expectTypeOf(res).toEqualTypeOf<ServerResponse>();
+  expectTypeOf(res).toEqualTypeOf<Response>();
   expectTypeOf(next).toEqualTypeOf<NextFunction>();
   expectTypeOf(name).toBeString();
 });

@@ -1,7 +1,6 @@
-import type { ServerResponse } from 'node:http'
 import { expectTypeOf } from 'expect-type'
 import Router from '../..'
-import type { ErrorRequestHandler, NextFunction, Request, RequestHandler } from '../..'
+import type { ErrorRequestHandler, NextFunction, Request, RequestHandler, Response } from '../..'
 
 const router = Router()
 const route = router.route('/')
@@ -35,19 +34,19 @@ route.get([errorHandler, [handler]], errorHandler)
 // Adding mixed overloads preserves contextual types for request handlers.
 router.use((req, res, next) => {
   expectTypeOf(req).toEqualTypeOf<Request>()
-  expectTypeOf(res).toEqualTypeOf<ServerResponse>()
+  expectTypeOf(res).toEqualTypeOf<Response>()
   expectTypeOf(next).toEqualTypeOf<NextFunction>()
 }, handler)
 
 router.get('/', (req, res, next) => {
   expectTypeOf(req).toEqualTypeOf<Request>()
-  expectTypeOf(res).toEqualTypeOf<ServerResponse>()
+  expectTypeOf(res).toEqualTypeOf<Response>()
   next()
 }, handler)
 
 route.get((req, res, next) => {
   expectTypeOf(req).toEqualTypeOf<Request>()
-  expectTypeOf(res).toEqualTypeOf<ServerResponse>()
+  expectTypeOf(res).toEqualTypeOf<Response>()
   next()
 }, handler)
 
