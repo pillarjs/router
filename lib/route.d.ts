@@ -1,4 +1,5 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
+import type { Request as RouterRequest } from '../index'
 
 declare const Route: Route.RouteConstructor
 
@@ -6,13 +7,7 @@ declare const Route: Route.RouteConstructor
 declare namespace Route {
   type NextFunction = (err?: any) => void
 
-  interface Request extends IncomingMessage {
-    params: Record<string, string | string[] | undefined>
-    baseUrl: string
-    originalUrl: string
-    route?: Route
-    next?: NextFunction
-  }
+  type Request = RouterRequest
 
   type RequestHandler = (req: Request, res: ServerResponse, next: NextFunction) => void
   type ErrorRequestHandler = (err: any, req: Request, res: ServerResponse, next: NextFunction) => void

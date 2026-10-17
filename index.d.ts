@@ -6,7 +6,16 @@ declare const Router: Router.RouterConstructor
 // eslint-disable-next-line @typescript-eslint/no-redeclare -- Merge types with the callable and constructable CommonJS export.
 declare namespace Router {
   type NextFunction = RouteModule.NextFunction
-  type Request = RouteModule.Request
+
+  /** Can be augmented to describe properties added by middleware. */
+  interface Request extends IncomingMessage {
+    params: Record<string, string | string[] | undefined>
+    baseUrl: string
+    originalUrl: string
+    route?: Route
+    next?: NextFunction
+  }
+
   type RequestHandler = RouteModule.RequestHandler
   type ErrorRequestHandler = RouteModule.ErrorRequestHandler
   type Handler = RouteModule.Handler

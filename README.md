@@ -18,6 +18,36 @@ This is a [Node.js](https://nodejs.org/en/) module available through the
 $ npm install router
 ```
 
+## TypeScript
+
+TypeScript declarations are included. To describe properties added by your
+middleware, augment the `Request` interface in the `router` module:
+
+```ts
+import Router from 'router'
+
+declare module 'router' {
+  interface Request {
+    user?: { id: string }
+  }
+}
+
+const router = Router()
+
+router.use((req, res, next) => {
+  req.user = { id: '123' }
+  next()
+})
+
+router.get('/me', (req, res) => {
+  res.end(req.user?.id)
+})
+```
+
+The augmentation applies to middleware, route handlers, error handlers, and
+`router.param` callbacks. It only describes types; your middleware must assign
+the property. Mark properties optional when they may not be present.
+
 ## API
 
 ```js
