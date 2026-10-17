@@ -76,6 +76,21 @@ Without an explicit parameter type, parameter values remain
 optional properties for optional parameters. These types describe expected
 parameters; they do not validate the path or convert parameter values.
 
+Use `RequestParamHandler` for reusable `router.param` callbacks:
+
+```ts
+const loadUser: Router.RequestParamHandler = (req, res, next, value, name) => {
+  req.user = { id: String(value) }
+  next()
+}
+
+router.param('id', loadUser)
+```
+
+Routing methods preserve extended router and route types when chaining.
+`router.stack` and `route.stack` expose `Layer` entries; their matched `path`
+and `params` can be undefined before a successful match.
+
 ## API
 
 ```js

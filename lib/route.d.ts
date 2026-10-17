@@ -1,5 +1,5 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
-import type { Params as RouterParams, Request as RouterRequest, Response as RouterResponse } from '../index'
+import type { Layer as RouterLayer, Params as RouterParams, Request as RouterRequest, Response as RouterResponse } from '../index'
 
 declare const Route: Route.RouteConstructor
 
@@ -10,6 +10,7 @@ declare namespace Route {
   type Params = RouterParams
   type Request<P = Params> = RouterRequest<P>
   type Response = RouterResponse
+  type Layer = RouterLayer
 
   type RequestHandler<P = Params> = (req: Request<P>, res: Response, next: NextFunction) => void
   type ErrorRequestHandler<P = Params> = (err: any, req: Request<P>, res: Response, next: NextFunction) => void
@@ -34,14 +35,51 @@ declare namespace Route {
 
   type MethodHandlers<T> = { [M in Method | 'all']: RouteMethod<T> }
 
-  interface Route extends MethodHandlers<Route> {
+  interface Route {
     path: Path
-    stack: any[]
+    stack: Layer[]
     methods: Record<string, boolean>
 
     _handlesMethod(method: string): boolean
     _methods(): string[]
     dispatch(req: IncomingMessage, res: ServerResponse, done: NextFunction): void
+
+    all: RouteMethod<this>
+    acl: RouteMethod<this>
+    bind: RouteMethod<this>
+    checkout: RouteMethod<this>
+    connect: RouteMethod<this>
+    copy: RouteMethod<this>
+    delete: RouteMethod<this>
+    get: RouteMethod<this>
+    head: RouteMethod<this>
+    link: RouteMethod<this>
+    lock: RouteMethod<this>
+    'm-search': RouteMethod<this>
+    merge: RouteMethod<this>
+    mkactivity: RouteMethod<this>
+    mkcalendar: RouteMethod<this>
+    mkcol: RouteMethod<this>
+    move: RouteMethod<this>
+    notify: RouteMethod<this>
+    options: RouteMethod<this>
+    patch: RouteMethod<this>
+    post: RouteMethod<this>
+    propfind: RouteMethod<this>
+    proppatch: RouteMethod<this>
+    purge: RouteMethod<this>
+    put: RouteMethod<this>
+    query: RouteMethod<this>
+    rebind: RouteMethod<this>
+    report: RouteMethod<this>
+    search: RouteMethod<this>
+    source: RouteMethod<this>
+    subscribe: RouteMethod<this>
+    trace: RouteMethod<this>
+    unbind: RouteMethod<this>
+    unlink: RouteMethod<this>
+    unlock: RouteMethod<this>
+    unsubscribe: RouteMethod<this>
   }
 
   interface RouteConstructor {
