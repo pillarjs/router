@@ -1,56 +1,60 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
-import type {
-  Handler,
-  NextFunction,
-  RequestHandler,
-  Route as IRoute
-} from './lib/route'
-import Route = require('./lib/route')
+import RouteModule = require('./lib/route')
 
-export type RouterMethod<T> = <F extends Handler = RequestHandler>(path: Path, handler: HandlerArg<F>, ...handlers: Array<HandlerArg<F>>) => T
+declare const Router: Router.RouterConstructor
 
+// eslint-disable-next-line @typescript-eslint/no-redeclare -- Merge types with the callable and constructable CommonJS export.
+declare namespace Router {
+  type NextFunction = RouteModule.NextFunction
+  type RequestHandler = RouteModule.RequestHandler
+  type ErrorRequestHandler = RouteModule.ErrorRequestHandler
+  type Handler = RouteModule.Handler
+  type HandlerArg<F extends Handler = Handler> = RouteModule.HandlerArg<F>
+  type Method = RouteModule.Method
+  type Path = RouteModule.Path
+  type Route = RouteModule.Route
 
-export type Path = string | RegExp | Array<string | RegExp>
+  type RouterMethod<T> = <F extends Handler = RequestHandler>(path: Path, handler: HandlerArg<F>, ...handlers: Array<HandlerArg<F>>) => T
 
-export interface RouterOptions {
-  caseSensitive?: boolean
-  mergeParams?: boolean
-  strict?: boolean
-}
-
-type MethodHandlers<T> = { [M in Method | 'all']: RouterMethod<T> }
-
-export interface Router extends RequestHandler, MethodHandlers<Router> {
-  params: Record<string, any>
-  stack: any[]
-  caseSensitive: boolean
-  mergeParams: boolean
-  strict: boolean
-
-  handle(req: IncomingMessage, res: ServerResponse, callback: NextFunction): void
-  param(name: string, fn: (req: any, res: any, next: NextFunction, value: any, name: string) => void): this
-  route(path: Path): IRoute
-
-  use: {
-   <F extends Handler = RequestHandler>(path: Path, handler: HandlerArg<F>, ...handlers: Array<HandlerArg<F>>): Router
-    <F extends Handler = RequestHandler>(handler: HandlerArg<F>, ...handlers: Array<HandlerArg<F>>): Router
+  interface RouterOptions {
+    caseSensitive?: boolean
+    mergeParams?: boolean
+    strict?: boolean
   }
 
-  all: RouterMethod<this>
-  get: RouterMethod<this>
-  post: RouterMethod<this>
-  put: RouterMethod<this>
-  delete: RouterMethod<this>
-  patch: RouterMethod<this>
-  options: RouterMethod<this>
-  head: RouterMethod<this>
+  type MethodHandlers<T> = { [M in Method | 'all']: RouterMethod<T> }
+
+  interface Router extends RequestHandler, MethodHandlers<Router> {
+    params: Record<string, any>
+    stack: any[]
+    caseSensitive: boolean | undefined
+    mergeParams: boolean | undefined
+    strict: boolean | undefined
+
+    handle(req: IncomingMessage, res: ServerResponse, callback: NextFunction): void
+    param(name: string, fn: (req: IncomingMessage, res: ServerResponse, next: NextFunction, value: any, name: string) => void): this
+    route(path: Path): Route
+
+    use: {
+      <F extends Handler = RequestHandler>(path: Path, handler: HandlerArg<F>, ...handlers: Array<HandlerArg<F>>): Router
+      <F extends Handler = RequestHandler>(handler: HandlerArg<F>, ...handlers: Array<HandlerArg<F>>): Router
+    }
+
+    all: RouterMethod<this>
+    get: RouterMethod<this>
+    post: RouterMethod<this>
+    put: RouterMethod<this>
+    delete: RouterMethod<this>
+    patch: RouterMethod<this>
+    options: RouterMethod<this>
+    head: RouterMethod<this>
+  }
+
+  interface RouterConstructor {
+    (options?: RouterOptions): Router
+    new (options?: RouterOptions): Router
+    Route: typeof RouteModule
+  }
 }
 
-interface RouterConstructor {
-  (options?: RouterOptions): Router
-  new (options?: RouterOptions): Router
-  Route: typeof Route
-}
-
-declare const router: RouterConstructor
-export = router
+export = Router
