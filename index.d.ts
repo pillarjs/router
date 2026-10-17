@@ -15,7 +15,10 @@ declare namespace Router {
   type Path = RouteModule.Path
   type Route = RouteModule.Route
 
-  type RouterMethod<T> = <F extends Handler = RequestHandler>(path: Path, handler: HandlerArg<F>, ...handlers: Array<HandlerArg<F>>) => T
+  type RouterMethod<T> = {
+    <F extends Handler = RequestHandler>(path: Path, handler: HandlerArg<F>, ...handlers: Array<HandlerArg<F>>): T
+    (path: Path, handler: HandlerArg, ...handlers: HandlerArg[]): T
+  }
 
   interface RouterOptions {
     caseSensitive?: boolean
@@ -38,10 +41,7 @@ declare namespace Router {
     param(name: string, fn: (req: Request, res: ServerResponse, next: NextFunction, value: any, name: string) => void): this
     route(path: Path): Route
 
-    use: {
-      <F extends Handler = RequestHandler>(path: Path, handler: HandlerArg<F>, ...handlers: Array<HandlerArg<F>>): Router
-      <F extends Handler = RequestHandler>(handler: HandlerArg<F>, ...handlers: Array<HandlerArg<F>>): Router
-    }
+    use: RouterMethod<Router> & RouteModule.RouteMethod<Router>
 
     all: RouterMethod<this>
     get: RouterMethod<this>

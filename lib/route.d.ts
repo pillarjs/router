@@ -21,7 +21,10 @@ declare namespace Route {
   type HandlerArg<F extends Handler = Handler> = F | ReadonlyArray<HandlerArg<F>>
 
   type Path = string | RegExp | Array<string | RegExp>
-  type RouteMethod<T> = <F extends Handler = RequestHandler>(handler: HandlerArg<F>, ...handlers: Array<HandlerArg<F>>) => T
+  type RouteMethod<T> = {
+    <F extends Handler = RequestHandler>(handler: HandlerArg<F>, ...handlers: Array<HandlerArg<F>>): T
+    (handler: HandlerArg, ...handlers: HandlerArg[]): T
+  }
 
   type Method =
     | 'acl' | 'bind' | 'checkout' | 'connect' | 'copy' | 'delete' | 'get'
