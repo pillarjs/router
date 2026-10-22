@@ -14,6 +14,7 @@ router.stack.forEach(layer => {
   expectTypeOf(layer.name).toBeString()
   expectTypeOf(layer.keys).toEqualTypeOf<string[]>()
   expectTypeOf(layer.path).toEqualTypeOf<string | undefined>()
+  expectTypeOf(layer.rawPath).toEqualTypeOf<string | RegExp | Array<string | RegExp>>()
   expectTypeOf(layer.params).toEqualTypeOf<Router.Params | undefined>()
   expectTypeOf(layer.method).toEqualTypeOf<Router.Method | undefined>()
   expectTypeOf(layer.route).toEqualTypeOf<Router.Route | undefined>()

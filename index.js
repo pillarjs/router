@@ -441,6 +441,48 @@ Router.prototype.route = function route (path) {
   return route
 }
 
+/**
+ * List the routes and mounted routers registered on this router.
+ *
+ * Returns one `{ path, methods, router }` object per registered path.
+ * `methods` lists registered HTTP methods in first registration order,
+ * with `'*'` representing `.all()` handlers. The automatic `HEAD` for
+ * `GET` routes is appended unless explicitly registered. It is `undefined`
+ * for mounted routers. Plain middleware is not listed.
+ * `router` is the mounted router instance for
+ * `.use(path, router)` layers, so consumers can recurse by calling
+ * `router.listRoutes()` themselves when it is available.
+ *
+ * @return {Array<{path: string|RegExp, methods: Array<string>|undefined, router: Router|undefined}>}
+ * @public
+ */
+Router.prototype.listRoutes = function listRoutes () {
+  const routes = []
+
+  for (const layer of this.stack) {
+    const route = layer.route
+    const router = !route && Array.isArray(layer.handle.stack)
+      ? layer.handle
+      : undefined
+
+    if (!route && !router) {
+      continue
+    }
+
+    const methods = route ? route._methods(true) : undefined
+
+    if (Array.isArray(layer.rawPath)) {
+      for (const path of layer.rawPath) {
+        routes.push({ path, methods: methods && methods.slice(), router })
+      }
+    } else {
+      routes.push({ path: layer.rawPath, methods, router })
+    }
+  }
+
+  return routes
+}
+
 // create Router#VERB functions
 methods.concat('all').forEach(function (method) {
   Router.prototype[method] = function (path) {

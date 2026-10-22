@@ -234,6 +234,58 @@ router.param('user_id', function (req, res, next, id) {
 })
 ```
 
+### router.listRoutes()
+
+Returns an array with one `{ path, methods, router }` object per path
+registered on this router, in registration order.
+
+- `path` is the path the route was registered with (a string or a `RegExp`).
+  Routes registered with an array of paths produce one entry per path.
+- `methods` lists registered HTTP methods in uppercase, in the order they
+  were first registered. `.all()` is represented by `'*'` in that order to
+  indicate that the route accepts any HTTP method. Repeated registrations
+  do not add duplicate entries. The automatic `HEAD` for `GET` routes is
+  appended unless explicitly registered. For example, `.all(...).get(...)`
+  produces `['*', 'GET', 'HEAD']`, while `.get(...).all(...)` produces
+  `['GET', '*', 'HEAD']`. It is `undefined` for mounted routers, whose
+  internal routes determine the methods they handle.
+  An empty array means the route was created with
+  `router.route(path)` but has no handlers yet, so it matches no method.
+- `router` is the mounted router instance for `.use(path, router)` entries,
+  otherwise `undefined`. Nested routes are not resolved recursively; consumers
+  can recurse themselves by calling `router.listRoutes()` when the mounted
+  router implements it. Note that `.use()`
+  entries match their path as a prefix, while route entries match the full
+  path.
+
+Plain middleware functions registered with `.use()` are not listed.
+
+```js
+const router = new Router()
+const admin = new Router()
+
+admin.get('/', (req, res) => {
+  res.end('Hello')
+})
+
+router.use('/admin', admin)
+
+router.all('/:id', function (req, res) {
+  res.end('Hello')
+})
+
+console.log(router.listRoutes())
+// [
+//   { path: '/admin', methods: undefined, router: admin },
+//   { path: '/:id', methods: ['*'], router: undefined }
+// ]
+
+console.log(admin.listRoutes())
+// [
+//   { path: '/', methods: ['GET', 'HEAD'], router: undefined }
+// ]
+```
+
 ### router.route(path)
 
 Creates an instance of a single `Route` for the given `path`.

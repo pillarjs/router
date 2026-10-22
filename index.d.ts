@@ -43,12 +43,33 @@ declare namespace Router {
   type Route<R extends Path = Path> = RouteModule.Route<R>
   type RouteParameters<R extends Path> = RouteModule.RouteParameters<R>
 
+  /** A mounted router may come from a version without route introspection. */
+  interface MountedRouter {
+    (req: IncomingMessage, res: ServerResponse, next: NextFunction): unknown
+    stack: unknown[]
+    listRoutes?(): RouteInfo[]
+  }
+
+  /** One registered path, with either route methods or a mounted router. */
+  type RouteInfo = {
+    path: string | RegExp
+  } & ({
+    /** Uppercase methods and `'*'` for `.all()`, or an empty array for a route without handlers. */
+    methods: string[]
+    router: undefined
+  } | {
+    methods: undefined
+    router: MountedRouter
+  })
+
   interface Layer {
     handle: Handler<any>
     name: string
     keys: string[]
     params: Params | undefined
     path: string | undefined
+    /** The registered path, with path arrays flattened and copied at registration. */
+    rawPath: string | RegExp | Array<string | RegExp>
     slash: boolean
     route?: Route | undefined
     method?: Method | undefined
@@ -103,6 +124,13 @@ declare namespace Router {
      */
     param(name: string, fn: RequestParamHandler): this
     route<R extends Path>(path: R): Route<R>
+
+    /**
+     * List routes and mounted routers in registration order, one entry per path.
+     * Methods include `'*'` for `.all()` and implicit `HEAD` for `GET` routes.
+     * Plain middleware is omitted; mounted routers are not traversed recursively.
+     */
+    listRoutes(): RouteInfo[]
 
     use: RouterMethod<this> & RouteModule.RouteMethod<this>
 

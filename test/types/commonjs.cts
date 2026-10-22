@@ -5,6 +5,8 @@ import Route = require('../../lib/route')
 const router: Router.Router = Router()
 const constructed: Router.Router = new Router({ mergeParams: true })
 
+expectTypeOf(router.listRoutes()).toEqualTypeOf<Router.RouteInfo[]>()
+
 router.use(constructed)
 router.get('/', (req, res, next) => next())
 
