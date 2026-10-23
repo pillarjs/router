@@ -1052,6 +1052,200 @@ describeTracing('TracingChannel', function () {
     }
   })
 
+  describe('asynchronous tracing stores', function () {
+    for (const kind of ['parameter', 'middleware', 'route', 'error handler']) {
+      for (const outcome of ['resolve', 'reject']) {
+        it('should bind the asyncStart store through asyncEnd when a ' + kind + ' promise will ' + outcome, async function () {
+          const { router, server } = traced()
+          const channel = dc.tracingChannel(CHANNEL)
+          const store = new AsyncLocalStorage()
+          const observed = []
+
+          function result (next) {
+            if (outcome === 'reject') return Promise.reject(new Error('failed'))
+            next()
+            return Promise.resolve()
+          }
+
+          const handler = kind === 'error handler'
+            ? function subject (err, req, res, next) {
+              assert.strictEqual(err.message, 'original')
+              return result(next)
+            }
+            : function subject (req, res, next) { return result(next) }
+
+          function onEnd (ctx) {
+            if (ctx.handler === handler) observed.push([ctx, store.getStore()])
+          }
+
+          if (kind === 'parameter') {
+            router.param('id', handler)
+          } else if (kind === 'route') {
+            router.get('/users/:id', handler)
+          } else {
+            if (kind === 'error handler') {
+              router.use(function fail (req, res, next) { next(new Error('original')) })
+            }
+            router.use(handler)
+          }
+          router.get('/users/:id', function user (req, res) { res.end('ok') })
+          router.use(recover)
+
+          channel.asyncStart.bindStore(store, function (ctx) { return ctx })
+          channel.asyncEnd.subscribe(onEnd)
+          try {
+            await request(server).get('/users/123')
+              .expect(outcome === 'reject' ? 500 : 200, outcome === 'reject' ? 'failed' : 'ok')
+
+            assert.strictEqual(observed.length, 1)
+            assert.strictEqual(observed[0][1], observed[0][0])
+            assert.strictEqual(store.getStore(), undefined)
+          } finally {
+            channel.asyncStart.unbindStore(store)
+            channel.asyncEnd.unsubscribe(onEnd)
+            store.disable()
+          }
+        })
+      }
+    }
+  })
+
+  describe('untraced error origins', function () {
+    for (const source of ['parameter callback', 'parameter promise', 'middleware', 'route']) {
+      for (const forwarding of ['next', 'throw', 'reject']) {
+        it('should not blame a ' + forwarding + ' forwarder after subscribing during a ' + source, async function () {
+          const router = new Router()
+          const error = new Error('before subscription')
+          let resume
+
+          function pending (req, res, next) {
+            if (source === 'parameter promise') {
+              return new Promise(function (resolve, reject) { resume = reject })
+            }
+            resume = next
+          }
+
+          if (source.startsWith('parameter')) {
+            router.param('id', pending)
+          } else if (source === 'middleware') {
+            router.use(pending)
+          } else {
+            router.get('/users/:id', pending)
+          }
+          router.get('/users/:id', function unexpected (req, res) { throw new Error('unexpected') })
+          router.use(function forward (err, req, res, next) {
+            if (forwarding === 'throw') throw err
+            if (forwarding === 'reject') return Promise.reject(err)
+            next(err)
+          })
+
+          const completed = new Promise(function (resolve) {
+            router({ method: 'GET', url: '/users/123' }, {}, resolve)
+          })
+          dc.tracingChannel(CHANNEL).subscribe(handlers)
+          resume(error)
+
+          assert.strictEqual(await completed, error)
+          // Node 19 keeps no-op subscribers for its cached-channel workaround,
+          // so it may have traced the origin before our observers subscribed.
+          for (const event of events.filter(byPhase('error'))) {
+            assert.strictEqual(event.ctx.handler, pending)
+          }
+        })
+      }
+    }
+
+    it('should not blame a traced mount for an error raised while tracing was disabled', async function () {
+      const { router } = traced()
+      const channel = dc.tracingChannel(CHANNEL)
+      const nested = new Router()
+      const error = new Error('untraced parameter')
+      let resume
+
+      function pending (req, res, next) { resume = next }
+
+      nested.use(function disableTracing (req, res, next) {
+        channel.unsubscribe(handlers)
+        next()
+      })
+      nested.param('id', pending)
+      nested.get('/users/:id', function unexpected (req, res) { throw new Error('unexpected') })
+      router.use(nested)
+
+      const completed = new Promise(function (resolve) {
+        router({ method: 'GET', url: '/users/123' }, {}, resolve)
+      })
+      channel.subscribe(handlers)
+      resume(error)
+
+      assert.strictEqual(await completed, error)
+      for (const event of events.filter(byPhase('error'))) {
+        assert.strictEqual(event.ctx.handler, pending)
+      }
+    })
+
+    for (const mounted of [false, true]) {
+      for (const forwarding of ['next', 'throw', 'reject', 'replace']) {
+        it('should not blame a ' + forwarding + ' forwarder for ' + (mounted ? 'mounted' : 'direct') + ' URL decoding errors', async function () {
+          const { router, server } = traced()
+          const target = mounted ? new Router() : router
+          const replacement = new Error('replacement')
+
+          function forward (err, req, res, next) {
+            if (forwarding === 'throw') throw err
+            if (forwarding === 'reject') return Promise.reject(err)
+            next(forwarding === 'replace' ? replacement : err)
+          }
+
+          target.get('/users/:id', function unexpected (req, res) { res.end('unexpected') })
+          if (mounted) router.use('/api', target)
+          router.use(forward)
+          router.use(function respond (err, req, res, next) {
+            res.statusCode = err.statusCode || 500
+            res.end(err.message)
+          })
+
+          await request(server).get((mounted ? '/api' : '') + '/users/%ZZ')
+            .expect(forwarding === 'replace' ? 500 : 400,
+              forwarding === 'replace' ? 'replacement' : "Failed to decode param '%ZZ'")
+
+          const errors = events.filter(byPhase('error'))
+          assert.strictEqual(errors.length, forwarding === 'replace' ? 1 : 0)
+          if (forwarding === 'replace') {
+            assert.strictEqual(errors[0].ctx.handler, forward)
+            assert.strictEqual(errors[0].ctx.error, replacement)
+          }
+        })
+      }
+    }
+
+    for (const forwarding of ['next', 'throw', 'reject', 'replace']) {
+      it('should distinguish an incoming error from a ' + forwarding + ' error handler result', async function () {
+        const { router } = traced()
+        const error = new Error('external')
+        const replacement = new Error('replacement')
+
+        function forward (err, req, res, next) {
+          if (forwarding === 'throw') throw err
+          if (forwarding === 'reject') return Promise.reject(err)
+          next(forwarding === 'replace' ? replacement : err)
+        }
+
+        router.use(forward)
+        const received = await new Promise(function (resolve) {
+          // Exercise an error handler directly, without a router boundary that
+          // could already have recorded the incoming error.
+          router.stack[0].handleError(error, {}, {}, resolve)
+        })
+
+        assert.strictEqual(received, forwarding === 'replace' ? replacement : error)
+        const errors = events.filter(byPhase('error'))
+        assert.strictEqual(errors.length, forwarding === 'replace' ? 1 : 0)
+        if (forwarding === 'replace') assert.strictEqual(errors[0].ctx.error, replacement)
+      })
+    }
+  })
+
   describe('route pattern', function () {
     function startFor (predicate) {
       return events.filter(byPhase('start')).find(function (e) {

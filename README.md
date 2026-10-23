@@ -560,7 +560,7 @@ the standard tracing channel sub-events (`start`, `end`, `asyncStart`, `asyncEnd
 - `handler`: the function being invoked. For parameter callbacks, this is the callback registered with `router.param()`, rather than `layer.handle`.
 - `param`: the parameter name, such as `'id'`, present only for `router.param()` callbacks.
 - `route`: the path pattern that matched, e.g. `'/users/:id'`. Route handlers get their route's path; middleware and mounted routers get the path they were registered with
-- `error`: the error the handler or parameter callback failed with, when applicable
+- `error`: the error reported by the invocation, or the incoming error for an error handler
 - `errorHandler`: `true` when the layer is an error-handling middleware (4-arg signature)
 
 The `error` event is published once, on the handler or parameter callback where
@@ -569,13 +569,23 @@ promise. An error bubbling up through outer layers is not reported again. The
 `'route'` and `'router'` routing signals are not treated as errors and will not
 publish to the `error` channel.
 
+Errors originating before an invocation is traced, or during route matching
+(such as URI decoding), are not attributed to handlers that forward them. They
+still reach error handlers and appear in those handlers' tracing contexts. If
+an error handler creates a different error, that new error is published normally.
+
 Parameter callbacks get the matched layer's path pattern in `route`. Use
 `handler.name` to identify the callback; `layer.name` identifies the associated
 layer. A cached parameter result does not invoke its callbacks again, so it does
 not produce additional callback events.
 
-When no subscribers are attached, tracing is bypassed entirely, so there is no
-context allocation or channel publishing overhead on the hot path.
+Stores bound with `start.bindStore()` apply during handler invocation. Stores
+bound with `asyncStart.bindStore()` apply during `asyncEnd` publication when a
+returned promise settles.
+
+When no subscribers are attached, handler execution skips tracing context
+allocation and channel publishing. Error identities are tracked per request so
+that subscribers attached later cannot attribute a forwarded error to its receiver.
 
 ```js
 const dc = require('node:diagnostics_channel')

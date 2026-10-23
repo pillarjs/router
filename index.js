@@ -15,7 +15,7 @@
 const isPromise = require('is-promise')
 const Layer = require('./lib/layer')
 const { matchedRoute } = require('./lib/symbols')
-const { requestChannel, shouldTrace, traceParam } = require('./lib/tracing')
+const { recordError, requestChannel, shouldTrace, traceParam } = require('./lib/tracing')
 const { METHODS } = require('node:http')
 const parseUrl = require('parseurl')
 const Route = require('./lib/route')
@@ -188,6 +188,10 @@ Router.prototype.handle = function handle (req, res, callback) {
   next()
 
   function next (err) {
+    // The error has already left its originating callback. Remember it even
+    // when that callback was not traced, so enclosing routers cannot claim it.
+    if (err) recordError(req, err)
+
     let layerError = err === 'route'
       ? null
       : err
@@ -243,6 +247,9 @@ Router.prototype.handle = function handle (req, res, callback) {
         matchedPath = layer.match(path, true)
         match = matchedPath !== false
       } catch (err) {
+        // Matching can fail before a handler runs (for example, URI decoding).
+        // Forwarding that error must not attribute it to a later handler.
+        recordError(req, err)
         // hold on to layerError
         layerError = layerError || err
         match = false
