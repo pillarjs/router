@@ -12,18 +12,26 @@ expectTypeOf<Route.Layer>().toEqualTypeOf<Router.Layer>()
 
 router.stack.forEach(layer => {
   expectTypeOf(layer.name).toBeString()
-  expectTypeOf(layer.keys).toEqualTypeOf<string[]>()
-  expectTypeOf(layer.path).toEqualTypeOf<string | undefined>()
   expectTypeOf(layer.rawPath).toEqualTypeOf<string | RegExp | Array<string | RegExp>>()
-  expectTypeOf(layer.params).toEqualTypeOf<Router.Params | undefined>()
   expectTypeOf(layer.method).toEqualTypeOf<Router.Method | undefined>()
   expectTypeOf(layer.route).toEqualTypeOf<Router.Route | undefined>()
   expectTypeOf(layer.handle).toEqualTypeOf<Router.Handler<any>>()
   expectTypeOf(layer.slash).toBeBoolean()
   expectTypeOf(layer.matchers).toEqualTypeOf<Array<MatchFunction<Router.Params>>>()
-  expectTypeOf(layer.match('/users/123')).toBeBoolean()
-  expectTypeOf(layer.match('/users/123', false)).toBeBoolean()
-  expectTypeOf(layer.match('/users/123', true)).toEqualTypeOf<string | RegExp | false>()
+  const result = layer.match('/users/123')
+  expectTypeOf(result).toEqualTypeOf<Router.LayerMatch | false>()
+  if (result) {
+    expectTypeOf(result.params).toEqualTypeOf<Router.Params>()
+    expectTypeOf(result.path).toBeString()
+    expectTypeOf(result.keys).toEqualTypeOf<string[]>()
+    expectTypeOf(result.pattern).toEqualTypeOf<string | RegExp>()
+  }
+  // @ts-expect-error matched params belong to the result, not the shared layer
+  expectTypeOf(layer.params)
+  // @ts-expect-error the concrete matched path belongs to the result
+  expectTypeOf(layer.path)
+  // @ts-expect-error parameter keys belong to the result
+  expectTypeOf(layer.keys)
   layer.match(null)
   layer.match(undefined)
   layer.matchers.forEach(match => {

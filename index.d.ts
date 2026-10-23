@@ -62,21 +62,25 @@ declare namespace Router {
     router: MountedRouter
   })
 
+  /** The result of one internal layer match, separate from other requests. */
+  interface LayerMatch {
+    params: Params
+    path: string
+    keys: string[]
+    pattern: string | RegExp
+  }
+
+  /** Internal layer metadata. Its shape may change between releases. */
   interface Layer {
     handle: Handler<any>
     name: string
-    keys: string[]
-    params: Params | undefined
-    path: string | undefined
     /** The registered path, with path arrays flattened and copied at registration. */
     rawPath: string | RegExp | Array<string | RegExp>
     slash: boolean
     route?: Route | undefined
     method?: Method | undefined
     matchers: Array<MatchFunction<Params>>
-    match(path: string | null | undefined, returnPattern?: false): boolean
-    match(path: string | null | undefined, returnPattern: true): string | RegExp | false
-    match(path: string | null | undefined, returnPattern: boolean): boolean | string | RegExp
+    match(path: string | null | undefined): LayerMatch | false
     handleRequest(req: Request<any>, res: Response, next: NextFunction): void
     handleError(error: any, req: Request<any>, res: Response, next: NextFunction): void
   }
