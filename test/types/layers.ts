@@ -22,6 +22,8 @@ router.stack.forEach(layer => {
   expectTypeOf(layer.slash).toBeBoolean()
   expectTypeOf(layer.matchers).toEqualTypeOf<Array<MatchFunction<Router.Params>>>()
   expectTypeOf(layer.match('/users/123')).toBeBoolean()
+  expectTypeOf(layer.match('/users/123', false)).toBeBoolean()
+  expectTypeOf(layer.match('/users/123', true)).toEqualTypeOf<string | RegExp | false>()
   layer.match(null)
   layer.match(undefined)
   layer.matchers.forEach(match => {

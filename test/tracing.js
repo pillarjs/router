@@ -725,6 +725,250 @@ describeTracing('TracingChannel', function () {
     })
   })
 
+  describe('route pattern', function () {
+    function startFor (predicate) {
+      return events.filter(byPhase('start')).find(function (e) {
+        return predicate(e.ctx.layer)
+      })
+    }
+
+    it('should provide the matched path for middleware', function (done) {
+      const { router, server } = traced()
+
+      router.use('/api/:version', function apiMiddleware (req, res, next) {
+        next()
+      })
+
+      router.get('/api/:version/users', function (req, res) {
+        res.statusCode = 200
+        res.end('users')
+      })
+
+      request(server)
+        .get('/api/v1/users')
+        .expect(200, 'users', function (err) {
+          if (err) return done(err)
+
+          const startEvent = startFor(function (layer) { return layer.name === 'apiMiddleware' })
+          assert.ok(startEvent, 'should have start event for apiMiddleware')
+          assert.equal(startEvent.ctx.route, '/api/:version')
+
+          done()
+        })
+    })
+
+    it('should provide the route path for route handlers', function (done) {
+      const { router, server } = traced()
+
+      router.get('/users/:id', function getUser (req, res) {
+        res.statusCode = 200
+        res.end('user')
+      })
+
+      request(server)
+        .get('/users/42')
+        .expect(200, 'user', function (err) {
+          if (err) return done(err)
+
+          const startEvent = startFor(function (layer) { return layer.name === 'getUser' })
+          assert.ok(startEvent, 'should have start event for getUser')
+          assert.equal(startEvent.ctx.route, '/users/:id')
+
+          done()
+        })
+    })
+
+    it('should provide the path that matched for array paths', function (done) {
+      const { router, server } = traced()
+
+      router.get(['/foo', ['/bar', '/baz/:id']], function multi (req, res) {
+        res.statusCode = 200
+        res.end('multi')
+      })
+
+      request(server)
+        .get('/baz/1')
+        .expect(200, 'multi', function (err) {
+          if (err) return done(err)
+
+          const startEvent = startFor(function (layer) { return layer.name === 'multi' })
+          assert.ok(startEvent, 'should have start event for multi')
+          assert.equal(startEvent.ctx.route, '/baz/:id')
+
+          done()
+        })
+    })
+
+    for (const kind of ['route handlers', 'middleware', 'error middleware']) {
+      for (const otherPath of ['/posts/2', '/missing']) {
+        it('should preserve the matched path for ' + kind + ' during a request to ' + otherPath, async function () {
+          const { router, server } = traced()
+          let resume
+          let entered
+          const waiting = new Promise(function (resolve) { entered = resolve })
+
+          router.param('id', function (req, res, next, id) {
+            if (id === '1') {
+              resume = next
+              entered()
+            } else {
+              next()
+            }
+          })
+
+          const handler = kind === 'error middleware'
+            ? function onError (err, req, res, next) {
+              assert.equal(err.message, 'boom')
+              res.statusCode = 500
+              res.end(req.params.id)
+            }
+            : function onRequest (req, res) {
+              res.end(req.params.id)
+            }
+
+          if (kind === 'error middleware') {
+            router.use(function (req, res, next) { next(new Error('boom')) })
+          }
+
+          router[kind === 'route handlers' ? 'get' : 'use'](['/users/:id', '/posts/:id'], handler)
+
+          // Handle unmatched requests with a pending error without finalhandler logging it.
+          router.use(function (err, req, res, next) {
+            res.statusCode = 404
+            res.end(err.message)
+          })
+
+          const status = kind === 'error middleware' ? 500 : 200
+          const first = request(server).get('/users/1').expect(status, '1').then(function () {})
+
+          await waiting
+          try {
+            await request(server).get(otherPath).expect(otherPath === '/missing' ? 404 : status)
+          } finally {
+            resume()
+            await first
+          }
+
+          const paths = events.filter(byPhase('start'))
+            .filter(function (e) { return e.ctx.layer.handle === handler })
+            .map(function (e) { return [e.ctx.req.originalUrl, e.ctx.route] })
+
+          assert.deepStrictEqual(paths, otherPath === '/missing'
+            ? [['/users/1', '/users/:id']]
+            : [['/posts/2', '/posts/:id'], ['/users/1', '/users/:id']])
+        })
+      }
+    }
+
+    it('should preserve an empty matched pattern', async function () {
+      const { router, server } = traced()
+
+      router.get('', function root (req, res) { res.end('root') })
+
+      await request(server).get('/').expect(200, 'root')
+
+      const event = startFor(function (layer) { return layer.name === 'root' })
+      assert.ok(event)
+      assert.strictEqual(event.ctx.route, '')
+    })
+
+    for (const signal of ['next', 'error', 'router']) {
+      it('should restore the outer route pattern after a nested router calls ' + signal, async function () {
+        const { router, server } = traced()
+        const nested = new Router()
+        const fail = signal === 'error'
+
+        nested.get('/users/*rest', function inner (req, res, next) {
+          setImmediate(next, fail ? new Error('boom') : signal === 'router' ? 'router' : undefined)
+        })
+
+        router.get('/users/:id', nested,
+          function outer (req, res) { res.end('outer') },
+          function outerError (err, req, res, next) {
+            res.statusCode = 500
+            res.end(err.message)
+          })
+
+        await request(server).get('/users/1').expect(fail ? 500 : 200, fail ? 'boom' : 'outer')
+
+        const innerEvent = startFor(function (layer) { return layer.name === 'inner' })
+        const outerEvent = startFor(function (layer) { return layer.name === (fail ? 'outerError' : 'outer') })
+        assert.ok(innerEvent)
+        assert.ok(outerEvent)
+        assert.strictEqual(innerEvent.ctx.route, '/users/*rest')
+        assert.strictEqual(outerEvent.ctx.route, '/users/:id')
+      })
+    }
+
+    it('should preserve the route pattern while a parameter callback invokes a router', async function () {
+      const { router, server } = traced()
+      const nested = new Router()
+
+      nested.use(function middleware (req, res, next) { setImmediate(next) })
+      router.param('id', function (req, res, next) { nested(req, res, next) })
+      router.get('/users/:id', function user (req, res) { res.end(req.params.id) })
+
+      await request(server).get('/users/1').expect(200, '1')
+
+      const middlewareEvent = startFor(function (layer) { return layer.name === 'middleware' })
+      const userEvent = startFor(function (layer) { return layer.name === 'user' })
+      assert.ok(middlewareEvent)
+      assert.ok(userEvent)
+      assert.strictEqual(middlewareEvent.ctx.route, '/')
+      assert.strictEqual(userEvent.ctx.route, '/users/:id')
+    })
+
+    it('should provide the route path for error handlers inside a route', function (done) {
+      const { router, server } = traced()
+
+      router.get('/fail/:id', function fail (req, res, next) {
+        next(new Error('boom'))
+      }, function routeErrorHandler (err, req, res, next) {
+        res.statusCode = 500
+        res.end(err.message)
+      })
+
+      request(server)
+        .get('/fail/1')
+        .expect(500, 'boom', function (err) {
+          if (err) return done(err)
+
+          const startEvent = startFor(function (layer) { return layer.name === 'routeErrorHandler' })
+          assert.ok(startEvent, 'should have start event for routeErrorHandler')
+          assert.equal(startEvent.ctx.route, '/fail/:id')
+
+          done()
+        })
+    })
+
+    it('should provide the mount path for mounted routers', function (done) {
+      const { router, server } = traced()
+      const nested = new Router()
+
+      nested.get('/:id', function getItem (req, res) {
+        res.statusCode = 200
+        res.end('item')
+      })
+
+      router.use('/items', nested)
+
+      request(server)
+        .get('/items/7')
+        .expect(200, 'item', function (err) {
+          if (err) return done(err)
+
+          const mountEvent = startFor(function (layer) { return layer.handle === nested })
+          const itemEvent = startFor(function (layer) { return layer.name === 'getItem' })
+          assert.ok(mountEvent, 'should have start event for the mounted router')
+          assert.ok(itemEvent, 'should have start event for getItem')
+          assert.equal(mountEvent.ctx.route, '/items')
+          assert.equal(itemEvent.ctx.route, '/:id')
+
+          done()
+        })
+    })
+  })
+
   describe('error deduplication', function () {
     it('should report a next(err) error once, on the origin layer, across mounted routers', function (done) {
       const { router: outer, server } = traced()

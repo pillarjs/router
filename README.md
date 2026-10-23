@@ -557,6 +557,7 @@ contains:
 - `req`: the incoming `http.IncomingMessage`
 - `res`: the `http.ServerResponse`
 - `layer`: the internal `Layer` instance being invoked (exposes `.name`, `.path`, `.handle`, etc.). Note that `Layer` is an internal implementation detail and its shape may change between releases.
+- `route`: the path pattern that matched, e.g. `'/users/:id'`. Route handlers get their route's path; middleware and mounted routers get the path they were registered with
 - `error`: the error the layer failed with, when applicable
 - `errorHandler`: `true` when the layer is an error-handling middleware (4-arg signature)
 
