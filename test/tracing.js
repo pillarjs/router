@@ -1,4 +1,5 @@
 const { it, describe, beforeEach, afterEach } = require('mocha')
+const { AsyncLocalStorage } = require('node:async_hooks')
 const path = require('node:path')
 const Router = require('..')
 const utils = require('./support/utils')
@@ -725,6 +726,526 @@ describeTracing('TracingChannel', function () {
     })
   })
 
+  describe('parameter callbacks', function () {
+    it('should report the parameter callback with only an error subscriber', async function () {
+      const router = new Router()
+      const server = createServer(router)
+      dc.tracingChannel(CHANNEL).error.subscribe(handlers.error)
+
+      function validateId (req, res, next) { next(new Error('Invalid ID')) }
+
+      router.param('id', validateId)
+      router.get('/users/:id', function unexpected (req, res) { res.end('unexpected') })
+      router.use(function forwarding (err, req, res, next) { next(err) })
+      router.use(recover)
+
+      await request(server).get('/users/123').expect(500, 'Invalid ID')
+
+      assert.strictEqual(events.length, 1)
+      assert.strictEqual(events[0].phase, 'error')
+      assert.strictEqual(events[0].ctx.handler, validateId)
+      assert.strictEqual(events[0].ctx.param, 'id')
+    })
+
+    it('should run asynchronous parameter callbacks in the bound tracing store', async function () {
+      const { router, server } = traced()
+      const store = new AsyncLocalStorage()
+      const channel = dc.tracingChannel(CHANNEL).start
+      channel.bindStore(store, function (ctx) { return ctx })
+      let observed
+
+      async function load (req, res, next) {
+        observed = store.getStore()
+        await new Promise(function (resolve) { setImmediate(resolve) })
+        assert.strictEqual(store.getStore(), observed)
+        next()
+      }
+
+      router.param('id', load)
+      router.get('/users/:id', function user (req, res) {
+        assert.notStrictEqual(store.getStore(), observed)
+        res.end('ok')
+      })
+
+      try {
+        await request(server).get('/users/123').expect(200, 'ok')
+        assert.strictEqual(observed.handler, load)
+        assert.strictEqual(observed.param, 'id')
+        assert.strictEqual(observed.route, '/users/:id')
+      } finally {
+        channel.unbindStore(store)
+        store.disable()
+      }
+    })
+
+    for (const failure of ['next', 'throw', 'reject', 'async next']) {
+      for (const forward of [false, true]) {
+        it('should report a parameter ' + failure + ' at its origin when ' + (forward ? 'forwarded' : 'recovered'), async function () {
+          const { router, server } = traced()
+          const error = new Error('Invalid ID')
+
+          function validateId (req, res, next) {
+            if (failure === 'throw') throw error
+            if (failure === 'reject') return Promise.reject(error)
+            if (failure === 'async next') return setImmediate(next, error)
+            next(error)
+          }
+
+          router.param('id', validateId)
+          router.get('/users/:id', function unexpected (req, res) { res.end('unexpected') })
+
+          if (forward) {
+            router.use(function forwarding (err, req, res, next) { next(err) })
+          }
+          router.use(recover)
+
+          await request(server).get('/users/123').expect(500, 'Invalid ID')
+
+          const errors = events.filter(byPhase('error'))
+          assert.strictEqual(errors.length, 1)
+          const ctx = errors[0].ctx
+          assert.strictEqual(ctx.error, error)
+          assert.strictEqual(ctx.handler, validateId)
+          assert.strictEqual(ctx.param, 'id')
+          assert.strictEqual(ctx.route, '/users/:id')
+          assert.strictEqual(ctx.layer, router.stack[0])
+          assert.strictEqual(ctx.errorHandler, undefined)
+
+          const ownEvents = events.filter(function (e) { return e.ctx === ctx })
+          assert.deepStrictEqual(ownEvents.map(function (e) { return e.phase }), failure === 'reject'
+            ? ['start', 'end', 'error', 'asyncStart', 'asyncEnd']
+            : failure === 'async next' ? ['start', 'end', 'error'] : ['start', 'error', 'end'])
+        })
+      }
+    }
+
+    it('should retain callback identity and arguments when parameters are chained and cached', async function () {
+      const { router, server } = traced()
+
+      function normalizeId (req, res, next, value, name) {
+        assert.strictEqual(value, '123')
+        assert.strictEqual(name, 'id')
+        req.params.id = Number(value)
+        next()
+      }
+
+      function loadUser (req, res, next, value, name) {
+        assert.strictEqual(value, '123')
+        assert.strictEqual(name, 'id')
+        assert.strictEqual(req.params.id, 123)
+        next()
+        return Promise.resolve()
+      }
+
+      function validateSlug (req, res, next, value, name) {
+        assert.strictEqual(value, 'profile')
+        assert.strictEqual(name, 'slug')
+        next()
+      }
+
+      router.param('id', normalizeId)
+      router.param('id', loadUser)
+      router.param('slug', validateSlug)
+      router.use('/users/:id/:slug', function middleware (req, res, next) { next() })
+      router.get('/users/:id/:slug', function user (req, res) {
+        assert.strictEqual(req.params.id, 123)
+        res.end('ok')
+      })
+
+      await request(server).get('/users/123/profile').expect(200, 'ok')
+
+      const starts = events.filter(byPhase('start')).filter(function (e) { return e.ctx.param !== undefined })
+      assert.deepStrictEqual(starts.map(function (e) { return [e.ctx.handler, e.ctx.param] }),
+        [[normalizeId, 'id'], [loadUser, 'id'], [validateSlug, 'slug']])
+      for (const event of starts) {
+        assert.strictEqual(event.ctx.layer, router.stack[0])
+        assert.strictEqual(event.ctx.route, '/users/:id/:slug')
+        assert.strictEqual(event.ctx.req.originalUrl, '/users/123/profile')
+        assert.ok(event.ctx.res)
+      }
+      assert.deepStrictEqual(events.filter(function (e) { return e.ctx.handler === loadUser })
+        .map(function (e) { return e.phase }), ['start', 'end', 'asyncStart', 'asyncEnd'])
+      assert.strictEqual(router.stack[0].name, 'middleware')
+    })
+
+    it('should wait for next even when a parameter promise resolves', async function () {
+      const { router } = traced()
+      let resume
+      let reached = false
+
+      function load (req, res, next) {
+        resume = next
+        return Promise.resolve()
+      }
+
+      router.param('id', load)
+      router.get('/users/:id', function user (req, res, next) {
+        reached = true
+        next()
+      })
+
+      const completed = new Promise(function (resolve, reject) {
+        router({ method: 'GET', url: '/users/123' }, {}, function (err) {
+          if (err) return reject(err)
+          resolve()
+        })
+      })
+
+      await new Promise(function (resolve) { setImmediate(resolve) })
+      assert.strictEqual(reached, false)
+      assert.deepStrictEqual(events.filter(function (e) { return e.ctx.handler === load })
+        .map(function (e) { return e.phase }), ['start', 'end', 'asyncStart', 'asyncEnd'])
+      resume()
+      await completed
+      assert.strictEqual(reached, true)
+    })
+
+    for (const signal of ['route', 'router']) {
+      for (const kind of ['next', 'throw', 'reject']) {
+        it('should preserve a parameter ' + kind + ' with the ' + signal + ' signal', async function () {
+          const { router, server } = traced()
+          const nested = new Router()
+
+          function skip (req, res, next) {
+            if (kind === 'throw') throw signal
+            if (kind === 'reject') return Promise.reject(signal)
+            next(signal)
+          }
+
+          nested.param('id', skip)
+          nested.get('/users/:id', function unexpected (req, res) { res.end('unexpected') })
+          nested.get('/users/123', function fallback (req, res) { res.end('route') })
+          router.use(nested)
+          router.get('/users/123', function outer (req, res) { res.end('router') })
+
+          await request(server).get('/users/123').expect(200, signal)
+
+          assert.strictEqual(events.filter(byPhase('error')).length, 0)
+          const ownEvents = events.filter(function (e) { return e.ctx.handler === skip })
+          assert.deepStrictEqual(ownEvents.map(function (e) { return e.phase }), kind === 'reject'
+            ? ['start', 'end', 'asyncStart', 'asyncEnd']
+            : ['start', 'end'])
+          assert.strictEqual(ownEvents[0].ctx.param, 'id')
+        })
+      }
+    }
+
+    for (const kind of ['throw', 'reject']) {
+      it('should preserve a falsy parameter ' + kind, async function () {
+        const { router, server } = traced()
+
+        function falsy (req, res, next) {
+          if (kind === 'throw') throw undefined // eslint-disable-line no-throw-literal
+          return Promise.reject() // eslint-disable-line prefer-promise-reject-errors
+        }
+
+        router.param('id', falsy)
+        router.get('/users/:id', function user (req, res) { res.end('ok') })
+        router.use(recover)
+
+        await request(server).get('/users/123')
+          .expect(kind === 'reject' ? 500 : 200, kind === 'reject' ? 'Rejected promise' : 'ok')
+
+        const errors = events.filter(byPhase('error'))
+        assert.strictEqual(errors.length, kind === 'reject' ? 1 : 0)
+        if (kind === 'reject') {
+          assert.strictEqual(errors[0].ctx.handler, falsy)
+          assert.strictEqual(errors[0].ctx.error.message, 'Rejected promise')
+        }
+      })
+    }
+
+    it('should report a parameter error once across separately loaded routers', async function () {
+      const { router, server } = traced()
+      const RouterCopy = loadRouterCopy()
+      const nested = new RouterCopy()
+
+      function validateId (req, res, next) { next(new Error('Invalid ID')) }
+
+      nested.param('id', validateId)
+      nested.get('/users/:id', function unexpected (req, res) { res.end('unexpected') })
+      nested.use(function forwarding (err, req, res, next) { next(err) })
+      router.use('/api', nested)
+      router.use(function rethrowing (err, req, res, next) { throw err })
+      router.use(recover)
+
+      await request(server).get('/api/users/123').expect(500, 'Invalid ID')
+
+      assert.notStrictEqual(RouterCopy, Router)
+      const errors = events.filter(byPhase('error'))
+      assert.strictEqual(errors.length, 1)
+      assert.strictEqual(errors[0].ctx.handler, validateId)
+      assert.strictEqual(errors[0].ctx.layer, nested.stack[0])
+      assert.strictEqual(errors[0].ctx.route, '/users/:id')
+      assert.strictEqual(errors[0].ctx.param, 'id')
+    })
+
+    it('should attribute downstream errors to the handler instead of the parameter callback', async function () {
+      const { router, server } = traced()
+
+      function load (req, res, next) { next() }
+      function fail (req, res) { throw new Error('route failed') }
+
+      router.param('id', load)
+      router.get('/users/:id', fail)
+      router.use(recover)
+
+      await request(server).get('/users/123').expect(500, 'route failed')
+
+      const errors = events.filter(byPhase('error'))
+      assert.strictEqual(errors.length, 1)
+      assert.strictEqual(errors[0].ctx.handler, fail)
+      assert.strictEqual(errors[0].ctx.param, undefined)
+    })
+
+    for (const fail of [false, true]) {
+      it('should preserve the parameter context across concurrent requests that ' + (fail ? 'fail' : 'succeed'), async function () {
+        const { router, server } = traced()
+        let resume
+        let entered
+        const waiting = new Promise(function (resolve) { entered = resolve })
+
+        function load (req, res, next, id) {
+          if (id !== '1') {
+            next()
+            return Promise.resolve()
+          }
+          return new Promise(function (resolve, reject) {
+            resume = function () {
+              if (fail) {
+                reject(new Error('first failed'))
+              } else {
+                next()
+                resolve()
+              }
+            }
+            entered()
+          })
+        }
+
+        router.param('id', load)
+        router.get(['/users/:id', '/posts/:id'], function item (req, res) { res.end(req.params.id) })
+        router.use(recover)
+
+        const first = request(server).get('/users/1').expect(fail ? 500 : 200, fail ? 'first failed' : '1')
+          .then(function () {})
+        await waiting
+        try {
+          await request(server).get('/posts/2').expect(200, '2')
+        } finally {
+          resume()
+          await first
+        }
+
+        const ownEvents = events.filter(function (e) { return e.ctx.handler === load })
+        for (const url of ['/users/1', '/posts/2']) {
+          const requestEvents = ownEvents.filter(function (e) { return e.ctx.req.originalUrl === url })
+          assert.deepStrictEqual(requestEvents.map(function (e) { return e.phase }), fail && url === '/users/1'
+            ? ['start', 'end', 'error', 'asyncStart', 'asyncEnd']
+            : ['start', 'end', 'asyncStart', 'asyncEnd'])
+          for (const event of requestEvents) {
+            assert.strictEqual(event.ctx.route, url === '/users/1' ? '/users/:id' : '/posts/:id')
+            assert.strictEqual(event.ctx.param, 'id')
+          }
+        }
+      })
+    }
+  })
+
+  describe('asynchronous tracing stores', function () {
+    for (const kind of ['parameter', 'middleware', 'route', 'error handler']) {
+      for (const outcome of ['resolve', 'reject']) {
+        it('should bind the asyncStart store through asyncEnd when a ' + kind + ' promise will ' + outcome, async function () {
+          const { router, server } = traced()
+          const channel = dc.tracingChannel(CHANNEL)
+          const store = new AsyncLocalStorage()
+          const observed = []
+
+          function result (next) {
+            if (outcome === 'reject') return Promise.reject(new Error('failed'))
+            next()
+            return Promise.resolve()
+          }
+
+          const handler = kind === 'error handler'
+            ? function subject (err, req, res, next) {
+              assert.strictEqual(err.message, 'original')
+              return result(next)
+            }
+            : function subject (req, res, next) { return result(next) }
+
+          function onEnd (ctx) {
+            if (ctx.handler === handler) observed.push([ctx, store.getStore()])
+          }
+
+          if (kind === 'parameter') {
+            router.param('id', handler)
+          } else if (kind === 'route') {
+            router.get('/users/:id', handler)
+          } else {
+            if (kind === 'error handler') {
+              router.use(function fail (req, res, next) { next(new Error('original')) })
+            }
+            router.use(handler)
+          }
+          router.get('/users/:id', function user (req, res) { res.end('ok') })
+          router.use(recover)
+
+          channel.asyncStart.bindStore(store, function (ctx) { return ctx })
+          channel.asyncEnd.subscribe(onEnd)
+          try {
+            await request(server).get('/users/123')
+              .expect(outcome === 'reject' ? 500 : 200, outcome === 'reject' ? 'failed' : 'ok')
+
+            assert.strictEqual(observed.length, 1)
+            assert.strictEqual(observed[0][1], observed[0][0])
+            assert.strictEqual(store.getStore(), undefined)
+          } finally {
+            channel.asyncStart.unbindStore(store)
+            channel.asyncEnd.unsubscribe(onEnd)
+            store.disable()
+          }
+        })
+      }
+    }
+  })
+
+  describe('untraced error origins', function () {
+    for (const source of ['parameter callback', 'parameter promise', 'middleware', 'route']) {
+      for (const forwarding of ['next', 'throw', 'reject']) {
+        it('should not blame a ' + forwarding + ' forwarder after subscribing during a ' + source, async function () {
+          const router = new Router()
+          const error = new Error('before subscription')
+          let resume
+
+          function pending (req, res, next) {
+            if (source === 'parameter promise') {
+              return new Promise(function (resolve, reject) { resume = reject })
+            }
+            resume = next
+          }
+
+          if (source.startsWith('parameter')) {
+            router.param('id', pending)
+          } else if (source === 'middleware') {
+            router.use(pending)
+          } else {
+            router.get('/users/:id', pending)
+          }
+          router.get('/users/:id', function unexpected (req, res) { throw new Error('unexpected') })
+          router.use(function forward (err, req, res, next) {
+            if (forwarding === 'throw') throw err
+            if (forwarding === 'reject') return Promise.reject(err)
+            next(err)
+          })
+
+          const completed = new Promise(function (resolve) {
+            router({ method: 'GET', url: '/users/123' }, {}, resolve)
+          })
+          dc.tracingChannel(CHANNEL).subscribe(handlers)
+          resume(error)
+
+          assert.strictEqual(await completed, error)
+          // Node 19 keeps no-op subscribers for its cached-channel workaround,
+          // so it may have traced the origin before our observers subscribed.
+          for (const event of events.filter(byPhase('error'))) {
+            assert.strictEqual(event.ctx.handler, pending)
+          }
+        })
+      }
+    }
+
+    it('should not blame a traced mount for an error raised while tracing was disabled', async function () {
+      const { router } = traced()
+      const channel = dc.tracingChannel(CHANNEL)
+      const nested = new Router()
+      const error = new Error('untraced parameter')
+      let resume
+
+      function pending (req, res, next) { resume = next }
+
+      nested.use(function disableTracing (req, res, next) {
+        channel.unsubscribe(handlers)
+        next()
+      })
+      nested.param('id', pending)
+      nested.get('/users/:id', function unexpected (req, res) { throw new Error('unexpected') })
+      router.use(nested)
+
+      const completed = new Promise(function (resolve) {
+        router({ method: 'GET', url: '/users/123' }, {}, resolve)
+      })
+      channel.subscribe(handlers)
+      resume(error)
+
+      assert.strictEqual(await completed, error)
+      for (const event of events.filter(byPhase('error'))) {
+        assert.strictEqual(event.ctx.handler, pending)
+      }
+    })
+
+    for (const mounted of [false, true]) {
+      for (const forwarding of ['next', 'throw', 'reject', 'replace']) {
+        it('should not blame a ' + forwarding + ' forwarder for ' + (mounted ? 'mounted' : 'direct') + ' URL decoding errors', async function () {
+          const { router, server } = traced()
+          const target = mounted ? new Router() : router
+          const replacement = new Error('replacement')
+
+          function forward (err, req, res, next) {
+            if (forwarding === 'throw') throw err
+            if (forwarding === 'reject') return Promise.reject(err)
+            next(forwarding === 'replace' ? replacement : err)
+          }
+
+          target.get('/users/:id', function unexpected (req, res) { res.end('unexpected') })
+          if (mounted) router.use('/api', target)
+          router.use(forward)
+          router.use(function respond (err, req, res, next) {
+            res.statusCode = err.statusCode || 500
+            res.end(err.message)
+          })
+
+          await request(server).get((mounted ? '/api' : '') + '/users/%ZZ')
+            .expect(forwarding === 'replace' ? 500 : 400,
+              forwarding === 'replace' ? 'replacement' : "Failed to decode param '%ZZ'")
+
+          const errors = events.filter(byPhase('error'))
+          assert.strictEqual(errors.length, forwarding === 'replace' ? 1 : 0)
+          if (forwarding === 'replace') {
+            assert.strictEqual(errors[0].ctx.handler, forward)
+            assert.strictEqual(errors[0].ctx.error, replacement)
+          }
+        })
+      }
+    }
+
+    for (const forwarding of ['next', 'throw', 'reject', 'replace']) {
+      it('should distinguish an incoming error from a ' + forwarding + ' error handler result', async function () {
+        const { router } = traced()
+        const error = new Error('external')
+        const replacement = new Error('replacement')
+
+        function forward (err, req, res, next) {
+          if (forwarding === 'throw') throw err
+          if (forwarding === 'reject') return Promise.reject(err)
+          next(forwarding === 'replace' ? replacement : err)
+        }
+
+        router.use(forward)
+        const received = await new Promise(function (resolve) {
+          // Exercise an error handler directly, without a router boundary that
+          // could already have recorded the incoming error.
+          router.stack[0].handleError(error, {}, {}, resolve)
+        })
+
+        assert.strictEqual(received, forwarding === 'replace' ? replacement : error)
+        const errors = events.filter(byPhase('error'))
+        assert.strictEqual(errors.length, forwarding === 'replace' ? 1 : 0)
+        if (forwarding === 'replace') assert.strictEqual(errors[0].ctx.error, replacement)
+      })
+    }
+  })
+
   describe('route pattern', function () {
     function startFor (predicate) {
       return events.filter(byPhase('start')).find(function (e) {
@@ -850,7 +1371,7 @@ describeTracing('TracingChannel', function () {
           }
 
           const paths = events.filter(byPhase('start'))
-            .filter(function (e) { return e.ctx.layer.handle === handler })
+            .filter(function (e) { return e.ctx.handler === handler })
             .map(function (e) { return [e.ctx.req.originalUrl, e.ctx.route] })
 
           assert.deepStrictEqual(paths, otherPath === '/missing'

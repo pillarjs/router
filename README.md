@@ -550,25 +550,42 @@ via a [`TracingChannel`](https://nodejs.org/api/diagnostics_channel.html#class-t
 named `express.router.request`. This lets observability tools (APMs, tracers,
 loggers) hook into middleware and route handler execution without monkey-patching.
 
-Each layer's handler invocation publishes the standard tracing channel sub-events
-(`start`, `end`, `asyncStart`, `asyncEnd`, `error`). The published context object
-contains:
+Each middleware, route handler, and `router.param()` callback invocation publishes
+the standard tracing channel sub-events (`start`, `end`, `asyncStart`, `asyncEnd`,
+`error`). The published context object contains:
 
 - `req`: the incoming `http.IncomingMessage`
 - `res`: the `http.ServerResponse`
-- `layer`: the internal `Layer` instance being invoked (exposes `.name`, `.path`, `.handle`, etc.). Note that `Layer` is an internal implementation detail and its shape may change between releases.
+- `layer`: the internal `Layer` associated with the invocation (exposes `.name`, `.path`, `.handle`, etc.). For parameter callbacks, this is the layer whose parameters are being processed. Note that `Layer` is an internal implementation detail and its shape may change between releases.
+- `handler`: the function being invoked. For parameter callbacks, this is the callback registered with `router.param()`, rather than `layer.handle`.
+- `param`: the parameter name, such as `'id'`, present only for `router.param()` callbacks.
 - `route`: the path pattern that matched, e.g. `'/users/:id'`. Route handlers get their route's path; middleware and mounted routers get the path they were registered with
-- `error`: the error the layer failed with, when applicable
+- `error`: the error reported by the invocation, or the incoming error for an error handler
 - `errorHandler`: `true` when the layer is an error-handling middleware (4-arg signature)
 
-The `error` event is published once, on the layer where the error originates,
-whether the handler calls `next(err)`, throws, or returns a rejected promise. An
-error bubbling up through outer layers is not reported again. The `'route'` and
-`'router'` routing signals are not treated as errors and will not publish to the
-`error` channel.
+The `error` event is published once, on the handler or parameter callback where
+the error originates, whether it calls `next(err)`, throws, or returns a rejected
+promise. An error bubbling up through outer layers is not reported again. The
+`'route'` and `'router'` routing signals are not treated as errors and will not
+publish to the `error` channel.
 
-When no subscribers are attached, tracing is bypassed entirely, so there is no
-context allocation or channel publishing overhead on the hot path.
+Errors originating before an invocation is traced, or during route matching
+(such as URI decoding), are not attributed to handlers that forward them. They
+still reach error handlers and appear in those handlers' tracing contexts. If
+an error handler creates a different error, that new error is published normally.
+
+Parameter callbacks get the matched layer's path pattern in `route`. Use
+`handler.name` to identify the callback; `layer.name` identifies the associated
+layer. A cached parameter result does not invoke its callbacks again, so it does
+not produce additional callback events.
+
+Stores bound with `start.bindStore()` apply during handler invocation. Stores
+bound with `asyncStart.bindStore()` apply during `asyncEnd` publication when a
+returned promise settles.
+
+When no subscribers are attached, handler execution skips tracing context
+allocation and channel publishing. Error identities are tracked per request so
+that subscribers attached later cannot attribute a forwarded error to its receiver.
 
 ```js
 const dc = require('node:diagnostics_channel')
@@ -588,10 +605,10 @@ channel.subscribe({
   asyncEnd (ctx) {
     const durationNs = process.hrtime.bigint() - ctx.startTime
     console.log('%s %s -> %s (%dns)',
-      ctx.req.method, ctx.req.url, ctx.layer.name, durationNs)
+      ctx.req.method, ctx.req.url, ctx.handler.name || '<anonymous>', durationNs)
   },
   error (ctx) {
-    console.error('handler error in %s:', ctx.layer.name, ctx.error)
+    console.error('handler error in %s:', ctx.handler.name || '<anonymous>', ctx.error)
   }
 })
 ```

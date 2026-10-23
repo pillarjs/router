@@ -12,14 +12,14 @@
  * @private
  */
 
-const isPromise = require('is-promise')
+const callParam = require('./lib/param')
 const Layer = require('./lib/layer')
 const { matchedRoute } = require('./lib/symbols')
+const { recordError, requestChannel, shouldTrace, traceParam } = require('./lib/tracing')
 const { METHODS } = require('node:http')
 const parseUrl = require('parseurl')
 const Route = require('./lib/route')
 const debug = require('debug')('router')
-const deprecate = require('depd')('router')
 
 /**
  * Module variables.
@@ -187,6 +187,10 @@ Router.prototype.handle = function handle (req, res, callback) {
   next()
 
   function next (err) {
+    // The error has already left its originating callback. Remember it even
+    // when that callback was not traced, so enclosing routers cannot claim it.
+    if (err) recordError(req, err)
+
     let layerError = err === 'route'
       ? null
       : err
@@ -242,6 +246,9 @@ Router.prototype.handle = function handle (req, res, callback) {
         matchedPath = layer.match(path, true)
         match = matchedPath !== false
       } catch (err) {
+        // Matching can fail before a handler runs (for example, URI decoding).
+        // Forwarding that error must not attribute it to a later handler.
+        recordError(req, err)
         // hold on to layerError
         layerError = layerError || err
         match = false
@@ -678,20 +685,19 @@ function processParams (params, layer, called, req, res, done) {
 
     if (!fn) return param()
 
-    try {
-      const ret = fn(req, res, paramCallback, paramVal, key)
-      if (isPromise(ret)) {
-        if (!(ret instanceof Promise)) {
-          deprecate('parameters that are Promise-like are deprecated, use a native Promise instead')
-        }
-
-        ret.then(null, function (error) {
-          paramCallback(error || new Error('Rejected promise'))
-        })
-      }
-    } catch (e) {
-      paramCallback(e)
+    if (shouldTrace(requestChannel)) {
+      traceParam(fn, {
+        req,
+        res,
+        layer,
+        handler: fn,
+        route: req[matchedRoute],
+        param: key
+      }, paramCallback, paramVal, key)
+      return
     }
+
+    callParam(fn, req, res, paramCallback, paramVal, key)
   }
 
   param()
