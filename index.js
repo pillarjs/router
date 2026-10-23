@@ -235,16 +235,14 @@ Router.prototype.handle = function handle (req, res, callback) {
     // find next matching layer
     let layer
     let match
-    let matchedPath
     let route
 
-    while (match !== true && idx < stack.length) {
+    while (!match && idx < stack.length) {
       layer = stack[idx++]
       route = layer.route
 
       try {
-        matchedPath = layer.match(path, true)
-        match = matchedPath !== false
+        match = layer.match(path)
       } catch (err) {
         // Matching can fail before a handler runs (for example, URI decoding).
         // Forwarding that error must not attribute it to a later handler.
@@ -254,7 +252,7 @@ Router.prototype.handle = function handle (req, res, callback) {
         match = false
       }
 
-      if (match !== true) {
+      if (!match) {
         continue
       }
 
@@ -284,7 +282,7 @@ Router.prototype.handle = function handle (req, res, callback) {
     }
 
     // no match
-    if (match !== true) {
+    if (!match) {
       return done(layerError)
     }
 
@@ -293,22 +291,20 @@ Router.prototype.handle = function handle (req, res, callback) {
       req.route = route
     }
 
-    // Capture one-time layer values
-    // Store the pattern before param callbacks can yield to other requests.
-    req[matchedRoute] = matchedPath
+    // Keep matched values local to this request before param callbacks can yield.
+    req[matchedRoute] = match.pattern
     req.params = self.mergeParams
-      ? mergeParams(layer.params, parentParams)
-      : layer.params
-    const layerPath = layer.path
+      ? mergeParams(match.params, parentParams)
+      : match.params
 
     // this should be done for the layer
-    processParams(self.params, layer, paramcalled, req, res, function (err) {
+    processParams(self.params, layer, match.keys, paramcalled, req, res, function (err) {
       if (err) {
         next(layerError || err)
       } else if (route) {
         layer.handleRequest(req, res, next)
       } else {
-        trimPrefix(layer, layerError, layerPath, path)
+        trimPrefix(layer, layerError, match.path, path)
       }
 
       sync = 0
@@ -613,10 +609,7 @@ function mergeParams (params, parent) {
  * @private
  */
 
-function processParams (params, layer, called, req, res, done) {
-  // captured parameters from the layer, keys and values
-  const keys = layer.keys
-
+function processParams (params, layer, keys, called, req, res, done) {
   // fast track
   if (!keys || keys.length === 0) {
     return done()

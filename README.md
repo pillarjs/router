@@ -106,8 +106,6 @@ router.param('id', loadUser)
 ```
 
 Routing methods preserve extended router and route types when chaining.
-`router.stack` and `route.stack` expose `Layer` entries; their matched `path`
-and `params` can be undefined before a successful match.
 
 ## API
 
@@ -556,7 +554,7 @@ the standard tracing channel sub-events (`start`, `end`, `asyncStart`, `asyncEnd
 
 - `req`: the incoming `http.IncomingMessage`
 - `res`: the `http.ServerResponse`
-- `layer`: the internal `Layer` associated with the invocation (exposes `.name`, `.path`, `.handle`, etc.). For parameter callbacks, this is the layer whose parameters are being processed. Note that `Layer` is an internal implementation detail and its shape may change between releases.
+- `layer`: the internal `Layer` associated with the invocation (exposes `.name`, `.rawPath`, `.handle`, etc.). For parameter callbacks, this is the layer whose parameters are being processed. Note that `Layer` is an internal implementation detail and its shape may change between releases.
 - `handler`: the function being invoked. For parameter callbacks, this is the callback registered with `router.param()`, rather than `layer.handle`.
 - `param`: the parameter name, such as `'id'`, present only for `router.param()` callbacks.
 - `route`: the path pattern that matched, e.g. `'/users/:id'`. Route handlers get their route's path; middleware and mounted routers get the path they were registered with
