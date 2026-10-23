@@ -861,6 +861,18 @@ describe('Router', function () {
             }
           ], done)
         })
+
+        it('should not count escaped parentheses as capture groups', function (done) {
+          const router = new Router()
+          const route = router.route(/^\/tenant\(v\d+\)-(?<tenant>[a-z]+)-(?<user>[a-z]+)$/)
+          const server = createServer(router)
+
+          route.all(sendParams)
+
+          request(server)
+            .get('/tenant(v1)-acme-boss')
+            .expect(200, { tenant: 'acme', user: 'boss' }, done)
+        })
       })
 
       describe('using "(regexp)"', function () {
