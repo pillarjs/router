@@ -15,6 +15,7 @@
 const isPromise = require('is-promise')
 const Layer = require('./lib/layer')
 const { matchedRoute } = require('./lib/symbols')
+const { requestChannel, shouldTrace, traceParam } = require('./lib/tracing')
 const { METHODS } = require('node:http')
 const parseUrl = require('parseurl')
 const Route = require('./lib/route')
@@ -677,6 +678,18 @@ function processParams (params, layer, called, req, res, done) {
     }
 
     if (!fn) return param()
+
+    if (shouldTrace(requestChannel)) {
+      traceParam(fn, {
+        req,
+        res,
+        layer,
+        handler: fn,
+        route: req[matchedRoute],
+        param: key
+      }, paramCallback, paramVal, key)
+      return
+    }
 
     try {
       const ret = fn(req, res, paramCallback, paramVal, key)
