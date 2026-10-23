@@ -316,6 +316,18 @@ Router.prototype.handle = function handle (req, res, callback) {
         return
       }
 
+      // Validate path includes trailing slash when the mount path had one.
+      // loosen() strips trailing slashes for non-strict layer matching, which
+      // allows e.g. mount '/strict/' (loosened to '/strict') to match request
+      // '/strict'. However, the request should only proceed if it actually
+      // includes the trailing slash from the original mount path.
+      if (typeof layer.originalPath === 'string' &&
+        layer.originalPath === layerPath + '/' &&
+        !path.startsWith(layer.originalPath)) {
+        next(layerError)
+        return
+      }
+
       // Trim off the part of the url that matches the route
       // middleware (.use stuff) needs to have the path stripped
       debug('trim prefix (%s) from url %s', layerPath, req.url)
