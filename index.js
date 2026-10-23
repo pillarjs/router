@@ -14,6 +14,7 @@
 
 const isPromise = require('is-promise')
 const Layer = require('./lib/layer')
+const { matchedRoute } = require('./lib/symbols')
 const { METHODS } = require('node:http')
 const parseUrl = require('parseurl')
 const Route = require('./lib/route')
@@ -168,7 +169,7 @@ Router.prototype.handle = function handle (req, res, callback) {
   // manage inter-router variables
   const parentParams = req.params
   const parentUrl = req.baseUrl || ''
-  let done = restore(callback, req, 'baseUrl', 'next', 'params')
+  let done = restore(callback, req, 'baseUrl', 'next', 'params', matchedRoute)
 
   // setup next layer
   req.next = next
@@ -230,16 +231,20 @@ Router.prototype.handle = function handle (req, res, callback) {
     // find next matching layer
     let layer
     let match
+    let matchedPath
     let route
 
     while (match !== true && idx < stack.length) {
       layer = stack[idx++]
-      match = matchLayer(layer, path)
       route = layer.route
 
-      if (typeof match !== 'boolean') {
+      try {
+        matchedPath = layer.match(path, true)
+        match = matchedPath !== false
+      } catch (err) {
         // hold on to layerError
-        layerError = layerError || match
+        layerError = layerError || err
+        match = false
       }
 
       if (match !== true) {
@@ -282,6 +287,8 @@ Router.prototype.handle = function handle (req, res, callback) {
     }
 
     // Capture one-time layer values
+    // Store the pattern before param callbacks can yield to other requests.
+    req[matchedRoute] = matchedPath
     req.params = self.mergeParams
       ? mergeParams(layer.params, parentParams)
       : layer.params
@@ -546,22 +553,6 @@ function getProtohost (url) {
   return fqdnIndex !== -1
     ? url.substring(0, url.indexOf('/', 3 + fqdnIndex))
     : undefined
-}
-
-/**
- * Match path to a layer.
- *
- * @param {Layer} layer
- * @param {string} path
- * @private
- */
-
-function matchLayer (layer, path) {
-  try {
-    return layer.match(path)
-  } catch (err) {
-    return err
-  }
 }
 
 /**

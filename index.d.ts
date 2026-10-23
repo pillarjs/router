@@ -74,7 +74,9 @@ declare namespace Router {
     route?: Route | undefined
     method?: Method | undefined
     matchers: Array<MatchFunction<Params>>
-    match(path: string | null | undefined): boolean
+    match(path: string | null | undefined, returnPattern?: false): boolean
+    match(path: string | null | undefined, returnPattern: true): string | RegExp | false
+    match(path: string | null | undefined, returnPattern: boolean): boolean | string | RegExp
     handleRequest(req: Request<any>, res: Response, next: NextFunction): void
     handleError(error: any, req: Request<any>, res: Response, next: NextFunction): void
   }
