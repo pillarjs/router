@@ -302,10 +302,6 @@ describe('Router', function () {
         const router = new Router()
         const server = createServer(router)
 
-        router.use(function createError (req, res, next) {
-          return Promise.reject() // eslint-disable-line prefer-promise-reject-errors
-        })
-
         router.param('user', function parseUser (req, res, next, user) {
           return Promise.reject() // eslint-disable-line prefer-promise-reject-errors
         })
@@ -318,6 +314,34 @@ describe('Router', function () {
         request(server)
           .get('/user/bob')
           .expect(500, /Error: Rejected promise/, done)
+      })
+
+      it('should wait for next even when a parameter promise resolves', async function () {
+        const router = new Router()
+        let resume
+        let reached = false
+
+        router.param('user', function (req, res, next) {
+          resume = next
+          return Promise.resolve()
+        })
+        router.get('/user/:user', function (req, res, next) {
+          reached = true
+          next()
+        })
+
+        const completed = new Promise(function (resolve, reject) {
+          router({ method: 'GET', url: '/user/bob' }, {}, function (err) {
+            if (err) return reject(err)
+            resolve()
+          })
+        })
+
+        await new Promise(function (resolve) { setImmediate(resolve) })
+        assert.strictEqual(reached, false)
+        resume()
+        await completed
+        assert.strictEqual(reached, true)
       })
     })
 

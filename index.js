@@ -12,7 +12,7 @@
  * @private
  */
 
-const isPromise = require('is-promise')
+const callParam = require('./lib/param')
 const Layer = require('./lib/layer')
 const { matchedRoute } = require('./lib/symbols')
 const { recordError, requestChannel, shouldTrace, traceParam } = require('./lib/tracing')
@@ -20,7 +20,6 @@ const { METHODS } = require('node:http')
 const parseUrl = require('parseurl')
 const Route = require('./lib/route')
 const debug = require('debug')('router')
-const deprecate = require('depd')('router')
 
 /**
  * Module variables.
@@ -698,20 +697,7 @@ function processParams (params, layer, called, req, res, done) {
       return
     }
 
-    try {
-      const ret = fn(req, res, paramCallback, paramVal, key)
-      if (isPromise(ret)) {
-        if (!(ret instanceof Promise)) {
-          deprecate('parameters that are Promise-like are deprecated, use a native Promise instead')
-        }
-
-        ret.then(null, function (error) {
-          paramCallback(error || new Error('Rejected promise'))
-        })
-      }
-    } catch (e) {
-      paramCallback(e)
-    }
+    callParam(fn, req, res, paramCallback, paramVal, key)
   }
 
   param()
