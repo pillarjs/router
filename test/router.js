@@ -472,6 +472,23 @@ describe('Router', function () {
             .expect('x-is-route', 'true')
             .expect(200, done)
         })
+
+        it('should have the correct baseUrl', function (done) {
+          var router = new Router()
+          var inner = new Router()
+          var server = createServer(router)
+
+          inner[method]('/bar', function handle(req, res) {
+            res.setHeader('x-route-base', String(req.route.baseUrl === '/foo'))
+            res.end()
+          })
+          router.use('/foo', inner);
+
+          request(server)
+          [method]('/foo/bar')
+          .expect('x-route-base', 'true')
+          .expect(200, done)
+        })
       })
     })
   })
