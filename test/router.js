@@ -495,6 +495,38 @@ describe('Router', function () {
       assert.throws(router.use.bind(router, '/', new Date()), /argument handler must be a function/)
     })
 
+    it('should warn when mounting a router on itself', async function () {
+      const warnings = []
+      const onWarning = (w) => warnings.push(w)
+      process.on('warning', onWarning)
+      try {
+        const router = new Router()
+        router.use(router)
+        await new Promise((resolve) => setImmediate(resolve))
+        assert.equal(warnings.filter((w) => w.code === 'ROUTER_CIRCULAR_MOUNT').length, 1)
+      } finally {
+        process.removeListener('warning', onWarning)
+      }
+    })
+
+    it('should warn on an indirect circular mount', async function () {
+      const warnings = []
+      const onWarning = (w) => warnings.push(w)
+      process.on('warning', onWarning)
+      try {
+        const a = new Router()
+        const b = new Router()
+        a.use(b)
+        await new Promise((resolve) => setImmediate(resolve))
+        assert.equal(warnings.filter((w) => w.code === 'ROUTER_CIRCULAR_MOUNT').length, 0)
+        b.use(a)
+        await new Promise((resolve) => setImmediate(resolve))
+        assert.equal(warnings.filter((w) => w.code === 'ROUTER_CIRCULAR_MOUNT').length, 1)
+      } finally {
+        process.removeListener('warning', onWarning)
+      }
+    })
+
     it('should be chainable', function () {
       const router = new Router()
       assert.equal(router.use(helloWorld), router)

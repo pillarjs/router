@@ -30,6 +30,28 @@ const slice = Array.prototype.slice
 const flatten = Array.prototype.flat
 const methods = METHODS.map((method) => method.toLowerCase())
 
+function isRouter (fn) {
+  return typeof fn === 'function' && Array.isArray(fn.stack)
+}
+
+// Whether `target` is reachable by traversing mounted sub-routers from
+// `router`, without following the same router twice (cycles may already
+// exist by the time a new mount is added).
+function reachesRouter (router, target, seen) {
+  seen = seen || new Set()
+  if (router === target) return true
+  if (seen.has(router)) return false
+  seen.add(router)
+  const stack = Array.isArray(router.stack) ? router.stack : []
+  for (const layer of stack) {
+    const handle = layer && layer.handle
+    if (isRouter(handle) && reachesRouter(handle, target, seen)) {
+      return true
+    }
+  }
+  return false
+}
+
 /**
  * Expose `Router`.
  */
@@ -404,6 +426,15 @@ Router.prototype.use = function use (handler) {
 
     if (typeof fn !== 'function') {
       throw new TypeError('argument handler must be a function')
+    }
+
+    // warn on circular mounts: mounting a router that (transitively)
+    // contains this router would hang any request traversing the cycle
+    if (isRouter(fn) && (fn === this || reachesRouter(fn, this))) {
+      process.emitWarning(
+        'mounting a router that contains this router creates a circular mount; requests traversing the cycle will hang',
+        { code: 'ROUTER_CIRCULAR_MOUNT', type: 'DeprecationWarning' }
+      )
     }
 
     // add the middleware
