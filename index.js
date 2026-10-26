@@ -159,7 +159,7 @@ Router.prototype.handle = function handle (req, res, callback) {
   const protohost = getProtohost(req.url) || ''
   let removed = ''
   const self = this
-  let slashAdded = false
+  let slashAddedUrl = null
   let sync = 0
   const paramcalled = {}
 
@@ -195,10 +195,10 @@ Router.prototype.handle = function handle (req, res, callback) {
       ? null
       : err
 
-    // remove added slash
-    if (slashAdded) {
-      req.url = req.url.slice(1)
-      slashAdded = false
+    // remove added slash unless the layer rewrote req.url
+    if (slashAddedUrl !== null) {
+      if (req.url === slashAddedUrl) req.url = req.url.slice(1)
+      slashAddedUrl = null
     }
 
     // restore altered req.url
@@ -339,7 +339,7 @@ Router.prototype.handle = function handle (req, res, callback) {
       // Ensure leading slash
       if (!protohost && req.url[0] !== '/') {
         req.url = '/' + req.url
-        slashAdded = true
+        slashAddedUrl = req.url
       }
 
       // Setup base URL (no trailing slash)

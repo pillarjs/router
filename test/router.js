@@ -1393,6 +1393,36 @@ describe('Router', function () {
           .expect('x-saw-1', 'GET /')
           .expect(200, 'saw GET /foo/', done)
       })
+
+      it('should restore a req.url rewritten inside the layer', function (done) {
+        const router = new Router()
+        const server = createServer(router)
+
+        router.use('/foo', function (req, res, next) {
+          req.url = '/bar'
+          next()
+        })
+        router.use(saw)
+
+        request(server)
+          .get('/foo')
+          .expect(200, 'saw GET /foo/bar', done)
+      })
+
+      it('should restore a req.url rewritten inside the layer when a query string was present', function (done) {
+        const router = new Router()
+        const server = createServer(router)
+
+        router.use('/foo', function (req, res, next) {
+          req.url = '/bar'
+          next()
+        })
+        router.use(saw)
+
+        request(server)
+          .get('/foo?fizz=buzz')
+          .expect(200, 'saw GET /foo/bar', done)
+      })
     })
   })
 
