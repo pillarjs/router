@@ -938,6 +938,11 @@ describe('Router', function () {
         function (cb) {
           request(server)
             .post('/foo')
+            .expect(404, cb)
+        },
+        function (cb) {
+          request(server)
+            .post('/foo/')
             .expect(200, 'saw POST /', cb)
         },
         function (cb) {
@@ -1243,6 +1248,202 @@ describe('Router', function () {
             request(server)
               .get('/foo/')
               .expect(200, 'saw GET /', cb)
+          }
+        ], done)
+      })
+    })
+
+    describe('with trailing slash mount and strict sub-router (issue expressjs/express#2281)', function () {
+      it('should not match request without trailing slash when mounted with trailing slash', function (done) {
+        const router = new Router()
+        const subRouter = new Router({ strict: true })
+        const server = createServer(router)
+
+        subRouter.get('/', saw)
+
+        router.use('/strict/', subRouter)
+
+        series([
+          function (cb) {
+            request(server)
+              .get('/strict/')
+              .expect(200, 'saw GET /', cb)
+          },
+          function (cb) {
+            request(server)
+              .get('/strict')
+              .expect(404, cb)
+          }
+        ], done)
+      })
+
+      it('should match sub-paths when mounted with trailing slash', function (done) {
+        const router = new Router()
+        const subRouter = new Router({ strict: true })
+        const server = createServer(router)
+
+        subRouter.get('/sub', saw)
+
+        router.use('/api/', subRouter)
+
+        request(server)
+          .get('/api/sub')
+          .expect(200, 'saw GET /sub', done)
+      })
+
+      it('should still match request without trailing slash when mounted without trailing slash', function (done) {
+        const router = new Router()
+        const subRouter = new Router({ strict: true })
+        const server = createServer(router)
+
+        subRouter.get('/', saw)
+
+        router.use('/foo', subRouter)
+
+        request(server)
+          .get('/foo')
+          .expect(200, 'saw GET /', done)
+      })
+
+      it('should handle query strings correctly with trailing slash mount', function (done) {
+        const router = new Router()
+        const subRouter = new Router({ strict: true })
+        const server = createServer(router)
+
+        subRouter.get('/', saw)
+
+        router.use('/api/', subRouter)
+
+        series([
+          function (cb) {
+            request(server)
+              .get('/api/?q=1')
+              .expect(200, cb)
+          },
+          function (cb) {
+            request(server)
+              .get('/api?q=1')
+              .expect(404, cb)
+          }
+        ], done)
+      })
+
+      it('should handle nested mounts with trailing slash', function (done) {
+        const router = new Router()
+        const outer = new Router()
+        const inner = new Router({ strict: true })
+        const server = createServer(router)
+
+        inner.get('/', saw)
+
+        outer.use('/inner/', inner)
+        router.use('/outer/', outer)
+
+        series([
+          function (cb) {
+            request(server)
+              .get('/outer/inner/')
+              .expect(200, 'saw GET /', cb)
+          },
+          function (cb) {
+            request(server)
+              .get('/outer/inner')
+              .expect(404, cb)
+          }
+        ], done)
+      })
+
+      it('should enforce trailing slash for non-strict sub-routers mounted with trailing slash', function (done) {
+        const router = new Router()
+        const subRouter = new Router({ strict: false })
+        const server = createServer(router)
+
+        subRouter.get('/', saw)
+
+        router.use('/loose/', subRouter)
+
+        series([
+          function (cb) {
+            request(server)
+              .get('/loose/')
+              .expect(200, cb)
+          },
+          function (cb) {
+            request(server)
+              .get('/loose')
+              .expect(404, cb)
+          }
+        ], done)
+      })
+
+      it('should enforce trailing slash for direct handlers mounted with trailing slash', function (done) {
+        const router = new Router()
+        const server = createServer(router)
+
+        router.use('/handler/', saw)
+
+        series([
+          function (cb) {
+            request(server)
+              .get('/handler/')
+              .expect(200, cb)
+          },
+          function (cb) {
+            request(server)
+              .get('/handler')
+              .expect(404, cb)
+          },
+          function (cb) {
+            request(server)
+              .get('/handler/sub')
+              .expect(200, cb)
+          }
+        ], done)
+      })
+
+      it('should set correct baseUrl when trailing slash matches', function (done) {
+        const router = new Router()
+        const subRouter = new Router({ strict: true })
+        const server = createServer(router)
+
+        subRouter.get('/', sawBase)
+
+        router.use('/api/', subRouter)
+
+        request(server)
+          .get('/api/')
+          .expect(200, 'saw /api', done)
+      })
+
+      it('should work with all HTTP methods', function (done) {
+        const router = new Router()
+        const subRouter = new Router({ strict: true })
+        const server = createServer(router)
+
+        subRouter.all('/', saw)
+
+        router.use('/api/', subRouter)
+
+        series([
+          function (cb) {
+            request(server)
+              .get('/api/')
+              .expect(200, cb)
+          },
+          function (cb) {
+            request(server)
+              .post('/api/')
+              .expect(200, cb)
+          },
+          function (cb) {
+            request(server)
+              .get('/api')
+              .expect(404, cb)
+          },
+          function (cb) {
+            request(server)
+              .post('/api')
+              .expect(404, cb)
           }
         ], done)
       })
