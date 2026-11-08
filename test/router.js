@@ -115,6 +115,30 @@ describe('Router', function () {
       ], done)
     })
 
+    it('should match a global regexp path on every request', function (done) {
+      const router = new Router()
+      const server = createServer(router)
+
+      router.all(/^\/[a-z]oo$/g, saw)
+      series([
+        function (cb) {
+          request(server)
+            .get('/foo')
+            .expect(200, 'saw GET /foo', cb)
+        },
+        function (cb) {
+          request(server)
+            .get('/zoo')
+            .expect(200, 'saw GET /zoo', cb)
+        },
+        function (cb) {
+          request(server)
+            .get('/foo')
+            .expect(200, 'saw GET /foo', cb)
+        }
+      ], done)
+    })
+
     it('should support parameterized path', function (done) {
       const router = new Router()
       const server = createServer(router)
