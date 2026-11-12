@@ -1423,6 +1423,51 @@ describe('Router', function () {
           .get('/foo?fizz=buzz')
           .expect(200, 'saw GET /foo/bar', done)
       })
+
+      it('should restore a req.url rewritten inside the layer when the request had a trailing slash', function (done) {
+        const router = new Router()
+        const server = createServer(router)
+
+        router.use('/foo', function (req, res, next) {
+          req.url = '/bar'
+          next()
+        })
+        router.use(saw)
+
+        request(server)
+          .get('/foo/')
+          .expect(200, 'saw GET /foo/bar', done)
+      })
+
+      it('should not add a slash when the layer only rewrites the query string', function (done) {
+        const router = new Router()
+        const server = createServer(router)
+
+        router.use('/foo', function (req, res, next) {
+          req.url = req.url.replace('fizz=buzz', 'fizz=bar')
+          next()
+        })
+        router.use(saw)
+
+        request(server)
+          .get('/foo?fizz=buzz')
+          .expect(200, 'saw GET /foo?fizz=bar', done)
+      })
+
+      it('should keep the trailing slash when the layer only adds a query string', function (done) {
+        const router = new Router()
+        const server = createServer(router)
+
+        router.use('/foo', function (req, res, next) {
+          req.url += '?fizz=buzz'
+          next()
+        })
+        router.use(saw)
+
+        request(server)
+          .get('/foo/')
+          .expect(200, 'saw GET /foo/?fizz=buzz', done)
+      })
     })
   })
 
