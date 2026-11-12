@@ -84,6 +84,9 @@ describe('request-scoped matches', function () {
     await dispatch(router, req)
 
     assert.deepStrictEqual(observed, { 0: 'parent', 1: 'first', 2: 'second' })
+    // Documents existing behaviour, which is not necessarily intended: the
+    // callbacks run for the layer's own keys ('0', '1') but read the merged
+    // params, so '0' receives the parent's value and '2' is never called.
     assert.deepStrictEqual(callbacks, [['0', 'parent'], ['1', 'first']])
     assert.strictEqual(req.params, parentParams)
     assert.deepStrictEqual(parentParams, { 0: 'parent' })
