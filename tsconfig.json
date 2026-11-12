@@ -1,0 +1,12 @@
+{
+  "extends": "@tsconfig/node18/tsconfig.json",
+  "include": ["index.d.ts", "lib/**/*.d.ts", "test/**/*.ts", "test/**/*.cts", "test/**/*.mts"],
+  "exclude": ["test/types/augmentation.ts"],
+  "compilerOptions": {
+    "exactOptionalPropertyTypes": true,
+    "noUncheckedIndexedAccess": true,
+    "noEmit": true,
+    "skipLibCheck": false,
+    "types": ["node"]
+  }
+}

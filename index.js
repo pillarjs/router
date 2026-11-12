@@ -12,13 +12,14 @@
  * @private
  */
 
-const isPromise = require('is-promise')
+const callParam = require('./lib/param')
 const Layer = require('./lib/layer')
+const { matchedRoute } = require('./lib/symbols')
+const { recordError, requestChannel, shouldTrace, traceParam } = require('./lib/tracing')
 const { METHODS } = require('node:http')
 const parseUrl = require('parseurl')
 const Route = require('./lib/route')
 const debug = require('debug')('router')
-const deprecate = require('depd')('router')
 
 /**
  * Module variables.
@@ -168,7 +169,7 @@ Router.prototype.handle = function handle (req, res, callback) {
   // manage inter-router variables
   const parentParams = req.params
   const parentUrl = req.baseUrl || ''
-  let done = restore(callback, req, 'baseUrl', 'next', 'params')
+  let done = restore(callback, req, 'baseUrl', 'next', 'params', matchedRoute)
 
   // setup next layer
   req.next = next
@@ -186,6 +187,10 @@ Router.prototype.handle = function handle (req, res, callback) {
   next()
 
   function next (err) {
+    // The error has already left its originating callback. Remember it even
+    // when that callback was not traced, so enclosing routers cannot claim it.
+    if (err) recordError(req, err)
+
     let layerError = err === 'route'
       ? null
       : err
@@ -234,16 +239,23 @@ Router.prototype.handle = function handle (req, res, callback) {
     // find next matching layer
     let layer
     let match
+    let matchedPath
     let route
 
     while (match !== true && idx < stack.length) {
       layer = stack[idx++]
-      match = matchLayer(layer, path)
       route = layer.route
 
-      if (typeof match !== 'boolean') {
+      try {
+        matchedPath = layer.match(path, true)
+        match = matchedPath !== false
+      } catch (err) {
+        // Matching can fail before a handler runs (for example, URI decoding).
+        // Forwarding that error must not attribute it to a later handler.
+        recordError(req, err)
         // hold on to layerError
-        layerError = layerError || match
+        layerError = layerError || err
+        match = false
       }
 
       if (match !== true) {
@@ -286,6 +298,8 @@ Router.prototype.handle = function handle (req, res, callback) {
     }
 
     // Capture one-time layer values
+    // Store the pattern before param callbacks can yield to other requests.
+    req[matchedRoute] = matchedPath
     req.params = self.mergeParams
       ? mergeParams(layer.params, parentParams)
       : layer.params
@@ -445,6 +459,48 @@ Router.prototype.route = function route (path) {
   return route
 }
 
+/**
+ * List the routes and mounted routers registered on this router.
+ *
+ * Returns one `{ path, methods, router }` object per registered path.
+ * `methods` lists registered HTTP methods in first registration order,
+ * with `'*'` representing `.all()` handlers. The automatic `HEAD` for
+ * `GET` routes is appended unless explicitly registered. It is `undefined`
+ * for mounted routers. Plain middleware is not listed.
+ * `router` is the mounted router instance for
+ * `.use(path, router)` layers, so consumers can recurse by calling
+ * `router.listRoutes()` themselves when it is available.
+ *
+ * @return {Array<{path: string|RegExp, methods: Array<string>|undefined, router: Router|undefined}>}
+ * @public
+ */
+Router.prototype.listRoutes = function listRoutes () {
+  const routes = []
+
+  for (const layer of this.stack) {
+    const route = layer.route
+    const router = !route && Array.isArray(layer.handle.stack)
+      ? layer.handle
+      : undefined
+
+    if (!route && !router) {
+      continue
+    }
+
+    const methods = route ? route._methods(true) : undefined
+
+    if (Array.isArray(layer.rawPath)) {
+      for (const path of layer.rawPath) {
+        routes.push({ path, methods: methods && methods.slice(), router })
+      }
+    } else {
+      routes.push({ path: layer.rawPath, methods, router })
+    }
+  }
+
+  return routes
+}
+
 // create Router#VERB functions
 methods.concat('all').forEach(function (method) {
   Router.prototype[method] = function (path) {
@@ -508,22 +564,6 @@ function getProtohost (url) {
   return fqdnIndex !== -1
     ? url.substring(0, url.indexOf('/', 3 + fqdnIndex))
     : undefined
-}
-
-/**
- * Match path to a layer.
- *
- * @param {Layer} layer
- * @param {string} path
- * @private
- */
-
-function matchLayer (layer, path) {
-  try {
-    return layer.match(path)
-  } catch (err) {
-    return err
-  }
 }
 
 /**
@@ -649,20 +689,19 @@ function processParams (params, layer, called, req, res, done) {
 
     if (!fn) return param()
 
-    try {
-      const ret = fn(req, res, paramCallback, paramVal, key)
-      if (isPromise(ret)) {
-        if (!(ret instanceof Promise)) {
-          deprecate('parameters that are Promise-like are deprecated, use a native Promise instead')
-        }
-
-        ret.then(null, function (error) {
-          paramCallback(error || new Error('Rejected promise'))
-        })
-      }
-    } catch (e) {
-      paramCallback(e)
+    if (shouldTrace(requestChannel)) {
+      traceParam(fn, {
+        req,
+        res,
+        layer,
+        handler: fn,
+        route: req[matchedRoute],
+        param: key
+      }, paramCallback, paramVal, key)
+      return
     }
+
+    callParam(fn, req, res, paramCallback, paramVal, key)
   }
 
   param()

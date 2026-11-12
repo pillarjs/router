@@ -18,6 +18,97 @@ This is a [Node.js](https://nodejs.org/en/) module available through the
 $ npm install router
 ```
 
+## TypeScript
+
+TypeScript declarations are included. To describe properties added by your
+middleware, augment the `Request` and `Response` interfaces in the `router` module:
+
+```ts
+import Router from 'router'
+
+declare module 'router' {
+  interface Request {
+    user?: { id: string }
+  }
+
+  interface Response {
+    requestId?: string
+  }
+}
+
+const router = Router()
+
+router.use((req, res, next) => {
+  req.user = { id: '123' }
+  res.requestId = 'request-123'
+  next()
+})
+
+router.get('/me', (req, res) => {
+  if (res.requestId) res.setHeader('X-Request-Id', res.requestId)
+  res.end(req.user?.id)
+})
+```
+
+The augmentation applies to middleware, route handlers, error handlers, and
+`router.param` callbacks. It only describes types; your middleware must assign
+the property. Mark properties optional when they may not be present.
+
+Literal route strings infer parameter names and values, following the approach
+used by `@types/express-serve-static-core`:
+
+```ts
+router.get('/users/:id', (req, res) => {
+  res.end(req.params.id.toUpperCase()) // id: string
+})
+
+router.get('/files{/*path}', (req, res) => {
+  res.end(req.params.path?.join('/')) // path: string[] | undefined
+})
+```
+
+Inference also applies to `router.use(path, ...)`, `router.route(path)`, and
+`new Router.Route(path)`, including chained routing methods.
+
+To declare route parameters explicitly, pass their type to a routing method or
+to `Request`, `RequestHandler`, or `ErrorRequestHandler`:
+
+```ts
+type UserParams = { id: string }
+
+router.get<UserParams>('/users/:id', (req, res) => {
+  res.end(req.params.id.toUpperCase())
+})
+
+const showUser: Router.RequestHandler<UserParams> = (req, res) => {
+  res.end(req.params.id)
+}
+
+router.route('/users/:id').get<UserParams>(showUser)
+```
+
+Dynamic strings, regular expressions, and path arrays keep the default parameter
+values of `string | string[] | undefined` unless you supply an explicit type.
+Use explicit types for syntax the inference does not cover, such as quoted
+parameter names. These types do not validate the path or convert parameter values.
+
+Path arrays can be mutable or readonly, including arrays declared with `as const`.
+
+Use `RequestParamHandler` for reusable `router.param` callbacks:
+
+```ts
+const loadUser: Router.RequestParamHandler = (req, res, next, value, name) => {
+  req.user = { id: String(value) }
+  next()
+}
+
+router.param('id', loadUser)
+```
+
+Routing methods preserve extended router and route types when chaining.
+`router.stack` and `route.stack` expose `Layer` entries; their matched `path`
+and `params` can be undefined before a successful match.
+
 ## API
 
 ```js
@@ -145,6 +236,58 @@ router.param('user_id', function (req, res, next, id) {
     next()
   })
 })
+```
+
+### router.listRoutes()
+
+Returns an array with one `{ path, methods, router }` object per path
+registered on this router, in registration order.
+
+- `path` is the path the route was registered with (a string or a `RegExp`).
+  Routes registered with an array of paths produce one entry per path.
+- `methods` lists registered HTTP methods in uppercase, in the order they
+  were first registered. `.all()` is represented by `'*'` in that order to
+  indicate that the route accepts any HTTP method. Repeated registrations
+  do not add duplicate entries. The automatic `HEAD` for `GET` routes is
+  appended unless explicitly registered. For example, `.all(...).get(...)`
+  produces `['*', 'GET', 'HEAD']`, while `.get(...).all(...)` produces
+  `['GET', '*', 'HEAD']`. It is `undefined` for mounted routers, whose
+  internal routes determine the methods they handle.
+  An empty array means the route was created with
+  `router.route(path)` but has no handlers yet, so it matches no method.
+- `router` is the mounted router instance for `.use(path, router)` entries,
+  otherwise `undefined`. Nested routes are not resolved recursively; consumers
+  can recurse themselves by calling `router.listRoutes()` when the mounted
+  router implements it. Note that `.use()`
+  entries match their path as a prefix, while route entries match the full
+  path.
+
+Plain middleware functions registered with `.use()` are not listed.
+
+```js
+const router = new Router()
+const admin = new Router()
+
+admin.get('/', (req, res) => {
+  res.end('Hello')
+})
+
+router.use('/admin', admin)
+
+router.all('/:id', function (req, res) {
+  res.end('Hello')
+})
+
+console.log(router.listRoutes())
+// [
+//   { path: '/admin', methods: undefined, router: admin },
+//   { path: '/:id', methods: ['*'], router: undefined }
+// ]
+
+console.log(admin.listRoutes())
+// [
+//   { path: '/', methods: ['GET', 'HEAD'], router: undefined }
+// ]
 ```
 
 ### router.route(path)
@@ -402,6 +545,76 @@ router.route('/pet/:id')
 
 // make our http server listen to connections
 server.listen(8080)
+```
+
+## Diagnostics
+
+`router` integrates with Node.js [`diagnostics_channel`](https://nodejs.org/api/diagnostics_channel.html)
+via a [`TracingChannel`](https://nodejs.org/api/diagnostics_channel.html#class-tracingchannel)
+named `express.router.request`. This lets observability tools (APMs, tracers,
+loggers) hook into middleware and route handler execution without monkey-patching.
+
+Each middleware, route handler, and `router.param()` callback invocation publishes
+the standard tracing channel sub-events (`start`, `end`, `asyncStart`, `asyncEnd`,
+`error`). The published context object contains:
+
+- `req`: the incoming `http.IncomingMessage`
+- `res`: the `http.ServerResponse`
+- `layer`: the internal `Layer` associated with the invocation (exposes `.name`, `.path`, `.handle`, etc.). For parameter callbacks, this is the layer whose parameters are being processed. Note that `Layer` is an internal implementation detail and its shape may change between releases.
+- `handler`: the function being invoked. For parameter callbacks, this is the callback registered with `router.param()`, rather than `layer.handle`.
+- `param`: the parameter name, such as `'id'`, present only for `router.param()` callbacks.
+- `route`: the path pattern that matched, e.g. `'/users/:id'`. Route handlers get their route's path; middleware and mounted routers get the path they were registered with
+- `error`: the error reported by the invocation, or the incoming error for an error handler
+- `errorHandler`: `true` when the layer is an error-handling middleware (4-arg signature)
+
+The `error` event is published once, on the handler or parameter callback where
+the error originates, whether it calls `next(err)`, throws, or returns a rejected
+promise. An error bubbling up through outer layers is not reported again. The
+`'route'` and `'router'` routing signals are not treated as errors and will not
+publish to the `error` channel.
+
+Errors originating before an invocation is traced, or during route matching
+(such as URI decoding), are not attributed to handlers that forward them. They
+still reach error handlers and appear in those handlers' tracing contexts. If
+an error handler creates a different error, that new error is published normally.
+
+Parameter callbacks get the matched layer's path pattern in `route`. Use
+`handler.name` to identify the callback; `layer.name` identifies the associated
+layer. A cached parameter result does not invoke its callbacks again, so it does
+not produce additional callback events.
+
+Stores bound with `start.bindStore()` apply during handler invocation. Stores
+bound with `asyncStart.bindStore()` apply during `asyncEnd` publication when a
+returned promise settles.
+
+When no subscribers are attached, handler execution skips tracing context
+allocation and channel publishing. Error identities are tracked per request so
+that subscribers attached later cannot attribute a forwarded error to its receiver.
+
+```js
+const dc = require('node:diagnostics_channel')
+
+const channel = dc.tracingChannel('express.router.request')
+
+channel.subscribe({
+  start (ctx) {
+    ctx.startTime = process.hrtime.bigint()
+  },
+  end (ctx) {
+    // do whatever you need on synchronous completion
+  },
+  asyncStart (ctx) {
+    // do whatever you need when the async portion begins
+  },
+  asyncEnd (ctx) {
+    const durationNs = process.hrtime.bigint() - ctx.startTime
+    console.log('%s %s -> %s (%dns)',
+      ctx.req.method, ctx.req.url, ctx.handler.name || '<anonymous>', durationNs)
+  },
+  error (ctx) {
+    console.error('handler error in %s:', ctx.handler.name || '<anonymous>', ctx.error)
+  }
+})
 ```
 
 ## License
