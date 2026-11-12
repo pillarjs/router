@@ -4,6 +4,7 @@ unreleased
 * Add TypeScript declarations for `Router` and `Route`
 * perf: skip decoding route parameters without `%`
 * Set `err.statusCode` to 400 for malformed route parameters
+* Fix `req.url` losing the path separator when a mounted layer rewrites it
 
 2.2.0 / 2025-03-26
 ==================
