@@ -214,8 +214,10 @@ describeTracing('TracingChannel', function () {
           assert.equal(errorHandlerStart.ctx.layer.handle.length, 4)
           assert.equal(errorHandlerStart.ctx.errorHandler, true,
             'error handler ctx should be flagged errorHandler so APMs can dedup the origin error')
-          assert.ok(errorHandlerStart.ctx.error,
+          assert.equal(errorHandlerStart.ctx.incomingError.message, 'boom',
             'error handler ctx should expose the error it received')
+          assert.ok(!('error' in errorHandlerStart.ctx),
+            'error is only set when the error handler itself fails')
 
           assert.ok(!errorHandlerEvents.some(byPhase('error')),
             'error handler itself did not throw, so it should not emit error')
@@ -1241,7 +1243,10 @@ describeTracing('TracingChannel', function () {
         assert.strictEqual(received, forwarding === 'replace' ? replacement : error)
         const errors = events.filter(byPhase('error'))
         assert.strictEqual(errors.length, forwarding === 'replace' ? 1 : 0)
-        if (forwarding === 'replace') assert.strictEqual(errors[0].ctx.error, replacement)
+        if (forwarding === 'replace') {
+          assert.strictEqual(errors[0].ctx.error, replacement)
+          assert.strictEqual(errors[0].ctx.incomingError, error)
+        }
       })
     }
   })
@@ -1715,6 +1720,144 @@ describeTracing('TracingChannel', function () {
           done()
         })
     })
+  })
+
+  describe('return value', function () {
+    // It's the same context object on every event, so copy what we need each time
+    function snapshots () {
+      const seen = []
+      for (const phase of ['end', 'error', 'asyncStart', 'asyncEnd']) {
+        handlers[phase] = function (ctx) {
+          events.push({ phase, ctx })
+          seen.push({
+            phase,
+            name: ctx.handler.name,
+            has: 'result' in ctx,
+            result: ctx.result,
+            done: 'result' in ctx || 'error' in ctx
+          })
+        }
+      }
+      function at (name, phase) {
+        return seen.find(function (s) { return s.name === name && s.phase === phase })
+      }
+      at.phases = function (name) {
+        return seen.filter(function (s) { return s.name === name }).map(function (s) { return s.phase })
+      }
+      return at
+    }
+
+    it('should set a synchronous return value as the result at end', async function () {
+      const at = snapshots()
+      const { router, server } = traced()
+
+      router.use(function callbackMiddleware (req, res, next) { setImmediate(next) })
+      router.get('/users/:id', function syncHandler (req, res) {
+        res.end('ok')
+        return 'done'
+      })
+
+      await request(server).get('/users/1').expect(200, 'ok')
+
+      assert.deepStrictEqual(at('callbackMiddleware', 'end'),
+        { phase: 'end', name: 'callbackMiddleware', has: true, result: undefined, done: true })
+      assert.deepStrictEqual(at('syncHandler', 'end'),
+        { phase: 'end', name: 'syncHandler', has: true, result: 'done', done: true })
+      assert.strictEqual(at('syncHandler', 'asyncStart'), undefined)
+    })
+
+    for (const kind of ['handler', 'error handler', 'parameter callback']) {
+      for (const native of [true, false]) {
+        const label = native ? 'promise' : 'non-native thenable'
+
+        it('should set the resolved value of ' + (kind === 'error handler' ? 'an ' : 'a ') + kind + ' ' + label + ' as the result at asyncStart', async function () {
+          const at = snapshots()
+          const { router, server } = traced()
+
+          // Resolves to 'done' after running work
+          function settle (work) {
+            if (native) return Promise.resolve().then(function () { work(); return 'done' })
+            return { then (resolve) { setImmediate(function () { work(); resolve('done') }) } }
+          }
+          const subjects = {
+            handler: function subject (req, res) { return settle(function () { res.end('ok') }) },
+            'error handler': function subject (err, req, res, next) {
+              assert.strictEqual(err.message, 'boom')
+              return settle(next)
+            },
+            'parameter callback': function subject (req, res, next) { return settle(next) }
+          }
+          const subject = subjects[kind]
+
+          if (kind === 'parameter callback') router.param('id', subject)
+          if (kind === 'error handler') {
+            router.use(function fail (req, res, next) { next(new Error('boom')) })
+            router.use(subject)
+          }
+          router.get('/users/:id', kind === 'handler' ? subject : function user (req, res) { res.end('ok') })
+
+          await request(server).get('/users/1').expect(200, 'ok')
+
+          assert.strictEqual(at('subject', 'end').done, false, 'neither result nor error before it settles')
+          assert.strictEqual(at('subject', 'asyncStart').result, 'done')
+          assert.strictEqual(at('subject', 'asyncEnd').result, 'done')
+        })
+      }
+    }
+
+    for (const kind of ['handler', 'parameter callback']) {
+      for (const failure of ['throw', 'reject']) {
+        it('should not set a result when a ' + kind + ' ' + (failure === 'throw' ? 'throws' : 'rejects'), async function () {
+          const at = snapshots()
+          const { router, server } = traced()
+
+          function subject () {
+            if (failure === 'throw') throw new Error('boom')
+            return Promise.reject(new Error('boom'))
+          }
+
+          if (kind === 'parameter callback') router.param('id', subject)
+          router.get('/users/:id', kind === 'handler' ? subject : function user (req, res) { res.end('ok') })
+          router.use(recover)
+
+          await request(server).get('/users/1').expect(500, 'boom')
+
+          assert.strictEqual(at('subject', 'end').has, false)
+          if (failure === 'throw') {
+            assert.deepStrictEqual(at.phases('subject'), ['error', 'end'])
+            assert.strictEqual(at('subject', 'end').done, true)
+          } else {
+            assert.deepStrictEqual(at.phases('subject'), ['end', 'error', 'asyncStart', 'asyncEnd'])
+            assert.strictEqual(at('subject', 'end').done, false)
+            assert.strictEqual(at('subject', 'asyncEnd').has, false)
+          }
+        })
+      }
+    }
+
+    for (const kind of ['handler', 'parameter callback']) {
+      for (const async of [false, true]) {
+        it('should publish next(err) from ' + (async ? 'an async ' : 'a sync ') + kind + ' ' + (async ? 'after' : 'before') + ' end', async function () {
+          const at = snapshots()
+          const { router, server } = traced()
+
+          // Calls next(err) before returning, so the router can't know yet if a promise follows
+          const subject = async
+            ? async function subject (req, res, next) { next(new Error('boom')) }
+            : function subject (req, res, next) { next(new Error('boom')) }
+
+          if (kind === 'parameter callback') router.param('id', subject)
+          router.get('/users/:id', kind === 'handler' ? subject : function user (req, res) { res.end('ok') })
+          router.use(recover)
+
+          await request(server).get('/users/1').expect(500, 'boom')
+
+          assert.deepStrictEqual(at.phases('subject'),
+            async ? ['end', 'error', 'asyncStart', 'asyncEnd'] : ['error', 'end'])
+          assert.strictEqual(at('subject', 'end').done, !async)
+        })
+      }
+    }
   })
 
   describe('multiple middleware', function () {
