@@ -4,6 +4,7 @@ unreleased
 * Add TypeScript declarations for `Router` and `Route`
 * perf: skip decoding route parameters without `%`
 * Set `err.statusCode` to 400 for malformed route parameters
+* Fix `req.url` losing the path separator when a mounted layer rewrites it
 * Keep layer match results local to each request
   - The internal `Layer` no longer stores `keys`, `params` or `path`
   - The internal `layer.match()` returns `{ params, path, keys, pattern }` or `false` instead of a boolean

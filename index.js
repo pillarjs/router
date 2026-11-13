@@ -195,9 +195,13 @@ Router.prototype.handle = function handle (req, res, callback) {
       ? null
       : err
 
-    // remove added slash
+    // remove added slash, unless the layer rewrote the path under a mount
+    // path that has no trailing slash
     if (slashAdded) {
-      req.url = req.url.slice(1)
+      const pathIsRoot = req.url === '/' || req.url.startsWith('/?')
+      if (pathIsRoot || (removed.endsWith('/') && req.url[0] === '/')) {
+        req.url = req.url.slice(1)
+      }
       slashAdded = false
     }
 
