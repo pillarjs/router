@@ -948,6 +948,72 @@ describe('Router', function () {
       ], done)
     })
 
+    it('should not mount at single "/" when path is "//"', function (done) {
+      const router = new Router()
+      const server = createServer(router)
+
+      router.use('//', saw)
+      router.use(helloWorld)
+
+      series([
+        function (cb) {
+          request(server)
+            .get('/')
+            .expect(200, 'hello, world', cb)
+        },
+        function (cb) {
+          request(server)
+            .get('/foo')
+            .expect(200, 'hello, world', cb)
+        }
+      ], done)
+    })
+
+    it('should not mount at single "/" when path is "///"', function (done) {
+      const router = new Router()
+      const server = createServer(router)
+
+      router.use('///', saw)
+      router.use(helloWorld)
+
+      series([
+        function (cb) {
+          request(server)
+            .get('/')
+            .expect(200, 'hello, world', cb)
+        },
+        function (cb) {
+          request(server)
+            .get('/foo')
+            .expect(200, 'hello, world', cb)
+        }
+      ], done)
+    })
+
+    it('should not expose sub-router routes when mounted at "//"', function (done) {
+      const inner = new Router()
+      const router = new Router()
+      const server = createServer(router)
+
+      inner.get('/', helloWorld)
+      inner.get('/admin', saw)
+
+      router.use('//', inner)
+
+      series([
+        function (cb) {
+          request(server)
+            .get('/')
+            .expect(404, cb)
+        },
+        function (cb) {
+          request(server)
+            .get('/admin')
+            .expect(404, cb)
+        }
+      ], done)
+    })
+
     it('should support array of paths', function (done) {
       const router = new Router()
       const server = createServer(router)
