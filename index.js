@@ -288,7 +288,8 @@ Router.prototype.handle = function handle (req, res, callback) {
 
     // store route for dispatch on change
     if (route) {
-      req.route = route
+      req.route = req.route || { __proto__: route }
+      req.route.baseUrl = req.baseUrl;
     }
 
     // Keep matched values local to this request before param callbacks can yield.
