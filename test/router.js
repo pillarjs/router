@@ -1487,3 +1487,106 @@ function sawBase (req, res) {
   res.setHeader('Content-Type', 'text/plain')
   res.end(msg)
 }
+
+describe('Router cycle detection', function () {
+  it('should emit warning when router is mounted on itself', function (done) {
+    const router = new Router()
+    const warnings = []
+    const originalEmit = process.emitWarning
+
+    process.emitWarning = function (message, type) {
+      warnings.push({ message, type })
+    }
+
+    router.use('/', router)
+
+    process.emitWarning = originalEmit
+
+    assert.strictEqual(warnings.length, 1)
+    assert.strictEqual(warnings[0].type, 'RouterCycleWarning')
+    assert.ok(warnings[0].message.includes('cycle'))
+    done()
+  })
+
+  it('should emit warning for indirect router cycle', function (done) {
+    const routerA = new Router()
+    const routerB = new Router()
+    const warnings = []
+    const originalEmit = process.emitWarning
+
+    process.emitWarning = function (message, type) {
+      warnings.push({ message, type })
+    }
+
+    routerA.use('/b', routerB)
+    routerB.use('/a', routerA)
+
+    process.emitWarning = originalEmit
+
+    assert.strictEqual(warnings.length, 1)
+    assert.strictEqual(warnings[0].type, 'RouterCycleWarning')
+    assert.ok(warnings[0].message.includes('cycle'))
+    done()
+  })
+
+  it('should emit warning for nested indirect cycles', function (done) {
+    const routerA = new Router()
+    const routerB = new Router()
+    const routerC = new Router()
+    const warnings = []
+    const originalEmit = process.emitWarning
+
+    process.emitWarning = function (message, type) {
+      warnings.push({ message, type })
+    }
+
+    routerA.use('/b', routerB)
+    routerB.use('/c', routerC)
+    routerC.use('/a', routerA)
+
+    process.emitWarning = originalEmit
+
+    assert.strictEqual(warnings.length, 1)
+    assert.strictEqual(warnings[0].type, 'RouterCycleWarning')
+    done()
+  })
+
+  it('should not emit warning for non-cyclic router mounts', function (done) {
+    const routerA = new Router()
+    const routerB = new Router()
+    const routerC = new Router()
+    const warnings = []
+    const originalEmit = process.emitWarning
+
+    process.emitWarning = function (message, type) {
+      warnings.push({ message, type })
+    }
+
+    routerA.use('/b', routerB)
+    routerA.use('/c', routerC)
+
+    process.emitWarning = originalEmit
+
+    assert.strictEqual(warnings.length, 0)
+    done()
+  })
+
+  it('should allow cyclic mount but warn (behavior unchanged)', function (done) {
+    const router = new Router()
+    const warnings = []
+    const originalEmit = process.emitWarning
+
+    process.emitWarning = function (message, type) {
+      warnings.push({ message, type })
+    }
+
+    router.get('/test', helloWorld)
+    router.use('/', router)
+
+    process.emitWarning = originalEmit
+
+    assert.strictEqual(warnings.length, 1)
+    assert.strictEqual(router.stack.length, 2) // route + cyclic mount
+    done()
+  })
+})
