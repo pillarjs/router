@@ -562,14 +562,19 @@ the standard tracing channel sub-events (`start`, `end`, `asyncStart`, `asyncEnd
 - `handler`: the function being invoked. For parameter callbacks, this is the callback registered with `router.param()`, rather than `layer.handle`.
 - `param`: the parameter name, such as `'id'`, present only for `router.param()` callbacks.
 - `route`: the path pattern that matched, e.g. `'/users/:id'`. Route handlers get their route's path; middleware and mounted routers get the path they were registered with
-- `error`: the error reported by the invocation, or the incoming error for an error handler
+- `error`: the error reported by the invocation, set when it calls `next(err)`, throws, or rejects
+- `incomingError`: the error an error handler received, only set for error handlers
 - `errorHandler`: `true` when the layer is an error-handling middleware (4-arg signature)
+- `result`: the value the invocation produced, as with `tracePromise`. A synchronous return value is set before `end`; for a promise it is the resolved value, set before `asyncStart`. It is not set when the invocation throws or rejects.
 
 The `error` event is published once, on the handler or parameter callback where
 the error originates, whether it calls `next(err)`, throws, or returns a rejected
-promise. An error bubbling up through outer layers is not reported again. The
-`'route'` and `'router'` routing signals are not treated as errors and will not
-publish to the `error` channel.
+promise. As with `tracePromise`, it is published before `end` when the invocation
+returns synchronously and after `end` when it returns a promise, so `result` or
+`error` being set at `end` means no `asyncStart` or `asyncEnd` will follow. An
+error bubbling up through outer layers is not reported again. The `'route'` and
+`'router'` routing signals are not treated as errors and will not publish to the
+`error` channel.
 
 Errors originating before an invocation is traced, or during route matching
 (such as URI decoding), are not attributed to handlers that forward them. They
