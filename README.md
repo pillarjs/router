@@ -106,8 +106,6 @@ router.param('id', loadUser)
 ```
 
 Routing methods preserve extended router and route types when chaining.
-`router.stack` and `route.stack` expose `Layer` entries; their matched `path`
-and `params` can be undefined before a successful match.
 
 ## API
 
@@ -156,6 +154,10 @@ consider it one for handling `OPTIONS` requests.
 
 * Note: If a `path` is specified, that `path` is stripped from the start of
   `req.url`.
+* Note: The stripped `path` is added back to `req.url` when the middleware calls
+  `next()`. A `req.url` rewritten by the middleware is treated as relative to the
+  mount `path`, so rewriting `req.url` to `/index.html` inside a router mounted
+  on `/app` continues with `/app/index.html`.
 
 <!-- eslint-disable no-undef -->
 
@@ -556,7 +558,7 @@ the standard tracing channel sub-events (`start`, `end`, `asyncStart`, `asyncEnd
 
 - `req`: the incoming `http.IncomingMessage`
 - `res`: the `http.ServerResponse`
-- `layer`: the internal `Layer` associated with the invocation (exposes `.name`, `.path`, `.handle`, etc.). For parameter callbacks, this is the layer whose parameters are being processed. Note that `Layer` is an internal implementation detail and its shape may change between releases.
+- `layer`: the internal `Layer` associated with the invocation (exposes `.name`, `.rawPath`, `.handle`, etc.). For parameter callbacks, this is the layer whose parameters are being processed. Note that `Layer` is an internal implementation detail and its shape may change between releases.
 - `handler`: the function being invoked. For parameter callbacks, this is the callback registered with `router.param()`, rather than `layer.handle`.
 - `param`: the parameter name, such as `'id'`, present only for `router.param()` callbacks.
 - `route`: the path pattern that matched, e.g. `'/users/:id'`. Route handlers get their route's path; middleware and mounted routers get the path they were registered with
