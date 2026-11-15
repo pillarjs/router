@@ -1836,36 +1836,43 @@ describeTracing('TracingChannel', function () {
     }
 
     for (const kind of ['handler', 'error handler', 'parameter callback']) {
-      it('should set the error at end when ' + (kind === 'error handler' ? 'an ' : 'a ') + kind + ' rethrows an error already published', async function () {
-        const at = snapshots()
-        const { router, server } = traced()
+      for (const async of [false, true]) {
+        it('should set the error at ' + (async ? 'asyncEnd' : 'end') + ' when ' + (async ? 'an async ' : 'a sync ') + kind + ' rethrows an error already published', async function () {
+          const at = snapshots()
+          const { router, server } = traced()
 
-        function fail (req, res, next) {
-          req.failure = new Error('boom')
-          next(req.failure)
-        }
+          function fail (req, res, next) {
+            req.failure = new Error('boom')
+            next(req.failure)
+          }
 
-        router.use(fail)
-        if (kind === 'error handler') {
-          router.use(function subject (err, req, res, next) { throw err })
-        } else {
-          function subject (req, res, next) { throw req.failure }
+          router.use(fail)
+          if (kind === 'error handler') {
+            router.use(async
+              ? async function subject (err, req, res, next) { throw err }
+              : function subject (err, req, res, next) { throw err })
+          } else {
+            const subject = async
+              ? async function subject (req, res, next) { throw req.failure }
+              : function subject (req, res, next) { throw req.failure }
 
-          // Recover from the error so the request reaches the subject
-          router.use(function swallow (err, req, res, next) { next(err.message === 'boom' ? undefined : err) })
-          if (kind === 'parameter callback') router.param('id', subject)
-          router.get('/users/:id', kind === 'handler' ? subject : function user (req, res) { res.end('ok') })
-        }
-        router.use(recover)
+            // Recover from the error so the request reaches the subject
+            router.use(function swallow (err, req, res, next) { next(err.message === 'boom' ? undefined : err) })
+            if (kind === 'parameter callback') router.param('id', subject)
+            router.get('/users/:id', kind === 'handler' ? subject : function user (req, res) { res.end('ok') })
+          }
+          router.use(recover)
 
-        await request(server).get('/users/1').expect(500, 'boom')
+          await request(server).get('/users/1').expect(500, 'boom')
 
-        const errors = events.filter(byPhase('error'))
-        assert.strictEqual(errors.length, 1)
-        assert.strictEqual(errors[0].ctx.handler, fail)
-        assert.deepStrictEqual(at.phases('subject'), ['end'])
-        assert.strictEqual(at('subject', 'end').done, true)
-      })
+          const errors = events.filter(byPhase('error'))
+          assert.strictEqual(errors.length, 1)
+          assert.strictEqual(errors[0].ctx.handler, fail)
+          assert.deepStrictEqual(at.phases('subject'), async ? ['end', 'asyncStart', 'asyncEnd'] : ['end'])
+          assert.strictEqual(at('subject', 'end').done, !async)
+          if (async) assert.strictEqual(at('subject', 'asyncEnd').done, true)
+        })
+      }
     }
 
     for (const kind of ['handler', 'parameter callback']) {
