@@ -1835,6 +1835,39 @@ describeTracing('TracingChannel', function () {
       }
     }
 
+    for (const kind of ['handler', 'error handler', 'parameter callback']) {
+      it('should set the error at end when ' + (kind === 'error handler' ? 'an ' : 'a ') + kind + ' rethrows an error already published', async function () {
+        const at = snapshots()
+        const { router, server } = traced()
+
+        function fail (req, res, next) {
+          req.failure = new Error('boom')
+          next(req.failure)
+        }
+
+        router.use(fail)
+        if (kind === 'error handler') {
+          router.use(function subject (err, req, res, next) { throw err })
+        } else {
+          function subject (req, res, next) { throw req.failure }
+
+          // Recover from the error so the request reaches the subject
+          router.use(function swallow (err, req, res, next) { next(err.message === 'boom' ? undefined : err) })
+          if (kind === 'parameter callback') router.param('id', subject)
+          router.get('/users/:id', kind === 'handler' ? subject : function user (req, res) { res.end('ok') })
+        }
+        router.use(recover)
+
+        await request(server).get('/users/1').expect(500, 'boom')
+
+        const errors = events.filter(byPhase('error'))
+        assert.strictEqual(errors.length, 1)
+        assert.strictEqual(errors[0].ctx.handler, fail)
+        assert.deepStrictEqual(at.phases('subject'), ['end'])
+        assert.strictEqual(at('subject', 'end').done, true)
+      })
+    }
+
     for (const kind of ['handler', 'parameter callback']) {
       for (const async of [false, true]) {
         it('should publish next(err) from ' + (async ? 'an async ' : 'a sync ') + kind + ' ' + (async ? 'after' : 'before') + ' end', async function () {

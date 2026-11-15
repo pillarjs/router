@@ -562,7 +562,7 @@ the standard tracing channel sub-events (`start`, `end`, `asyncStart`, `asyncEnd
 - `handler`: the function being invoked. For parameter callbacks, this is the callback registered with `router.param()`, rather than `layer.handle`.
 - `param`: the parameter name, such as `'id'`, present only for `router.param()` callbacks.
 - `route`: the path pattern that matched, e.g. `'/users/:id'`. Route handlers get their route's path; middleware and mounted routers get the path they were registered with
-- `error`: the error reported by the invocation, set when it calls `next(err)`, throws, or rejects
+- `error`: the error reported by the invocation, set when it calls `next(err)`, throws, or rejects. A synchronous throw always sets it, even when the error was already published upstream and isn't published again
 - `incomingError`: the error an error handler received, only set for error handlers
 - `errorHandler`: `true` when the layer is an error-handling middleware (4-arg signature)
 - `result`: the value the invocation produced, as with `tracePromise`. A synchronous return value is set before `end`; for a promise it is the resolved value, set before `asyncStart`. It is not set when the invocation throws or rejects.
