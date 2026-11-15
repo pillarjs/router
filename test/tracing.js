@@ -1894,6 +1894,27 @@ describeTracing('TracingChannel', function () {
       }
     }
 
+    it('should publish every error a handler reports', async function () {
+      const { router, server } = traced()
+      const first = new Error('first')
+      const second = new Error('second')
+
+      function twice (req, res, next) {
+        next(first)
+        throw second
+      }
+
+      router.get('/users/:id', twice)
+      router.use(recover)
+
+      await request(server).get('/users/1').expect(500, 'first')
+
+      const errors = events.filter(byPhase('error'))
+      assert.deepStrictEqual(errors.map(function (e) { return e.ctx.handler }), [twice, twice])
+      const end = events.find(function (e) { return e.phase === 'end' && e.ctx.handler === twice })
+      assert.strictEqual(end.ctx.error, second)
+    })
+
     it('should publish next(err) before the error handler it calls runs', async function () {
       const { router, server } = traced()
 
