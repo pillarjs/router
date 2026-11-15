@@ -1806,6 +1806,38 @@ describeTracing('TracingChannel', function () {
     }
 
     for (const kind of ['handler', 'parameter callback']) {
+      for (const outcome of ['resolves', 'rejects']) {
+        it('should publish asyncStart and asyncEnd after end when a ' + kind + ' thenable ' + outcome + ' synchronously', async function () {
+          const at = snapshots()
+          const { router, server } = traced()
+
+          function subject (req, res, next) {
+            if (kind === 'parameter callback' && outcome === 'resolves') next()
+            if (kind === 'handler' && outcome === 'resolves') res.end('ok')
+            return {
+              then (resolve, reject) {
+                if (outcome === 'resolves') resolve('val')
+                else reject(new Error('boom'))
+              }
+            }
+          }
+
+          if (kind === 'parameter callback') router.param('id', subject)
+          router.get('/users/:id', kind === 'handler' ? subject : function user (req, res) { res.end('ok') })
+          router.use(recover)
+
+          await request(server).get('/users/1').expect(outcome === 'resolves' ? 200 : 500)
+
+          const phases = at.phases('subject').filter(function (phase) { return phase !== 'error' })
+          assert.deepStrictEqual(phases, ['end', 'asyncStart', 'asyncEnd'])
+          assert.strictEqual(at('subject', 'end').done, false)
+          assert.strictEqual(at('subject', 'asyncEnd').done, true)
+          if (outcome === 'resolves') assert.strictEqual(at('subject', 'asyncEnd').result, 'val')
+        })
+      }
+    }
+
+    for (const kind of ['handler', 'parameter callback']) {
       for (const failure of ['throw', 'reject']) {
         it('should not set a result when a ' + kind + ' ' + (failure === 'throw' ? 'throws' : 'rejects'), async function () {
           const at = snapshots()
