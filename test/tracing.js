@@ -1893,6 +1893,43 @@ describeTracing('TracingChannel', function () {
       }
     }
 
+    for (const subscribed of [false, true]) {
+      it('should accept a thenable that calls its callbacks without checking them ' + (subscribed ? 'with' : 'without') + ' subscribers', async function () {
+        const router = subscribed ? traced().router : new Router()
+        const server = createServer(router)
+        const failures = []
+
+        router.use(function loose (req, res) {
+          res.end('ok')
+          return { then (resolve) { resolve('val') } }
+        })
+        router.use(function failed (err, req, res, next) { failures.push(err) })
+
+        await request(server).get('/').expect(200, 'ok')
+
+        assert.deepStrictEqual(failures, [])
+      })
+    }
+
+    it('should publish an error again when it is reported after an error handler recovered from it', async function () {
+      const { router, server } = traced()
+      const single = new Error('single')
+
+      function first (req, res, next) { next(single) }
+      function second (req, res, next) { next(single) }
+
+      router.use(first)
+      router.use(function recovered (err, req, res, next) { next(err === single ? undefined : err) })
+      router.use(second)
+      router.use(recover)
+
+      await request(server).get('/').expect(500, 'single')
+
+      const errors = events.filter(byPhase('error'))
+      assert.deepStrictEqual(errors.map(function (e) { return e.ctx.handler }), [first, second])
+      assert.strictEqual(events.find(function (e) { return e.phase === 'end' && e.ctx.handler === second }).ctx.error, single)
+    })
+
     for (const kind of ['handler', 'parameter callback']) {
       for (const failure of ['throw', 'reject']) {
         it('should not set a result when a ' + kind + ' ' + (failure === 'throw' ? 'throws' : 'rejects'), async function () {
@@ -1953,10 +1990,13 @@ describeTracing('TracingChannel', function () {
 
           await request(server).get('/users/1').expect(500, 'boom')
 
+          // Only an error handler still holds it; after swallow recovered, it's a new failure
           const errors = events.filter(byPhase('error'))
-          assert.strictEqual(errors.length, 1)
-          assert.strictEqual(errors[0].ctx.handler, fail)
-          assert.deepStrictEqual(at.phases('subject'), async ? ['end', 'asyncStart', 'asyncEnd'] : ['end'])
+          assert.deepStrictEqual(errors.map(function (e) { return e.ctx.handler.name }),
+            kind === 'error handler' ? ['fail'] : ['fail', 'subject'])
+          if (kind === 'error handler') {
+            assert.deepStrictEqual(at.phases('subject'), async ? ['end', 'asyncStart', 'asyncEnd'] : ['end'])
+          }
           assert.strictEqual(at('subject', 'end').done, !async)
           if (async) assert.strictEqual(at('subject', 'asyncEnd').done, true)
         })
