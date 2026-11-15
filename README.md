@@ -569,9 +569,9 @@ the standard tracing channel sub-events (`start`, `end`, `asyncStart`, `asyncEnd
 
 The `error` event is published once, on the handler or parameter callback where
 the error originates, whether it calls `next(err)`, throws, or returns a rejected
-promise. As with `tracePromise`, it is published before `end` when the invocation
-returns synchronously and after `end` when it returns a promise, so `result` or
-`error` being set at `end` means no `asyncStart` or `asyncEnd` will follow. An
+promise, as soon as it happens. `result` or `error` being set at `end` means no
+`asyncStart` or `asyncEnd` will follow. If an invocation calls `next(err)` and
+then returns a promise, `error` is published before `end` but unset during it. An
 error bubbling up through outer layers is not reported again. The `'route'` and
 `'router'` routing signals are not treated as errors and will not publish to the
 `error` channel.

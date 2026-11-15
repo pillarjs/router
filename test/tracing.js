@@ -1870,7 +1870,7 @@ describeTracing('TracingChannel', function () {
 
     for (const kind of ['handler', 'parameter callback']) {
       for (const async of [false, true]) {
-        it('should publish next(err) from ' + (async ? 'an async ' : 'a sync ') + kind + ' ' + (async ? 'after' : 'before') + ' end', async function () {
+        it('should publish next(err) from ' + (async ? 'an async ' : 'a sync ') + kind + ' before end', async function () {
           const at = snapshots()
           const { router, server } = traced()
 
@@ -1886,11 +1886,29 @@ describeTracing('TracingChannel', function () {
           await request(server).get('/users/1').expect(500, 'boom')
 
           assert.deepStrictEqual(at.phases('subject'),
-            async ? ['end', 'error', 'asyncStart', 'asyncEnd'] : ['error', 'end'])
+            async ? ['error', 'end', 'asyncStart', 'asyncEnd'] : ['error', 'end'])
+          // A promise follows, so `end` must not look done
           assert.strictEqual(at('subject', 'end').done, !async)
+          if (async) assert.strictEqual(at('subject', 'asyncEnd').done, true)
         })
       }
     }
+
+    it('should publish next(err) before the error handler it calls runs', async function () {
+      const { router, server } = traced()
+
+      function boom (req, res, next) { next(new Error('boom')) }
+
+      router.get('/users/:id', boom)
+      router.use(recover)
+
+      await request(server).get('/users/1').expect(500, 'boom')
+
+      const order = events
+        .filter(function (e) { return e.phase === 'start' || e.phase === 'error' })
+        .map(function (e) { return e.phase + ' ' + e.ctx.handler.name })
+      assert.deepStrictEqual(order, ['start boom', 'error boom', 'start recover'])
+    })
   })
 
   describe('multiple middleware', function () {
