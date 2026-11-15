@@ -1837,6 +1837,31 @@ describeTracing('TracingChannel', function () {
       }
     }
 
+    for (const kind of ['middleware', 'route handler', 'parameter callback']) {
+      it('should treat a ' + kind + ' thenable whose then throws as a rejection', async function () {
+        const at = snapshots()
+        const { router, server } = traced()
+
+        function subject () {
+          return { then () { throw new Error('bad then') } }
+        }
+
+        if (kind === 'middleware') router.use(subject)
+        if (kind === 'parameter callback') router.param('id', subject)
+        router.get('/users/:id', kind === 'route handler' ? subject : function user (req, res) { res.end('ok') })
+        router.use(recover)
+
+        await request(server).get('/users/1').expect(500, 'bad then')
+
+        // A parameter callback forwards the error before returning, like next(err) then a promise
+        assert.deepStrictEqual(at.phases('subject'), kind === 'parameter callback'
+          ? ['error', 'end', 'asyncStart', 'asyncEnd']
+          : ['end', 'error', 'asyncStart', 'asyncEnd'])
+        assert.strictEqual(at('subject', 'end').done, false)
+        assert.strictEqual(at('subject', 'asyncEnd').done, true)
+      })
+    }
+
     for (const kind of ['handler', 'parameter callback']) {
       for (const failure of ['throw', 'reject']) {
         it('should not set a result when a ' + kind + ' ' + (failure === 'throw' ? 'throws' : 'rejects'), async function () {
