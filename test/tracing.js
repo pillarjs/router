@@ -1931,6 +1931,35 @@ describeTracing('TracingChannel', function () {
     })
 
     for (const kind of ['handler', 'parameter callback']) {
+      for (const signal of ['route', 'router']) {
+        for (const async of [false, true]) {
+          it('should not treat ' + (async ? 'rejecting' : 'throwing') + " '" + signal + "' from a " + kind + ' as an error', async function () {
+            const at = snapshots()
+            const { router, server } = traced()
+            const inner = new Router()
+
+            const subject = async
+              ? function subject () { return Promise.reject(signal) }
+              : function subject () { throw signal }
+
+            if (kind === 'parameter callback') inner.param('id', subject)
+            inner.get('/users/:id', kind === 'handler' ? subject : function user (req, res) { res.end('unexpected') })
+            router.use(inner)
+            router.use(function after (req, res) { res.end('after') })
+
+            await request(server).get('/users/1').expect(200, 'after')
+
+            assert.strictEqual(events.filter(byPhase('error')).length, 0)
+            const last = at.phases('subject').slice(-1)[0]
+            assert.deepStrictEqual(at.phases('subject'), async ? ['end', 'asyncStart', 'asyncEnd'] : ['end'])
+            assert.strictEqual(at('subject', 'end').done, !async)
+            assert.strictEqual(at('subject', last).done, !async, 'no error at the terminal event')
+          })
+        }
+      }
+    }
+
+    for (const kind of ['handler', 'parameter callback']) {
       for (const failure of ['throw', 'reject']) {
         it('should not set a result when a ' + kind + ' ' + (failure === 'throw' ? 'throws' : 'rejects'), async function () {
           const at = snapshots()
