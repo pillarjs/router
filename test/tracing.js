@@ -1862,6 +1862,37 @@ describeTracing('TracingChannel', function () {
       })
     }
 
+    for (const kind of ['middleware', 'parameter callback']) {
+      for (const misuse of ['throws', 'rejects']) {
+        it('should settle a ' + kind + ' thenable once when it resolves and then ' + misuse, async function () {
+          const at = snapshots()
+          const { router, server } = traced()
+
+          function subject (req, res, next) {
+            return {
+              then (resolve, reject) {
+                resolve('val')
+                if (misuse === 'throws') throw new Error('late')
+                reject(new Error('late'))
+              }
+            }
+          }
+
+          if (kind === 'middleware') router.use(subject)
+          if (kind === 'parameter callback') router.param('id', subject)
+          router.get('/users/:id', function user (req, res) { res.end('ok') })
+          router.use(recover)
+
+          // Routing still gets the late error, as it does untraced
+          await request(server).get('/users/1').expect(500, 'late')
+
+          const phases = at.phases('subject').filter(function (phase) { return phase !== 'error' })
+          assert.deepStrictEqual(phases, ['end', 'asyncStart', 'asyncEnd'])
+          assert.strictEqual(at('subject', 'asyncEnd').result, 'val')
+        })
+      }
+    }
+
     for (const kind of ['handler', 'parameter callback']) {
       for (const failure of ['throw', 'reject']) {
         it('should not set a result when a ' + kind + ' ' + (failure === 'throw' ? 'throws' : 'rejects'), async function () {
