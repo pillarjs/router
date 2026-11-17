@@ -861,6 +861,39 @@ describe('Router', function () {
             }
           ], done)
         })
+
+        it('should not treat a lookbehind as a capture group', function (done) {
+          const router = new Router()
+          const server = createServer(router)
+
+          router.route(/(?<=\/f\/)(?<id>[0-9]+)$/).all(sendParams)
+          router.route(/^\/g\/(?<!x)(?<id>[0-9]+)$/).all(sendParams)
+
+          series([
+            function (cb) {
+              request(server)
+                .get('/f/42')
+                .expect(200, { id: '42' }, cb)
+            },
+            function (cb) {
+              request(server)
+                .get('/g/42')
+                .expect(200, { id: '42' }, cb)
+            }
+          ], done)
+        })
+
+        it('should name groups after a lookbehind correctly', function (done) {
+          const router = new Router()
+          const route = router.route(/(?<=\/h\/)([0-9]+)-(?<id>[0-9]+)$/)
+          const server = createServer(router)
+
+          route.all(sendParams)
+
+          request(server)
+            .get('/h/1-42')
+            .expect(200, { 0: '1', id: '42' }, done)
+        })
       })
 
       describe('using "(regexp)"', function () {
