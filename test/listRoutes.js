@@ -214,6 +214,117 @@ describe('listRoutes', function () {
     ])
   })
 
+  it('should expose a router referenced by a middleware wrapper', function () {
+    const router = new Router()
+    const inner = new Router()
+
+    function wrapper (req, res, next) { inner(req, res, next) }
+    wrapper.router = inner
+    inner.get('/users', noop)
+    router.use(['/api', '/v1'], wrapper)
+
+    const routes = router.listRoutes()
+
+    assert.deepStrictEqual(routes, [
+      { path: '/api', methods: undefined, router: inner },
+      { path: '/v1', methods: undefined, router: inner }
+    ])
+    assert.deepStrictEqual(routes[0].router.listRoutes(), [
+      { path: '/users', methods: ['GET', 'HEAD'], router: undefined }
+    ])
+  })
+
+  it('should resolve a wrapped router lazily when listing routes', function () {
+    const router = new Router()
+    let inner
+    let reads = 0
+
+    function wrapper (req, res, next) { inner(req, res, next) }
+    Object.defineProperty(wrapper, 'router', {
+      get () {
+        reads++
+        return inner || (inner = new Router())
+      }
+    })
+
+    router.use('/api', wrapper)
+    assert.strictEqual(reads, 0)
+    assert.strictEqual(inner, undefined)
+
+    const routes = router.listRoutes()
+    assert.strictEqual(reads, 1)
+    assert.strictEqual(routes[0].router, inner)
+    assert.deepStrictEqual(inner.listRoutes(), [])
+
+    inner.get('/users', noop)
+    assert.deepStrictEqual(routes[0].router.listRoutes(), [
+      { path: '/users', methods: ['GET', 'HEAD'], router: undefined }
+    ])
+  })
+
+  it('should prefer the mounted router over its router property', function () {
+    const router = new Router()
+    const inner = new Router()
+
+    Object.defineProperty(inner, 'router', {
+      get () { throw new Error('unexpected router property access') }
+    })
+    router.use('/api', inner)
+
+    assert.strictEqual(router.listRoutes()[0].router, inner)
+  })
+
+  it('should skip middleware whose router property is not a callable router', function () {
+    const router = new Router()
+
+    for (const value of [undefined, null, true, 'router', {}, { stack: [] }, { stack: {} }, noop]) {
+      function middleware (req, res, next) { next() }
+      middleware.router = value
+      router.use('/api', middleware)
+    }
+
+    assert.deepStrictEqual(router.listRoutes(), [])
+  })
+
+  it('should expose wrapped routers that do not implement listRoutes', function () {
+    const router = new Router()
+
+    function legacy (req, res, next) { next() }
+    legacy.stack = []
+    function wrapper (req, res, next) { legacy(req, res, next) }
+    wrapper.router = legacy
+    router.use('/legacy', wrapper)
+
+    assert.deepStrictEqual(router.listRoutes(), [
+      { path: '/legacy', methods: undefined, router: legacy }
+    ])
+  })
+
+  it('should dispatch through the wrapper after listing its router', function (done) {
+    const router = new Router()
+    const inner = new Router()
+    let handled = false
+
+    function wrapper (req, res, next) {
+      req.wrapped = true
+      inner(req, res, next)
+    }
+    wrapper.router = inner
+    inner.get('/users', function (req, res, next) {
+      assert.strictEqual(req.wrapped, true)
+      handled = true
+      next()
+    })
+    router.use('/api', wrapper)
+    assert.strictEqual(router.listRoutes()[0].router, inner)
+
+    router({ method: 'GET', url: '/api/users' }, {}, function (err) {
+      assert.ifError(err)
+      assert.strictEqual(handled, true)
+      done()
+    })
+  })
+
   it('should use the default path when mounting a router without a path', function () {
     const router = new Router()
     const inner = new Router()

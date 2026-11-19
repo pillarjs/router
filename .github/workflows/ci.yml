@@ -83,7 +83,8 @@ jobs:
 
       - name: Merge coverage reports
         shell: bash
-        run: find ./coverage -name lcov.info -exec printf '-a %q\n' {} \; | xargs lcov -o ./lcov.info
+        # This job reports line coverage; Istanbul can emit duplicate function names.
+        run: find ./coverage -name lcov.info -exec printf '-a %q\n' {} \; | xargs lcov --no-function-coverage -o ./lcov.info
 
       - name: Upload coverage report
         uses: coverallsapp/github-action@8d6379e14d29928660c4ba802d8e85393440b329 # v2.3.8

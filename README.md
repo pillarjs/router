@@ -254,7 +254,12 @@ registered on this router, in registration order.
   An empty array means the route was created with
   `router.route(path)` but has no handlers yet, so it matches no method.
 - `router` is the mounted router instance for `.use(path, router)` entries,
-  otherwise `undefined`. Nested routes are not resolved recursively; consumers
+  or the router exposed by a middleware wrapper's `.router` property.
+  Wrapped routers must be functions with an array-valued `.stack`, just like
+  directly mounted routers. Otherwise, `router` is `undefined`.
+  The `.router` property is read when listing routes, so a getter can defer
+  router creation until inspection. Request handling still calls the wrapper.
+  Nested routes are not resolved recursively; consumers
   can recurse themselves by calling `router.listRoutes()` when the mounted
   router implements it. Note that `.use()`
   entries match their path as a prefix, while route entries match the full
