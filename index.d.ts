@@ -134,6 +134,7 @@ declare namespace Router {
     /**
      * List routes and mounted routers in registration order, one entry per path.
      * Methods include `'*'` for `.all()` and implicit `HEAD` for `GET` routes.
+     * Middleware wrappers may expose a mounted router through their `.router` property.
      * Plain middleware is omitted; mounted routers are not traversed recursively.
      */
     listRoutes(): RouteInfo[]

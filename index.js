@@ -464,7 +464,8 @@ Router.prototype.route = function route (path) {
  * `GET` routes is appended unless explicitly registered. It is `undefined`
  * for mounted routers. Plain middleware is not listed.
  * `router` is the mounted router instance for
- * `.use(path, router)` layers, so consumers can recurse by calling
+ * `.use(path, router)` layers, or the `.router` of a middleware wrapper.
+ * Consumers can recurse by calling
  * `router.listRoutes()` themselves when it is available.
  *
  * @return {Array<{path: string|RegExp, methods: Array<string>|undefined, router: Router|undefined}>}
@@ -475,9 +476,16 @@ Router.prototype.listRoutes = function listRoutes () {
 
   for (const layer of this.stack) {
     const route = layer.route
-    const router = !route && Array.isArray(layer.handle.stack)
-      ? layer.handle
-      : undefined
+    let router
+
+    if (!route) {
+      const handle = layer.handle
+      const candidate = Array.isArray(handle.stack) ? handle : handle.router
+
+      if (typeof candidate === 'function' && Array.isArray(candidate.stack)) {
+        router = candidate
+      }
+    }
 
     if (!route && !router) {
       continue
